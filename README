@@ -1,6 +1,6 @@
 
 This is the README file for the Perl extension module AFS
-(Version 2.2.0) 
+(Version 2.2.1) 
 
 
 DESCRIPTION
@@ -27,12 +27,12 @@ BUILDING & INSTALLING
     should be straightforward. The AFS module bundle is distributed as a
     single gzipped tar archive file:
 
-            AFS-2.2.0.tar.gz
+            AFS-2.2.1.tar.gz
 
     Unpack the archive to create an AFS installation directory:
 
-        gunzip AFS-2.2.0.tar.gz
-        tar xvf AFS-2.2.0.tar
+        gunzip AFS-2.2.1.tar.gz
+        tar xvf AFS-2.2.1.tar
 
     'cd' into that directory, make, test and install the modules. You
     have to specify the location of the AFS system libraries. While
@@ -44,7 +44,7 @@ BUILDING & INSTALLING
 
     This is the sequence of commands to build the modules:
 
-        cd AFS-2.2.0
+        cd AFS-2.2.1
 
         [1] this step is optional
         setenv AFSPATH 'path_to_the_AFS_system_libraries' # tcsh-shell
@@ -146,8 +146,8 @@ FEEDBACK
 Availability
     The latest version of the AFS module bundle is currently available at
 
-        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.2.0.tar.gz
-        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.2.0.tar.gz
+        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.2.1.tar.gz
+        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.2.1.tar.gz
 
 
 MAJOR CHANGES (from version 1 to version 2)

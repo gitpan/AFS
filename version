@@ -1,12 +1,12 @@
-$head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/version $';
+$head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/version $';
 
 if ($head_url =~ /rc\d/) {
     # release candidate
-    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/version $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
+    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/version $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
 }
 elsif ($head_url =~ /release/) {
     # normal release
-    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/version $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/version $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
 }
 else {
     # development release

@@ -1,6 +1,6 @@
 package AFS::KAS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: KAS.pm 528 2004-01-06 18:36:03Z nog $"
+# RCS-Id: "@(#)$Id: KAS.pm 587 2004-03-07 15:30:38Z nog $"
 #
 # Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = do{my@r=q/Major Version 2.2 $Rev: 528 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
+$VERSION = do{my@r=q/Major Version 2.2 $Rev: 587 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
 
 # not suported anymore
 # please use the functions from AFS::Cell !!!
@@ -38,8 +38,8 @@ $VERSION = do{my@r=q/Major Version 2.2 $Rev: 528 $/=~/\d+/g;$r[1]-=0;sprintf'%d.
 
 sub DESTROY {
     my (undef, undef, undef, $subroutine) = caller(1);
-    if (! $subroutine) { undef $_[0]; }    # self->DESTROY
-    else { AFS::KAS::_DESTROY($_[0]); }    # undef self
+    if ($subroutine !~ /eval/) { undef $_[0]; }    # self->DESTROY
+    else { AFS::KAS::_DESTROY($_[0]); }            # undef self
 }
 
 sub AuthServerConn {

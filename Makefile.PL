@@ -24,12 +24,13 @@ system("cp ./pod/v2/afsperlvldb.pod lib/AFS/VLDB.pod");
 system("cp ./pod/v2/afsperlvos.pod lib/AFS/VOS.pod");
 
 WriteMakefile(
-              'NAME'         => 'AFS',
-              'VERSION'      => $VERSION,
+              'NAME'       => 'AFS',
+              'VERSION'    => $VERSION,
               ($] >= 5.005 ?
-               ('AUTHOR'   => 'Norbert E Gruener <nog@MPA-Garching.MPG.de>',
-                'ABSTRACT' => 'Perl interface to AFS programming APIs') : () ),
-              'realclean'  => {FILES => 'Makefile.bak pod/v2/*.html pod/v2/pod2htm* lib'},
+                   ('AUTHOR'   => 'Norbert E Gruener <nog@MPA-Garching.MPG.de>',
+                    'ABSTRACT' => 'Perl interface to AFS programming APIs',
+                    'NO_META'  => true) : () ),
+              'realclean'  => {FILES => 'Makefile.bak pod/v2/*.html pod/v2/pod2htm* lib' },
              );
 
 sub MY::postamble {

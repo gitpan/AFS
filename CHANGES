@@ -1,3 +1,21 @@
+Version 2.2.1 (released 09 March 2004, revision 594)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.1.tar.gz
+
+ NOTICE: This release does not support AFS system libraries
+         version 3.4 or version 3.5
+ 
+ User-visible changes:
+ * fixed method DESTROY for the modules AFS::KAS, AFS::PTS,
+   AFS::VLDB, and AFS::VOS; under certain circumstances they caused
+   segmentation faults; 
+
+
+ Developer-visible changes:
+ * none
+
+
+
+
 Version 2.2.0 (released 03 February 2004, revision 571)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.0.tar.gz
 

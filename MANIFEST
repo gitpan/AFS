@@ -5,6 +5,7 @@ LICENCES/IBM-LICENCE
 LICENCES/Stanford-LICENCE
 MANIFEST
 Makefile.PL
+META.yml                                 Module meta-data (added by MakeMaker)
 README
 TODO
 examples/README
@@ -168,6 +169,7 @@ examples/v2/kas/Authenticate
 examples/v2/kas/ChangePassword
 examples/v2/kas/GetToken
 examples/v2/kas/SingleServerConn
+examples/v2/kas/constructor
 examples/v2/kas/create
 examples/v2/kas/debug
 examples/v2/kas/delete
@@ -213,6 +215,7 @@ examples/v2/pts/adduser
 examples/v2/pts/ascii2ptsaccess
 examples/v2/pts/chid
 examples/v2/pts/chown
+examples/v2/pts/constructor
 examples/v2/pts/creategroup
 examples/v2/pts/createuser
 examples/v2/pts/delete
@@ -289,6 +292,7 @@ pod/v2/README
 pod/v2/afsperl.pod
 pod/v2/afsperlacl.pod
 pod/v2/afsperlbase.pod
+pod/v2/afsperlbos.pod
 pod/v2/afsperlcell.pod
 pod/v2/afsperlcm.pod
 pod/v2/afsperlfs.pod

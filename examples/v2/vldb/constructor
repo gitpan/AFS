@@ -9,10 +9,15 @@ our ($verbose, $vldb);
 
 die "Usage: $0 [verbose]\n" if $#ARGV > 0;
 
-$verbose = shift;
+$verbose = shift || 0;
 
 $vldb = AFS::VLDB->new($verbose);
 if ($AFS::CODE) { print "Error Code: $AFS::CODE\n"; }
 else { print "OK \n"; }
 
-$vldb->DESTROY;
+test_it($vldb);
+
+sub test_it {
+    my $self = shift;
+    $self->DESTROY;
+}

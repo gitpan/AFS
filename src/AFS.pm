@@ -34,14 +34,14 @@ use vars qw(@ISA $VERSION $REVISION);
 
 @ISA = qw(Exporter AutoLoader DynaLoader);
 
-my $head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/src/AFS.pm $';
+my $head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/src/AFS.pm $';
 if ($head_url =~ /rc\d/) {
     # release candidate
-    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/src/AFS.pm $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
+    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/src/AFS.pm $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
 }
 elsif ($head_url =~ /release/) {
     # normal release
-    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/src/AFS.pm $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/src/AFS.pm $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
 }
 else {
     # development release
