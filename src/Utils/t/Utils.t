@@ -3,9 +3,13 @@
 use strict;
 use lib qw(../../inc ../inc);
 
-use Test::More tests => 7;
+use Test::More;
 
 BEGIN {
+    use AFS::FS;
+    if (AFS::FS::isafs('./')) { plan tests => 7; }
+    else { plan skip_all => 'Working directory is not in AFS file system ...'; }
+
     use_ok('AFS::Utils', qw (
                              XSVERSION get_server_version get_syslib_version
                              setpag sysname unlog

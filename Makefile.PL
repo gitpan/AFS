@@ -1,6 +1,11 @@
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
+use Config;
+
+my $archname = $Config{'archname'};
+
+if ($archname =~ /thread/i) { die "Threaded Perl is not supported ...\n"; }
 
 require 'version';
 

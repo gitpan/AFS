@@ -3,11 +3,15 @@
 use strict;
 use lib qw(../../inc ../inc);
 
-use Test::More tests => 9;
+use Test::More;
 
 my ($quota, @hosts);
 
 BEGIN {
+    use AFS::FS;
+    if (AFS::FS::isafs('./')) { plan tests => 9; }
+    else { plan skip_all => 'Working directory is not in AFS file system ...'; }
+
     use_ok(
            'AFS::FS', qw(
                          getquota setquota whereis

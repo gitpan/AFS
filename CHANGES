@@ -1,3 +1,23 @@
+Version 2.2.2 (released 06 May 2004, revision 627)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.2.tar.gz
+
+ NOTICE:
+ * This release does not support AFS system libraries version 3.4 or
+   version 3.5
+ * This release does ONLY work with Perl "unthreaded" versions (this
+   is true for all versions 2.2.X)
+ 
+ User-visible changes:
+ * improved most test drivers;
+ * included checks for Perl "unthreaded" version;
+
+
+ Developer-visible changes:
+ * modified AFS.xs function "isafs": patched error handling
+
+
+
+
 Version 2.2.1 (released 09 March 2004, revision 594)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.1.tar.gz
 

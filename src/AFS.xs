@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 564 2004-02-02 08:15:47Z nog $
+ * RCS-Id: @(#)$Id: AFS.xs 609 2004-04-22 12:12:16Z nog $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -97,7 +97,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Major Version 2.2 $Rev: 564 $)";
+const char *const xs_version = "AFS.xs (Major Version 2.2 $Rev: 609 $)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -2620,6 +2620,8 @@ static int32 isafs(path, follow)
     code = pioctl(path, VIOC_FILE_CELL_NAME, &vi, follow);
     if (code) {
         if ((errno == EINVAL) || (errno == ENOENT))
+            return 0;
+        if (errno == ENOSYS)
             return 0;
     }
     return 1;
@@ -8543,7 +8545,7 @@ bos_listhosts(self)
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av))));
         
         XSRETURN(2);
-        FSETCODE(code);
+        FSSETCODE(code);
         
         done:
         ;

@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperl.pod 569 2004-02-02 14:01:28Z nog $"
+# RCS-Id: "@(#)$Id: afsperl.pod 603 2004-04-22 11:48:13Z nog $"
 #
 # Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -15,7 +15,7 @@ B<AFS> - Perl interface to AFS programming APIs
 =head1 VERSION
 
 This document describes the AFS module bundle
-(Version 2.2.1)
+(Version 2.2.2)
 
 
 =head1 COMPATIBILITY
@@ -126,7 +126,7 @@ AFS function call. See L<afsperlbase>.
 
 =over 4
 
-=item Perl 5.005_02 or better
+=item Perl 5.005_02 or newer but "unthreaded" version
 
 =item AFS system libraries (either B<IBM/Transarc AFS V 3.6> or B<OpenAFS>)
 
@@ -210,6 +210,11 @@ of the BOS, VOS, and VLDB modules
 
 B<Phil Moore> - for his bug report on Itanium ia64 platform
 
+B<Frank Burkhardt> and B<David Miller> - for their problem reports connected
+to Perl "unthreaded" version with the Debian "unstable" distribution
+
+B<Pierre-Yves Fontaniere> - for his configuration report for rs_aix51
+
 =head1 COPYRIGHT AND DISCLAIMER
 
  © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
@@ -243,4 +248,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 569 $
+Revision $Rev: 603 $

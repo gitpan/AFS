@@ -347,5 +347,6 @@ src/inc/Test/Builder.pm
 src/inc/Test/More.pm
 src/ppport.h
 src/t/AFS.t
+src/t/pod.t
 src/typemap
 version

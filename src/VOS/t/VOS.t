@@ -3,12 +3,15 @@
 use strict;
 use lib qw(../../inc ../inc);
 
-use Test::More tests => 7;
+use Test::More;
 
 BEGIN {
+    use AFS::FS;
+    if (AFS::FS::isafs('./')) { plan tests => 7; }
+    else { plan skip_all => 'Working directory is not in AFS file system ...'; }
+
     use_ok('AFS::VOS');
 }
-
 
 my $vos = AFS::VOS->new;
 is(ref($vos), 'AFS::VOS', 'vos->new()');

@@ -1,6 +1,6 @@
 package AFS::PTS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: PTS.pm 587 2004-03-07 15:30:38Z nog $"
+# RCS-Id: "@(#)$Id: PTS.pm 625 2004-05-05 13:30:16Z nog $"
 #
 # Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = do{my@r=q/Major Version 2.2 $Rev: 587 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
+$VERSION = do{my@r=q/Major Version 2.2 $Rev: 625 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
 
 sub new {
     # this whole construct is to please the old version from Roland
@@ -29,8 +29,8 @@ sub new {
 
 sub DESTROY {
     my (undef, undef, undef, $subroutine) = caller(1);
-    if ($subroutine !~ /eval/) { undef $_[0]; }    # self->DESTROY
-    else { AFS::PTS::_DESTROY($_[0]); }            # undef self
+    if (! defined $subroutine or $subroutine !~ /eval/) { undef $_[0]; }  # self->DESTROY
+    else { AFS::PTS::_DESTROY($_[0]); }                                   # undef self
 }
 
 sub ascii2ptsaccess {

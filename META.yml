@@ -1,5 +1,5 @@
 name: AFS
-version: 2.2.1
+version: 2.2.2
 abstract: Perl interface to AFS programming APIs
 author: Norbert E Gruener <nog@MPA-Garching.MPG.de>
 license: perl

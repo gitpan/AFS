@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL 561 2004-02-02 07:47:21Z nog $"
+# RCS-Id: "@(#)$Id: Makefile.PL 621 2004-05-05 10:01:34Z nog $"
 #
 # Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -12,19 +12,22 @@ use English;
 use ExtUtils::MakeMaker;
 use Config;
 
+my $archname = $Config{'archname'};
+if ($archname =~ /thread/i) { die "Threaded Perl is not supported ...\n"; }
+
 my $VERSION;
-my $head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/src/Makefile.PL $';
+my $head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/Makefile.PL $';
 if ($head_url =~ /rc\d/) {
     # release candidate
-    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/src/Makefile.PL $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
+    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/Makefile.PL $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
 }
 elsif ($head_url =~ /release/) {
     # normal release
-    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.1/src/Makefile.PL $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/Makefile.PL $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
 }
 else {
     # development release
-    $VERSION = do{my@r=q/Major Version 2.2 $Rev: 561 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    $VERSION = do{my@r=q/Major Version 2.2 $Rev: 621 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
 }
 
 # give me the path to the AFS system libraries

@@ -2,9 +2,7 @@ use strict;
 
 use lib qw(../../inc ../inc ./inc);
 
-use Test::More tests => 11;
-
-my ($acl, $ok, $copy, $rights, $new_acl);
+use Test::More tests => 10;
 
 BEGIN {
     use_ok('AFS', qw (
@@ -18,7 +16,6 @@ sub foo { return &AFS::KA_USERAUTH_DOSETPAG }
 # test error_message
 is(error_message(&AFS::PRNOMORE), 'may not create more groups', 'Return Code AFS::PRNOMORE');
 is(error_message(180502), 'too many Ubik security objects outstanding', 'Return Code 180502');
-is(error_message(13), 'Permission denied', 'Return Code Permission denied');
 
 # test subroutine returning a constant
 is(foo(42,17), 65536, 'Sub Foo returns constant (2 args)');
