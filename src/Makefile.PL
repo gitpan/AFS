@@ -11,7 +11,7 @@ use ExtUtils::MakeMaker;
 use Config;
 
 # set XS version to sync the PM-Version and the XS-Version
-$XS_VERSION = do{my@r=q/V_2_01/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
+$XS_VERSION = do{my@r=q/v_2_02/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
 
 # give me the path to the AFS system libraries
 # used to build the AFS extension module

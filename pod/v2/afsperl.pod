@@ -15,7 +15,7 @@ B<AFS> - Perl interface to AFS programming APIs
 =head1 VERSION
 
 This document describes the AFS module bundle Version 2 (release
-V_2_01).
+v_2_02).
 
 =head1 COMPATIBILITY
 

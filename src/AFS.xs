@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)AFS.xs,v 2.1 2002/07/04 06:09:05 nog Exp
+ * RCS-Id: @(#)AFS.xs,v 2.2 2002/07/12 05:42:57 nog Exp
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the same terms as Perl itself.
@@ -82,7 +82,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char * const xs_version = "AFS.xs (2.1)";
+const char * const xs_version = "AFS.xs (2.2)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -3564,7 +3564,7 @@ kas_KAM_SetFields(server,name,instance,flags,user_expire,max_ticket_life, maxAss
 	int32	user_expire
 	int32	max_ticket_life
 	int32	maxAssoc
-        uint32  misc_auth_bytes;  /* 4 bytes, each 0 means unspecified*/
+        uint32  misc_auth_bytes
 	int32	spare2
    PPCODE:
    {

@@ -1,5 +1,6 @@
 TYPEMAP
 int32			T_IV
+uint32			T_UV
 AFS::ACL		T_PTROBJ
 AFS::PTS       		T_PTROBJ
 AFS::KAS		T_PTROBJ

@@ -31,7 +31,7 @@ require DynaLoader;
 use vars qw(@ISA $VERSION $REVISION);
 
 @ISA      = qw(Exporter AutoLoader DynaLoader);
-$VERSION  = do{my@r=q/V_2_01/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
+$VERSION  = do{my@r=q/v_2_02/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
 $REVISION = sprintf("%d.%02d", q/2.2/ =~ /(\d+)\.(\d+)/);
 
 @CELL = qw (
