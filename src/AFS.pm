@@ -1,7 +1,7 @@
 package AFS;
 
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)AFS.pm,v 2.0 2002/07/02 06:11:22 nog Exp"
+# RCS-Id: "@(#)AFS.pm,v 2.2 2002/07/08 08:42:26 nog Exp"
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -31,8 +31,8 @@ require DynaLoader;
 use vars qw(@ISA $VERSION $REVISION);
 
 @ISA      = qw(Exporter AutoLoader DynaLoader);
-$VERSION  = do{my@r=q/V_2_0/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
-$REVISION = sprintf("%d.%02d", q/2.0/ =~ /(\d+)\.(\d+)/);
+$VERSION  = do{my@r=q/V_2_01/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
+$REVISION = sprintf("%d.%02d", q/2.2/ =~ /(\d+)\.(\d+)/);
 
 @CELL = qw (
             configdir
@@ -143,7 +143,8 @@ $REVISION = sprintf("%d.%02d", q/2.0/ =~ /(\d+)\.(\d+)/);
 @ALL = (@EXPORT, @EXPORT_OK);
 
 # convenience functions
-sub newacl { use AFS::ACL; AFS::ACL->new(@_); }
+#sub newacl { use AFS::ACL; AFS::ACL->new(@_); }
+sub newacl { require AFS::ACL; AFS::ACL->import; AFS::ACL->new(@_); }
 
 sub newpts { AFS::PTS->_new(@_); }
 
@@ -212,24 +213,25 @@ sub cleanacl {
 package AFS::PTS_SERVER;
 sub new { AFS::PTS->_new(@_); }
 
-package AFS::KTC_PRINCIPAL;
-sub new { AFS::KTC_PRINCIPAL->_new(@_); }
+use AFS::KTC_PRINCIPAL;
+# package AFS::KTC_PRINCIPAL;
+# sub new { AFS::KTC_PRINCIPAL->_new(@_); }
 
+use AFS::KAS;
 # *** CAUTION ***
-# these functions are redundant, they are also stored in AFS::KAS.pm  !!!
-# this is necessary to please version 1
+# these functions are now stored in AFS::KAS.pm  !!!
 #package AFS::KA_AUTHSERVER;
-package AFS::KAS;
+# package AFS::KAS;
 
-sub getentry    { $_[0]->KAM_GetEntry($_[1],$_[2]); }
-sub debug       { $_[0]->KAM_Debug(&AFS::KAMAJORVERSION); }
-sub getstats    { $_[0]->KAM_GetStats(&AFS::KAMAJORVERSION); }
-sub randomkey   { $_[0]->KAM_GetRandomKey; }
-sub create      { $_[0]->KAM_CreateUser($_[1],$_[2],$_[3]); }
-sub setpassword { $_[0]->KAM_SetPassword($_[1],$_[2],$_[3],$_[4]); }
-sub delete      { $_[0]->KAM_DeleteUser($_[1],$_[2]); }
-sub listentry   { $_[0]->KAM_ListEntry($_[1],$_[2],$_[3]); }
-sub setfields   { $_[0]->KAM_SetFields($_[1],$_[2],$_[3],$_[4],$_[5],$_[6],$_[7],$_[8]); }
+# sub getentry    { $_[0]->KAM_GetEntry($_[1],$_[2]); }
+# sub debug       { $_[0]->KAM_Debug(&AFS::KAMAJORVERSION); }
+# sub getstats    { $_[0]->KAM_GetStats(&AFS::KAMAJORVERSION); }
+# sub randomkey   { $_[0]->KAM_GetRandomKey; }
+# sub create      { $_[0]->KAM_CreateUser($_[1],$_[2],$_[3]); }
+# sub setpassword { $_[0]->KAM_SetPassword($_[1],$_[2],$_[3],$_[4]); }
+# sub delete      { $_[0]->KAM_DeleteUser($_[1],$_[2]); }
+# sub listentry   { $_[0]->KAM_ListEntry($_[1],$_[2],$_[3]); }
+# sub setfields   { $_[0]->KAM_SetFields($_[1],$_[2],$_[3],$_[4],$_[5],$_[6],$_[7],$_[8]); }
 
 
 package AFS;

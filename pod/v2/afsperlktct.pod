@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlktct.pod,v 2.2 2002/06/28 12:04:00 nog Exp"
+# RCS-Id: "@(#)afsperlktct.pod,v 2.3 2002/07/04 06:14:29 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -46,6 +46,11 @@ B<AFS::KTC_TOKEN> - Class to handle the B<AFS structure ktc_token>
   ($token, $user) = AFS::KTC_TOKEN->GetToken($service);
   AFS::KTC_TOKEN->ForgetAllTokens();
   AFS::KTC_TOKEN->SetToken($service, $token, $user, 0);
+
+  my $string = $token->string;
+  $token = AFS::KTC_TOKEN->FromString($string);
+  print "  StartTime  = ", $token->startTime, "\n";
+  print "  EndTime    = ", $token->endTime, "\n";
 
   my $user = AFS::KTC_PRINCIPAL->new('nog','',localcell);
   my $key  = AFS::KTC_EKEY->ReadPassword('nog Password:');
@@ -253,6 +258,11 @@ B<NOTE: this form is deprecated !!!>
 
  $ok = ktc_ForgetAllTokens;
 
+=item B<$token = AFS::KTC_TOKEN-E<gt>FromString(STRING);>
+
+Returns a recovered token from STRING. This STRING was previously
+generated with the instance method '$token-E<gt>string'.
+
 =back
 
 =head2 Attributes Access
@@ -316,4 +326,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.2
+Version 2.3

@@ -10,7 +10,7 @@ my $pts = AFS::PTS->new;
 
 print "----- scaler\n";
 
-my $name = 'nog';
+my $name = 'foobar';
 my $id = $pts->id($name, $anon);
 print "name = $name id = $id\n";
 

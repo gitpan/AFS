@@ -1,6 +1,6 @@
 package AFS::ACL;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)ACL.pm,v 1.2 2002/06/18 05:56:05 nog Exp"
+# RCS-Id: "@(#)ACL.pm,v 1.3 2002/07/04 05:59:18 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -8,12 +8,12 @@ package AFS::ACL;
 # under the same terms as Perl itself.
 #------------------------------------------------------------------------------
 
-use AFS;
+use AFS ();
 
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = sprintf("%d.%02d", q/1.2/ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q/1.3/ =~ /(\d+)\.(\d+)/);
 
 sub new {
     my ($this, $class);
@@ -64,9 +64,6 @@ sub retrieve {
     $follow = 1 unless defined $follow;
     AFS::getacl($path, $follow);
 }
-
-{ # this is to please version 1 and to avoid warning about redefined subroutines
-no warnings;
 
 sub modifyacl {
     my $self   = shift;
@@ -125,8 +122,6 @@ sub rights2ascii {
 
     AFS::rights2ascii(@_);
 }
-
-} # this is to please version 1 and to avoid warning about redefined subroutines
 
 # old form  DEPRECATED !!!!
 sub addacl {

@@ -1,5 +1,5 @@
 
-This is the README file for the Perl extension module AFS (version V_2_0)
+This is the README file for the Perl extension module AFS (version V_2_01)
 
 
 DESCRIPTION
@@ -46,6 +46,52 @@ BUILDING & INSTALLING
         make
         make test
         make install
+
+
+SunOS
+
+    Under SunOS, several people have encountered problems while compiling
+    and installing the AFS module bundle.  From my own experience I can
+    report that the module bundle did not compile with every AFS system
+    library packages (see below).  
+
+    If you're a SunOS user who knows a solution to an encountered problem
+    and would like to document the solution for others, please send the
+    docs to the AFS module maintainer to amend the instalation directions.
+
+    Here is a collection of user reports about their "sun" problems.
+
+    From: Alf Wachsmann <alf@ifh.de>
+    Compiling with Sun's SUNWspro cc doesn't work for me, so I use the gcc
+    (version 2.8.1) which gives lots of warnings, but it compiles the module.
+    Note the changed flag -fpic instead of -Kpic!
+
+    From: Peter Scott <Peter@PSDT.com> 
+    Gotcha.  I am trying this on Solaris 2.6... success!  All tests
+    pass.  You might want to mention that the GNU ld loses on this, have
+    to use the Sun ld.  perl Makefile.PL LD=/usr/ccs/bin/ld
+
+    From: Norbert Gruener <nog@MPA-Garching.MPG.de>
+    In the meantime I traced the "sun-problem"
+        sun4x_57          compiles with AFS 3.6 Patch 2.0   gcc 2.95.2
+        sun4x_57 does not compile  with AFS 3.6 Patch 2.3   gcc 2.95.2
+        sun4x_57          compiles with AFS 3.6 Patch 2.6   gcc 2.95.2
+
+    From: Alf Wachsmann <alfw@SLAC.Stanford.EDU>
+    I checked on our site:
+        sun4x_56        compiles with AFS 3.6 Patch 2.0
+        sun4x_57        compiles with AFS 3.6 Patch 2.5
+
+    From: Peter Scott <Peter@PSDT.com>
+    FYI and FWIW, I have installed this with:
+    AFS 3.4.555 library on sun4x_55 with gcc 2.8.1.
+
+    On Solaris 2.6 I built it with AFS 3.5.345.  On Solaris 2.8 it was 3.6.226.
+    It built ok on Solaris 2.8 and 3.5 for me without changes, so the
+    problem child seems to be Solaris 2.6.
+    On Solaris 2.6 with AFS 3.5.345, I needed to define int32 and uint32.
+    $d_flag .= ' -Dint32=afs_int32 -Duint32=afs_uint32' if $alpha_sys eq 'sun4x_56';  # From Peter@PSDT.com
+
 
 
 FEEDBACK
@@ -163,6 +209,17 @@ COPYRIGHT AND DISCLAIMER
 
     This library is free software; you can redistribute it and/or modify
     it under the same terms as Perl itself.
+
+    You should have received a copy of the Perl license along with
+    Perl; see the file 'README' in Perl distribution.
+
+    You should have received a copy of the GNU General Public License
+    along with Perl; see the file 'COPYING'.  If not, write to the Free
+    Software Foundation, 59 Temple Place - Suite 330, Boston, MA
+    02111-1307, USA.
+
+    You should have received a copy of the Artistic License
+    along with Perl; see the file 'Artistic'.
 
     The original module is covered by the following copyright:
        Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University

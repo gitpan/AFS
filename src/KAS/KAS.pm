@@ -1,6 +1,6 @@
 package AFS::KAS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)KAS.pm,v 2.0 2002/07/02 06:12:42 nog Exp"
+# RCS-Id: "@(#)KAS.pm,v 2.1 2002/07/04 06:00:26 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -8,12 +8,12 @@ package AFS::KAS;
 # under the same terms as Perl itself.
 #------------------------------------------------------------------------------
 
-use AFS;
+use AFS ();
 
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = sprintf("%d.%02d", q/2.0/ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q/2.1/ =~ /(\d+)\.(\d+)/);
 
 # not suported anymore
 # please use the functions from AFS::Cell !!!
@@ -66,11 +66,8 @@ sub GetToken {
     $self->ka_GetToken(@_)
 }
 
-{ # this is to please version 1 and to avoid warning about redefined subroutines
-  # *** CAUTION ***
-  # these functions are redundant, they are also stored in AFS.pm  !!!
-
-no warnings;
+# *** CAUTION ***
+# these functions are redundant, they are also stored in AFS.pm  !!!
 
 sub getentry    { $_[0]->KAM_GetEntry($_[1],$_[2]); }
 sub debug       { $_[0]->KAM_Debug(&AFS::KAMAJORVERSION); }
@@ -81,7 +78,5 @@ sub setpassword { $_[0]->KAM_SetPassword($_[1],$_[2],$_[3],$_[4]); }
 sub delete      { $_[0]->KAM_DeleteUser($_[1],$_[2]); }
 sub listentry   { $_[0]->KAM_ListEntry($_[1],$_[2],$_[3]); }
 sub setfields   { $_[0]->KAM_SetFields($_[1],$_[2],$_[3],$_[4],$_[5],$_[6],$_[7],$_[8]); }
-
-}
 
 1;

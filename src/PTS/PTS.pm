@@ -1,6 +1,6 @@
 package AFS::PTS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)PTS.pm,v 2.0 2002/07/02 06:13:51 nog Exp"
+# RCS-Id: "@(#)PTS.pm,v 2.1 2002/07/04 06:00:35 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -8,15 +8,12 @@ package AFS::PTS;
 # under the same terms as Perl itself.
 #------------------------------------------------------------------------------
 
-use AFS;
+use AFS ();
 
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = sprintf("%d.%02d", q/2.0/ =~ /(\d+)\.(\d+)/);
-
-{ # this is to please version 1 and to avoid warning about redefined subroutines
-no warnings;
+$VERSION = sprintf("%d.%02d", q/2.1/ =~ /(\d+)\.(\d+)/);
 
 sub new {
     # this whole construct is to please the old version from Roland
@@ -46,8 +43,6 @@ sub convert_numeric_names {
     my $class = shift;
 
     AFS::convert_numeric_names(@_);
-}
-
 }
 
 1;

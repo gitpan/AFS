@@ -239,6 +239,8 @@ pod/v1/afsperlktc.pod
 pod/v1/afsperlmisc.pod
 pod/v1/afsperlobj.pod
 pod/v1/afsperlpts.pod
+pod/v2/Makefile
+pod/v2/README
 pod/v2/afsperl.pod
 pod/v2/afsperlacl.pod
 pod/v2/afsperlbase.pod

@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperl.pod,v 2.1 2002/07/01 14:28:17 nog Exp"
+# RCS-Id: "@(#)afsperl.pod,v 2.2 2002/07/04 06:12:46 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -15,7 +15,7 @@ B<AFS> - Perl interface to AFS programming APIs
 =head1 VERSION
 
 This document describes the AFS module bundle Version 2 (release
-V_2_0).
+V_2_01).
 
 =head1 COMPATIBILITY
 
@@ -154,6 +154,15 @@ B<Wolfgang Friebel> - for his bug report on the functions "lsmount" and "rmmount
 B<Alf Wachsmann> - for his patches for the XS code and his excellent ideas about
 the Makefile.PL
 
+B<Wolfgang Friebel> - for his bug reports on version 2.0
+
+B<James E. Flemer> - for his new method AFS::KTC_TOKEN->FromString
+
+B<Phil Moore> - for his improvements of the Makefile.PL
+
+B<Peter Scott> - for his bug report on the method "pts->id" and for
+his "sun" patches for the Makefile.PL
+
 =head1 COPYRIGHT AND DISCLAIMER
 
  © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
@@ -187,4 +196,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.1
+Version 2.2

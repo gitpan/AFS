@@ -1,6 +1,6 @@
 package AFS::KTC_TOKEN;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)KTC_TOKEN.pm,v 2.0 2002/07/02 06:13:26 nog Exp"
+# RCS-Id: "@(#)KTC_TOKEN.pm,v 2.1 2002/07/04 06:06:47 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -8,12 +8,12 @@ package AFS::KTC_TOKEN;
 # under the same terms as Perl itself.
 #------------------------------------------------------------------------------
 
-use AFS;
+use AFS ();
 
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = sprintf("%d.%02d", q/2.0/ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q/2.1/ =~ /(\d+)\.(\d+)/);
 
 sub nulltoken {
     my $class  = shift;
@@ -43,6 +43,12 @@ sub GetToken {
     my $class  = shift;
 
     AFS::ktc_GetToken(@_);
+}
+
+sub FromString {
+    my $class  = shift;
+
+    AFS::ktc_FromString(@_);
 }
 
 sub SetToken {

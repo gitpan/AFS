@@ -1,6 +1,6 @@
 package AFS::KTC_PRINCIPAL;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)KTC_PRINCIPAL.pm,v 2.0 2002/07/02 06:13:13 nog Exp"
+# RCS-Id: "@(#)KTC_PRINCIPAL.pm,v 2.1 2002/07/04 06:00:30 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -8,12 +8,12 @@ package AFS::KTC_PRINCIPAL;
 # under the same terms as Perl itself.
 #------------------------------------------------------------------------------
 
-use AFS;
+use AFS ();
 
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = sprintf("%d.%02d", q/2.0/ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q/2.1/ =~ /(\d+)\.(\d+)/);
 
 sub ListTokens {
     my $class  = shift;
@@ -27,9 +27,6 @@ sub ParseLoginName {
     AFS::ka_ParseLoginName(@_);
 }
 
-{ # this is to please version 1 and to avoid warning about redefined subroutines
-no warnings;
-
 sub new {
     # this whole construct is to please the old version from Roland
     if ($_[0] =~ /AFS::KTC_PRINCIPAL/) { my $class  = shift; }
@@ -42,8 +39,6 @@ sub new {
     push @args, $inst if defined $inst;
     push @args, $cell if defined $cell;
     AFS::KTC_PRINCIPAL::_new('AFS::KTC_PRINCIPAL', @args);
-}
-
 }
 
 

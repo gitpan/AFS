@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)AFS.xs,v 2.0 2002/07/02 06:10:23 nog Exp
+ * RCS-Id: @(#)AFS.xs,v 2.1 2002/07/04 06:09:05 nog Exp
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the same terms as Perl itself.
@@ -82,7 +82,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char * const xs_version = "AFS.xs (2.0)";
+const char * const xs_version = "AFS.xs (2.1)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -345,7 +345,7 @@ int32 anon;
     }
     if (lnames.namelist_val) safefree(lnames.namelist_val);
 
-    if (code==0 && *id == ANONYMOUSID) {
+    if (code==0 && anon==0 && *id == ANONYMOUSID) {
           code = PRNOENT;
     }
 
@@ -4205,6 +4205,30 @@ afs_ktc_GetToken(server)
             safefree(t);
         }
     }
+
+void
+afs_ktc_FromString(s)
+  SV *s
+  PPCODE:
+  {
+        SV *sv;
+        STRLEN len;
+        char *str;
+        struct ktc_token *t;
+        
+        str = SvPV(s, len);
+        EXTEND(sp,1);
+        if (len == sizeof(struct ktc_token)) {
+            t = (struct ktc_token *) safemalloc(sizeof(struct ktc_token));
+            memcpy((void *)t, (void *)str, sizeof(struct ktc_token));
+
+            sv = sv_newmortal();
+            sv_setref_pv(sv, "AFS::KTC_TOKEN", (void*)t);
+            PUSHs(sv);
+        } else {
+            PUSHs(&PL_sv_undef);
+        }
+  }
 
 void
 afs_ktc_SetToken(server,token,client,flags=0)
