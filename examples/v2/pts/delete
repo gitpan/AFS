@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::PTS;
 
 die "Usage: $0 name\n" if $#ARGV !=0;

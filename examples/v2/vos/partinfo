@@ -1,0 +1,42 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+
+our ($vos, $server, $part, $Debugging);
+
+$Debugging = 0;
+if ($ARGV[0] eq '-d') { $Debugging = 1; shift; }
+die "Usage: $0 server [partition]\n" if $#ARGV < 0;
+
+$server = shift;
+$part   = shift;
+
+$part = '' unless $part;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+my $partinfo = $vos->partinfo($server, $part);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$Debugging && print_debug($partinfo) && exit;
+
+foreach my $part (keys %$partinfo) {
+    print "Free space on partition $part: ";
+    print "$partinfo->{$part}->{free} K blocks out of total $partinfo->{$part}->{minFree}\n";
+}
+
+
+sub print_debug {
+    my $partinfo = shift;
+
+    foreach my $key1 (sort keys %{$partinfo}) {
+        foreach my $key2 (sort keys %{$partinfo->{$key1}}) {
+            printf("%10s  %10s  %s\n", $key1, $key2, $partinfo->{$key1}->{$key2});
+        }
+    }
+    print "\n\n";
+}

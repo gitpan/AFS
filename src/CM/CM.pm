@@ -1,8 +1,8 @@
 package AFS::CM;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)CM.pm,v 2.0 2002/07/02 06:12:02 nog Exp"
+# RCS-Id: "@(#)$Id: CM.pm 528 2004-01-06 18:36:03Z nog $"
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -25,11 +25,12 @@ require Exporter;
                 getcacheparms
                 getcellstatus
                 getcrypt
+                getvolstats
                 setcachesize
                 setcellstatus
                 setcrypt
                );
-@ISA       = qw(Exporter AFS);
-$VERSION   = sprintf("%d.%02d", q/2.0/ =~ /(\d+)\.(\d+)/);
+@ISA     = qw(Exporter AFS);
+$VERSION = do{my@r=q/Major Version 2.2 $Rev: 528 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
 
 1;

@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $volume, $fserver, $fpart, $tserver, $tpart, $volid);
+
+die "Usage: $0 volume from_server from_partition to_server to_partition\n" if $#ARGV != 4;
+
+$volume  = shift;
+$fserver = shift;
+$fpart   = shift;
+$tserver = shift;
+$tpart   = shift;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$volid = $vos->move($volume, $fserver, $fpart, $tserver, $tpart);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+printf "Volume %u moved from %s /vicep%s to  %s /vicep%s\n", $volid, $fserver, $fpart, $tserver, $tpart;

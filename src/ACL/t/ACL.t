@@ -1,20 +1,41 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl t/$modfname.t'
+# -*-cperl-*-
 
-######################### We start with some black magic to print on failure.
+use strict;
+use lib qw(../../inc ../inc);
 
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
+use Test::More tests => 13;
 
-BEGIN { $| = 1; print "1..1\n"; }
-END {print "not ok 1\n" unless $loaded;}
-use AFS::ACL;
-$loaded = 1;
-print "ok 1\n";
+BEGIN {
+    use_ok('AFS::ACL');
+}
 
-######################### End of black magic.
+is(AFS::ACL->ascii2rights('write'), 63, 'ascii2rights');
 
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):
+my $acl = AFS::ACL->new({'foobar' => 'none'}, {'anyuser' => 'write'});
+is(ref($acl), 'AFS::ACL', 'AFS::ACL->new()');
 
+$acl->set('rjs' => 'write');
+is("$acl->[0]->{rjs}", 'write', 'set');
+$acl->nset('opusl' => 'write');
+is("$acl->[1]->{opusl}", 'write', 'nset');
+
+$acl->remove('rjs' => 'write');
+ok(! defined $acl->[0]->{rjs}, 'remove');
+
+$acl->clear;
+ok(! defined $acl->[0]->{foobar}, 'clear');
+
+can_ok('AFS::ACL', qw(apply));
+
+can_ok('AFS::ACL', qw(modifyacl));
+
+can_ok('AFS::ACL', qw(cleanacl));
+
+my $copy = $acl->copy;
+is(ref($copy), 'AFS::ACL', 'acl->copy()');
+
+my $rights = AFS::ACL->crights('read');
+is($rights, 'rl', 'crights');
+
+my $new_acl = AFS::ACL->retrieve('./');
+is(ref($new_acl), 'AFS::ACL', 'AFS::ACL->retrieve()');

@@ -1,0 +1,45 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+use Time::localtime;
+
+our ($vos, $volume, $Debugging);
+
+$Debugging = 0;
+if ($ARGV[0] eq '-d') { $Debugging = 1; shift; }
+die "Usage: $0 volume\n" if $#ARGV != 0;
+
+$volume = shift;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+my $vollist = $vos->listvolume($volume);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$Debugging && print_debug($vollist) && exit;
+print_volume($vollist);
+
+sub print_volume {
+    my $vollist = shift;
+
+    print "$vollist->{name} \t$vollist->{parentID} $vollist->{type} \t $vollist->{size} K $vollist->{inUse}\n";
+    print "\t$vollist->{server}  $vollist->{partition}\n";
+    print "\tRWrite $vollist->{parentID}  ROnly $vollist->{cloneID} Backup $vollist->{backupID}\n";
+    print "\tMaxQuota    $vollist->{maxquota} K\n";
+    print "\tCreation    ", ctime($vollist->{creationDate}), "\n";
+    print "\tLast Update ", ctime($vollist->{updateDate}),   "\n";
+    print "\t$vollist->{dayUse} accesses in the past day (i.e., vnode references)\n";
+}
+
+sub print_debug {
+    my $vollist = shift;
+
+    foreach my $key (sort keys %{$vollist}) {
+        printf("%20s  %s\n", $key, $vollist->{$key});
+    }
+    print "\n\n";
+}

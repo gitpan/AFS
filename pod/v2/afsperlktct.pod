@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlktct.pod,v 2.4 2002/10/11 10:50:18 nog Exp"
+# RCS-Id: "@(#)$Id: afsperlktct.pod 529 2004-01-06 18:38:11Z nog $"
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -82,7 +82,7 @@ exported by default. This style is deprecated !!!>
 
 This class provides methods to handle the B<AFS structure ktc_token>.
 This structure contains information about tokens and is used in
-the "Kernel Token Cache" (KTC), which is part of the Cache Manager.
+the I<Kernel Token Cache> (KTC), which is part of the Cache Manager.
 
 It is used to create, modify, and retrieve B<ktc_token> instances for
 different services.  It has methods to retrieve and to reset the
@@ -143,9 +143,11 @@ The server ticket to use for the principal.
 
 =head1 METHODS
 
-=head2 Constructor
-
 =over 4
+
+=item B<CONSTRUCTOR>
+
+=item S< >
 
 =item B<$ok = AFS::KTC_TOKEN-E<gt>GetAuthToken(USER, EKEY, LIFE [, PWEXP]);>
 
@@ -179,7 +181,7 @@ B<NOTE: this form is deprecated !!!>
 
 =item B<$token = AFS::KTC_TOKEN-E<gt>GetAdminToken(USER, EKEY, LIFE [, NEWTK [, REASON]]);>
 
-Creates an administrator token for the specified USER. It saves the
+Creates an administration token for the specified USER. It saves the
 token in the memory (kernel token cache) and additionally it returns
 the token.  EKEY contains the encryption key and LIFE indicates how
 long the token will be valid (in seconds, given in 5 minute
@@ -196,24 +198,22 @@ B<NOTE: this form is deprecated !!!>
 =item B<$token = AFS::KTC_TOKEN-E<gt>nulltoken;>
 
 Returns a NULL token. This token is only for use with the KAS methods
-'AuthServerConn' and 'SingleServerConn'. Do not use it with any other
+C<AuthServerConn> and C<SingleServerConn>. Do not use it with any other
 methods or functions.
 
 B<NOTE: this form is deprecated !!!>
 
  $token = ka_nulltoken;
 
-=back
+=item B<CLASS METHODS>
 
-=head2 Class methods
-
-=over 4
+=item S< >
 
 =item B<($token, $user) = AFS::KTC_TOKEN-E<gt>GetToken(SERVICE);>
 
 Returns the token $token and the principal $user for the specified
 principal SERVICE.  It calls the AFS system library function
-"ktc_GetToken".
+'ktc_GetToken'.
 
 B<NOTE: this form is deprecated !!!>
 
@@ -223,8 +223,8 @@ B<NOTE: this form is deprecated !!!>
 
 Stores the TOKEN for the given principal SERVICE and the given
 principal USER in the memory (kernel token cache). Possible Flags are
-'AFS_SETTOK_SETPAG' and 'AFS_SETTOK_LOGON'.  It calls the AFS system
-library function "ktc_SetToken".
+C<AFS_SETTOK_SETPAG> and C<AFS_SETTOK_LOGON>.  It calls the AFS system
+library function 'ktc_SetToken'.
 
 B<NOTE: this form is deprecated !!!>
 
@@ -235,15 +235,15 @@ B<NOTE: this form is deprecated !!!>
 Undertakes all necessary steps for a complete authentication of
 principal USER.  It converts the string PASSWORD (the cleartext
 password) for the principal USER to an encryption key. Then it creates
-a TGT token. After that it asks for a service token for service 'AFS'
+a TGT token. After that it asks for a service token for service I<AFS>
 with a life time of LIFE (in seconds, given in 5 minute intervals).
 Finally it saves the service token in the memory (kernel token cache).
 
-Possible values for FLAGS are 'KA_USERAUTH_VERSION' and
-'KA_USERAUTH_DOSETPAG'.  If PWEXP (default -1) is given it returns the
+Possible values for FLAGS are C<KA_USERAUTH_VERSION> and
+C<KA_USERAUTH_DOSETPAG>.  If PWEXP (default -1) is given it returns the
 number of days till the password expires.  On error the error message
 is returned in REASON. It calls the AFS system library function
-"ka_UserAuthenticateGeneral".
+'ka_UserAuthenticateGeneral'.
 
 B<NOTE: this form is deprecated !!!>
 
@@ -252,7 +252,7 @@ B<NOTE: this form is deprecated !!!>
 =item B<$ok = AFS::KTC_TOKEN-E<gt>ForgetAllTokens;>
 
 Discards all of the issuer's tokens.  It calls the AFS system library
-function "ktc_ForgetAllTokens".
+function 'ktc_ForgetAllTokens'.
 
 B<NOTE: this form is deprecated !!!>
 
@@ -263,26 +263,22 @@ B<NOTE: this form is deprecated !!!>
 Returns a recovered token from STRING. This STRING was previously
 generated with the instance method '$token-E<gt>string'.
 
-=back
+=item B<ATTRIBUTES ACCESS>
 
-=head2 Attributes Access
-
-=over 4
+=item S< >
 
 =item B<$token-E<gt>ATTRIBUTE;>
 
 Retrieves the value for the specified object attribute, where ATTRIBUTE
-is one of the above listed object attributes (e.g. "startTime").
+is one of the above listed object attributes (e.g. C<startTime>).
 
-=back
+=item B<INSTANCE METHODS>
 
-=head2 Instance Methods
-
-=over 4
+=item S< >
 
 =item B<$token-E<gt>string;>
 
-Returns the whole token as a "string".
+Returns the whole token as a C<string>.
 
 =back
 
@@ -296,10 +292,23 @@ Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+ Most of the explanations in this document are taken from the original
+ AFS documentation.
+
+ AFS-3 Programmer's Reference:
+ Authentication Server Interface
+ Edward R. Zayas
+ © 1991 Transarc Corporation.
+ All rights reserved.
+
+ IBM AFS Administration Reference
+ © IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -327,4 +336,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.4
+Revision $Rev: 529 $

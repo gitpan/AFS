@@ -1,0 +1,24 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $server, $part, $volume, $busy, $sleep, $ok);
+
+die "Usage: $0 server partition volume [bussy sleep]\n" if $#ARGV < 2;
+
+$server = shift;
+$part   = shift;
+$volume = shift;
+$busy   = shift;
+$sleep  = shift;
+
+$busy  = 0 unless $busy;
+$sleep = 0 unless $sleep;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$ok = $vos->offline($server, $part, $volume, $busy, $sleep);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);

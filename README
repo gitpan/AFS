@@ -1,12 +1,13 @@
 
-This is the README file for the Perl extension module AFS (version V_2_03)
+This is the README file for the Perl extension module AFS
+(Version 2.2.0) 
 
 
 DESCRIPTION
     The AFS module bundle is a dynamically loadable extension to
     Perl. It gives the AFS user and administrator access to many of the
     AFS programming APIs, allowing you to make these calls directly from
-    Perl, rather then processing the output of a command.
+    Perl, rather than processing the output of a command.
 
 
 REQUIREMENTS
@@ -14,33 +15,41 @@ REQUIREMENTS
     following installed on your system:
 
         * Perl 5.005_02 or later
-        * system libraries for IBM AFS (version 3.4 or later) or OpenAFS
-        * GNU gcc (on solaris-2.{5,6,7,8})
+        * system libraries for IBM AFS (version 3.6) or OpenAFS
+        * GNU gcc (on solaris-2.{5,6,7,8,9})
 
+    NOTICE: This release does not support AFS system libraries 
+            version 3.4 or version 3.5 !!!
+ 
 
 BUILDING & INSTALLING
     Assuming you have met all the prerequisites, building the modules
     should be straightforward. The AFS module bundle is distributed as a
     single gzipped tar archive file:
 
-            AFS-<version>.tar.gz
-
-    Note that "<version>" represents the current AFS Revision number, of
-    the form "1.5".
+            AFS-2.2.0.tar.gz
 
     Unpack the archive to create an AFS installation directory:
 
-        gunzip AFS-<version>.tar.gz
-        tar xvf AFS-<version>.tar
+        gunzip AFS-2.2.0.tar.gz
+        tar xvf AFS-2.2.0.tar
 
     'cd' into that directory, make, test and install the modules. You
     have to specify the location of the AFS system libraries. While
-    running the perl make script you will be prompted for the location
-    of the AFS system libraries.  If your AFS system type is not yet
-    known by the make file, please follow the printed message.  This is
-    the sequence of commands to build the modules:
+    running the 'perl Makefile.PL' step you will be prompted for the
+    location of the AFS system libraries.  If you want to avoid that
+    query, you should specify the environment variable 'AFSPATH'
+    before you start[1].  If your AFS system type is not yet known by
+    the make file, please follow the printed message.  
 
-        cd AFS-<version>
+    This is the sequence of commands to build the modules:
+
+        cd AFS-2.2.0
+
+        [1] this step is optional
+        setenv AFSPATH 'path_to_the_AFS_system_libraries' # tcsh-shell
+        export AFSPATH='path_to_the_AFS_system_libraries' # sh-shell
+
         perl Makefile.PL
              ---->  Which AFS system libraries should be used? [/usr/afsws]
         make
@@ -49,7 +58,6 @@ BUILDING & INSTALLING
 
 
 SunOS
-
     Under SunOS, several people have encountered problems while compiling
     and installing the AFS module bundle.  From my own experience I can
     report that the module bundle did not compile with every AFS system
@@ -57,7 +65,7 @@ SunOS
 
     If you're a SunOS user who knows a solution to an encountered problem
     and would like to document the solution for others, please send the
-    docs to the AFS module maintainer to amend the instalation directions.
+    docs to the AFS module maintainer to amend the installation directions.
 
     Here is a collection of user reports about their "sun" problems.
 
@@ -96,20 +104,25 @@ SunOS
 
 FEEDBACK
     I have tested/run the AFS module bundle on several configurations
-    and I have also got reports that it is running on configuration, not
+    and I have also got reports that it is running on configurations, not
     available to me.
 
-      OS             @sys       compiler 
-      --------------------------------
-      AIX            rs_aix32     cc       
-                     rs_aix41     cc       
-                     rs_aix42     cc       
+      OS             @sys         compiler 
+      ------------------------------------
+      AIX            rs_aix32       cc       
+                     rs_aix41       cc       
+                     rs_aix42       cc       
 
-      Solaris        sun4x_55     gcc      
-                     sun4x_56     gcc      
-                     sun4x_57     gcc      
+      Solaris        sun4x_55       gcc      
+                     sun4x_56       gcc      
+                     sun4x_57       gcc      
+                     sun4x_58       gcc
+                     sun4x_59       gcc
 
-      Irix           sgi_65       cc
+      Irix           sgi_65         cc
+
+      Linux          i386_linux24   gcc
+                     amd64_linux24  gcc
 
       Digital Unix   alpha_dux40  
 
@@ -131,17 +144,16 @@ FEEDBACK
 
 
 Availability
-    The latest version of the AFS module bundle is currently available
-    at
+    The latest version of the AFS module bundle is currently available at
 
-        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.03.tar.gz
-        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.03.tar.gz
+        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.2.0.tar.gz
+        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.2.0.tar.gz
 
 
-MAJOR CHANGES
-    This module bundle compiles now with the AFS system libraries for
-    IBM AFS version 3.4.x, 3.5.x, 3.6.x and with the AFS system
-    libraries for all OpenAFS versions.
+MAJOR CHANGES (from version 1 to version 2)
+    This module bundle compiles with the AFS system libraries for IBM
+    AFS version 3.4.x, 3.5.x, 3.6.x and with the AFS system libraries
+    for all OpenAFS versions.
 
     Since OpenAFS is running on an increasingly number of platforms so
     does the AFS Perl module.  Everywhere you can compile OpenAFS and
@@ -154,7 +166,7 @@ MAJOR CHANGES
     separated into several logical modules.  All modules have been
     implemented as OO classes.
 
-    For more details, please see the file named 'ChangeLog' which should
+    For more details, please see the file named 'CHANGES which should
     have been included in the AFS module distribution.
 
 
@@ -176,11 +188,16 @@ COMPATIBILITY
 DOCUMENTATION
     POD-format documentation for version 1 style is found in the
     directory 'pod/v1' and for version 2 style in the directory
-    'pod/v2'.  POD is readable with the 'perldoc' utility.
+    'pod/v2'.  The POD documentation for version 2 style gets
+    automatically installed to the system wide Perl documentation.
+    It is readable with the 'perldoc' utility.
+
+    For information about HTML documentation, please check the file
+    'pod/v2/README'. 
 
 
 EXAMPLES
-    The 'examples' directory contains some simple examples of using the
+    The 'examples' directory contains some simple examples how to use the
     AFS modules.  In the directory 'examples/v1' you will find version 1
     style examples and in the directory 'examples/v2' you will find
     version 2 style examples.  However I do not guarantee these scripts
@@ -200,7 +217,7 @@ CREDITS
 
 
 COPYRIGHT AND DISCLAIMER
-    © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+    © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
     All rights reserved.
 
     © 1994 Board of Trustees, Leland Stanford Jr. University.
@@ -237,7 +254,7 @@ COPYRIGHT AND DISCLAIMER
 
 
 KNOWN PROBLEMS
-    The AFS command suites VOS and BOS are not implemented     :-(
+    The AFS command suite BOS is not yet implemented     :-(
 
 
 BUGS

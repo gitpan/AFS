@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VLDB;
+
+our ($vldb, $volume, $noexec);
+
+die "Usage: $0 volume [noexec]\n" if $#ARGV < 0;
+
+$volume = shift;
+$noexec = shift;
+
+$noexec = 0 unless $noexec;
+
+$vldb = AFS::VLDB->new;
+
+my @vols = ($volume);
+my ($succ, $fail) = $vldb->delentry(\@vols, $noexec);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+if (! $noexec) { print "Deleted $succ VLDB entry \n"; }

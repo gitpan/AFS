@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $server, $part, $volume, $noexec, $volid);
+
+die "Usage: $0 server partition volume [noexec]\n" if $#ARGV < 2;
+
+$server = shift;
+$part   = shift;
+$volume = shift;
+$noexec = shift;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+if ($noexec) { $volid = $vos->zap($server, $part, $volume, $noexec); }
+else         { $volid = $vos->zap($server, $part, $volume); }
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+printf "Volume %u deleted\n", $volid;

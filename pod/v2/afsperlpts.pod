@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlpts.pod,v 2.3 2002/10/11 10:50:18 nog Exp"
+# RCS-Id: "@(#)$Id: afsperlpts.pod 529 2004-01-06 18:38:11Z nog $"
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -17,24 +17,26 @@ B<AFS::PTS> - Class to communicate with the B<AFS Protection Server>
   use AFS::PTS;
 
   my $num_flg = AFS::PTS->convert_numeric_names;
-  my $bits = AFS::PTS->ascii2ptsaccess("S----");
+  my $bits  = AFS::PTS->ascii2ptsaccess("S----");
   my $flags = AFS::PTS->ptsaccess2ascii($bits);
 
   my $pts = AFS::PTS->new;
 
-  my $id = $pts->createuser('guest');
+  my $id    = $pts->createuser('guest');
   my $entry = $pts->listentry('guest');
   foreach my $key ( sort keys %$entry) {
       printf("%20s =>  %s\n", $key, $$entry{$key});
   }
   $ok = $pts->delete('guest');
+  undef $pts;   # destroy server connection
 
+  $pts   = AFS::PTS->new;
   $entry = $pts->dumpentry(67136, 1, 1);
   foreach my $key ( sort keys %$entry) {
       printf("%20s =>  %s\n", $key, $$entry{$key});
   }
 
-  my $over = 1;
+  my $over  = 1;
   my @names = $pts->getcps('nog', 1, $over);
   print "OVER = $over \n";
   print "cps for NOG\n";
@@ -44,7 +46,7 @@ B<AFS::PTS> - Class to communicate with the B<AFS Protection Server>
 
   AFS::PTS->convert_numeric_names(1);
   my @ids = (28053, 1, 105, 32000, 32766);
-  @names = $pts->PR_IDToName(\@ids);
+  @names  = $pts->PR_IDToName(\@ids);
   foreach my $name (@names) {
       print "name = $name\n";
   }
@@ -75,14 +77,14 @@ in the PDB where the above information is held.
 
 Before you can access any PDB records you must establish a connection
 to the Protection Server.  This is done by the constructor method
-"new" which returns a PTS object.  A PTS object is essentially a
+C<new> which returns a PTS object.  A PTS object is essentially a
 handle to talk to the Protection Server in a given cell.  Such a PTS
 object is required before any of the other PTS instance methods can be
 called.
 
 All PR_* methods are essentially the same as the low-level AFS PTS
-APIs and are considered as 'low-level' methods.  The other methods
-(considered as high-level) are more "user friendly" and perl-like.
+APIs and are considered as I<low-level> methods.  The other methods
+(considered as high-level) are more I<user friendly> and perl-like.
 Whereas the low-level (PR_*) methods only accept numerical values for
 names or groups the high-level methods accept either numeric IDs or
 names.
@@ -107,15 +109,17 @@ or interfaces from version 2. You either stick with version 1 or version
 
 =head1 METHODS
 
-=head2 Constructor
-
 =over 4
+
+=item B<CONSTRUCTOR>
+
+=item S< >
 
 =item B<$pts = AFS::PTS-E<gt>new(([SEC [, CELL]]);>
 
 Creates a new object of the class AFS::PTS.  An AFS::PTS object is
 essentially a handle to talk to the Protection Server in a given
-cell. Internally an AFS::PTS object is a pointer to a ubik_client
+CELL.  Internally an AFS::PTS object is a pointer to a ubik_client
 structure, although this may change and the value returned from
 AFS::PTS::new should always be treaded as an opaque handle.
 
@@ -131,11 +135,18 @@ B<NOTE: these forms are deprecated !!!>
  $pts = AFS::PTS::new(SEC...);
  $pts = newpts(SEC...);
 
-=back
+=item B<DESTRUCTOR>
 
-=head2 Class methods
+=item S< >
 
-=over 4
+=item B<$pts-E<gt>DESTROY;>
+
+Destroys the ubik connection to the Protection Server and frees the ubik
+connection structure.
+
+=item B<CLASS METHODS>
+
+=item S< >
 
 =item B<$bits = AFS::PTS-E<gt>ascii2ptsaccess(FLAGS);>
 
@@ -172,14 +183,14 @@ B<NOTE: this form is deprecated !!!>
 
  $value = AFS::convert_numeric_names([$newvalue]);
 
-=back
+=item S< >
 
-=head2 Instance Methods (high-level)
+=item B<INSTANCE METHODS> (high-level)
 
 All high-level methods will accept either numeric AFS ids or AFS user
 names.
 
-=over 4
+=item S< >
 
 =item B<$ok = $pts-E<gt>adduser(NAME, GROUP);>
 
@@ -218,14 +229,14 @@ Deletes the entry NAME.  It calls the AFS system library function
 =item B<$entry = $pts-E<gt>dumpentry(POS [, LOOKUP_ID [, CONV]]);>
 
 Returns a reference to a hash table containing the values from the C
-structure "prdebugentry". If LOOKUP_ID is 1 (default) then the AFS ids
+structure C<prdebugentry>. If LOOKUP_ID is 1 (default) then the AFS ids
 in the hash table will be converted to names. If CONV is 1 (default)
 then flags will be converted to its ASCII representation.  It calls
 the AFS system library function 'PR_DumpEntry'.
 
 =item B<@members = $pts-E<gt>getcps(NAME [, LOOKUP_ID [, OVER]]);>
 
-Returns the "Current Protection Subdomain" (CPS) for the given PTS
+Returns the I<Current Protection Subdomain> (CPS) for the given PTS
 id. The CPS is the closure of all identities that the given NAME can
 use. This list includes all the groups NAME belongs to, the special
 AFS ids (system:anyuser and system:authuser), as well as the id
@@ -259,7 +270,7 @@ AFS system library function 'PR_IsAMemberOf'.
 =item B<$entry = $pts-E<gt>listentry(NAME [, LOOKUP_ID [, CONV]]);>
 
 Returns a reference to a hash table containing the values from the C
-structure "prcheckentry".  If LOOKUP_ID is 1 (default) then the PTS
+structure C<prcheckentry>.  If LOOKUP_ID is 1 (default) then the PTS
 ids in the hash table will be converted to names. If CONV is 1
 (default) then flags will be converted to its ASCII representation.
 It calls the AFS system library function 'PR_ListEntry'.
@@ -338,13 +349,13 @@ Returns the PDB byte offset of NAME. This method is used in
 conjunction with the method 'dumpentry'.  It calls the AFS system
 library function 'PR_WhereIsIt'.
 
-=back
+=item S< >
 
-=head2 Instance Methods (low-level)
+=item B<INSTANCE METHODS> (low-level)
 
 The following low-level methods deal only with numeric AFS ids.
 
-=over 4
+=item S< >
 
 =item B<$ok = $pts-E<gt>PR_AddToGroup(UID, GID);>
 
@@ -413,7 +424,7 @@ argument is set to a non­zero value.
 =item B<$entry = $pts-E<gt>PR_ListEntry(ID);>
 
 Returns a reference to a hash table containing the values from the C
-structure "prcheckentry" for the PDB entry ID. No conversion is done
+structure C<prcheckentry> for the PDB entry ID. No conversion is done
 on ids or flags.
 
 =item B<($uid, $gid) = $pts-E<gt>PR_ListMax;>
@@ -484,10 +495,23 @@ Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+ Most of the explanations in this document are taken from the original
+ AFS documentation.
+
+ AFS-3 Programmer's Reference:
+ Protection Server Interface
+ Edward R. Zayas
+ © 1991 Transarc Corporation.
+ All rights reserved.
+
+ IBM AFS Administration Reference
+ © IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -515,4 +539,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.3
+Revision $Rev: 529 $

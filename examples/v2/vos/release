@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+
+our ($vos, $volume, $force, $ok);
+
+die "Usage: $0 volume [force]\n" if $#ARGV < 0;
+
+$volume = shift;
+$force  = shift;
+
+$force = 0 unless $force;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$ok = $vos->release($volume, $force);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+print "Released volume $volume successfully \n" if $ok;

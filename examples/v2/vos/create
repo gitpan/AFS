@@ -1,0 +1,24 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+
+our ($vos, $server, $part, $volume, $maxquota, $volid);
+
+die "Usage: $0 server partition volume [max_quota]\n" if $#ARGV < 2;
+
+$server   = shift;
+$part     = shift;
+$volume   = shift;
+$maxquota = shift;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+if ($maxquota) { $volid = $vos->create($server, $part, $volume, $maxquota); }
+else           { $volid = $vos->create($server, $part, $volume); }
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+printf "Volume %u created on partition /vicep%s of %s\n", $volid, $part, $server if $volid;

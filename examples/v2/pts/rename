@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::PTS;
 
 print "old name: "; chop(my $old=<STDIN>);

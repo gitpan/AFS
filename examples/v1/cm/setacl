@@ -1,10 +1,10 @@
 #!/usr/local/bin/perl
 
-use AFS setacl,getacl,crights;
+use AFS newacl,setacl,crights;
 
 $dir = shift;
 
-$acl = AFS::ACL::new({"schemers"=>crights("all"),
+$acl = newacl({"schemers"=>crights("all"),
         "rjs"=>crights("read")},{"opusl"=>crights("write")});
 
 $ok = setacl($dir,$acl);

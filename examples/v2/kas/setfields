@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::KAS;
 use AFS::KTC_PRINCIPAL;
 use AFS::KTC_TOKEN;
@@ -30,18 +30,21 @@ foreach my $tp_key (sort keys %$entry) {
 }
 
 my $flags    = 1;        # (1 = normal, 4 = admin)
-my $expire   = 925715000;
+my $expire   = 925715000;# 03 May 1999 07:03
 my $maxassoc = 0;
-my $lifetime = 48*60*60; #unit is secs; => 48 hrs
-my $pwexpire = 10;       #number of days
-my $pw_reuse = 2;        #pwreuse allowed: [ 1 = yes ], [ 2 = no ], [ 0 = not changed ]
-my $nfail    = 4;        #(nfail - 1) tries are allowed; => 3 tries
-my $locktime = 3;        #unit is 8.5 min => 3 * (8.5)
-my $spare2   = 0;
+my $lifetime = 48*60*60; # unit is secs; => 48 hrs
+my $pwexpire = 10;       # number of days
+my $pw_reuse = 2;        # pwreuse allowed: [1 = yes], [2 = no], [0 = not changed]
+my $nfail    = 4;        # (nfail - 1) tries are allowed; => 3 tries
+my $locktime = 3;        # unit is 8.5 min => 3 * (8.5)
+
+$pwexpire++;
+$nfail++;
+$locktime++;
 
 my $packed= (($pwexpire << 24) | ($pw_reuse  << 16) | ($nfail << 8) | $locktime );
-#my $ok = $kas->setfields($user->name, $user->instance, $flags, $expire, $lifetime, $maxassoc, $packed, $spare2);
-my $ok = $kas->KAM_SetFields($user->name, $user->instance, $flags, $expire, $lifetime, $maxassoc, $packed, $spare2);
+#my $ok = $kas->setfields($user->name, $user->instance, $flags, $expire, $lifetime, $maxassoc, $packed);
+my $ok = $kas->KAM_SetFields($user->name, $user->instance, $flags, $expire, $lifetime, $maxassoc, $packed);
 printf("KAS setfields: %s \n", $ok ? 'yes' : 'no');
 checkafs('SetFields');
 
@@ -49,4 +52,15 @@ $entry = $kas->getentry($user->name, $user->instance);
 print "\n\nUser data for ", $user->name, $user->instance, ": \n";
 foreach my $tp_key (sort keys %$entry) {
     printf("%20s  %s\n",$tp_key, $$entry{$tp_key});
+    if ($tp_key =~ 'misc_auth_bytes') {
+        my $packed = $$entry{$tp_key};
+        my $pwexpire = (($packed >> 24) & 0xff);
+        my $pw_reuse = (($packed >> 16) & 0xff);
+        my $nfail    = (($packed >>  8) & 0xff);
+        my $locktime = (($packed >>  0) & 0xff);
+        print "\t\t pwexpire $pwexpire\n";
+        print "\t\t pw_reuse $pw_reuse\n";
+        print "\t\t nfail    $nfail\n";
+        print "\t\t locktime $locktime\n";
+    }
 }

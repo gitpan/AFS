@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::PTS;
 
 my $bits = AFS::PTS->ascii2ptsaccess("S----");

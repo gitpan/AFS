@@ -1,29 +1,34 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl test.pl'
+use strict;
 
-######################### We start with some black magic to print on failure.
+use lib qw(../../inc ../inc ./inc);
 
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
+use Test::More tests => 11;
 
-BEGIN { $| = 1; print "1..3\n"; }
-END {print "not ok 1\n" unless $loaded;}
-use AFS;
-$loaded = 1;
-print "ok 1\n";
+my ($acl, $ok, $copy, $rights, $new_acl);
 
-######################### End of black magic.
+BEGIN {
+    use_ok('AFS', qw (
+                      error_message constant
+                     )
+          );
+}
 
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):
+sub foo { return &AFS::KA_USERAUTH_DOSETPAG }
 
-$c = localcell;
-print "not " unless defined $c;
-print "ok 2\n";
+# test error_message
+is(error_message(&AFS::PRNOMORE), 'may not create more groups', 'Return Code AFS::PRNOMORE');
+is(error_message(180502), 'too many Ubik security objects outstanding', 'Return Code 180502');
+is(error_message(13), 'Permission denied', 'Return Code Permission denied');
 
-$p = '/afs/'.$c;
-$pold = $p;
-$v = lsmount $p;
-print "not " if $p ne $pold or ! $v;
-print "ok 3\n";
+# test subroutine returning a constant
+is(foo(42,17), 65536, 'Sub Foo returns constant (2 args)');
+is(foo(42), 65536, 'Sub Foo returns constant (1 arg)');
+is(foo(), 65536, 'Sub Foo returns constant (no args)');
+
+# test constant
+is(constant('PRIDEXIST'), 267265, 'Constant PRIDEXIST');
+is(constant('PRIDEXIST', 2), 267265, 'Constant PRIDEXIST with argument');
+isnt(constant('zzz'), 267265, 'Unknown Constant zzz');
+
+# test AUTOLOAD running function "constant"
+is(&AFS::PRIDEXIST, 267265, 'AutoLoad Constant PRIDEXIST');

@@ -1,8 +1,8 @@
 package AFS::KAS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)KAS.pm,v 2.1 2002/07/04 06:00:26 nog Exp"
+# RCS-Id: "@(#)$Id: KAS.pm 528 2004-01-06 18:36:03Z nog $"
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = sprintf("%d.%02d", q/2.1/ =~ /(\d+)\.(\d+)/);
+$VERSION = do{my@r=q/Major Version 2.2 $Rev: 528 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
 
 # not suported anymore
 # please use the functions from AFS::Cell !!!
@@ -35,6 +35,12 @@ $VERSION = sprintf("%d.%02d", q/2.1/ =~ /(\d+)\.(\d+)/);
 
 #     uc(AFS::expandcell(@_));
 # }
+
+sub DESTROY {
+    my (undef, undef, undef, $subroutine) = caller(1);
+    if (! $subroutine) { undef $_[0]; }    # self->DESTROY
+    else { AFS::KAS::_DESTROY($_[0]); }    # undef self
+}
 
 sub AuthServerConn {
     my $class = shift;
@@ -77,6 +83,6 @@ sub create      { $_[0]->KAM_CreateUser($_[1],$_[2],$_[3]); }
 sub setpassword { $_[0]->KAM_SetPassword($_[1],$_[2],$_[3],$_[4]); }
 sub delete      { $_[0]->KAM_DeleteUser($_[1],$_[2]); }
 sub listentry   { $_[0]->KAM_ListEntry($_[1],$_[2],$_[3]); }
-sub setfields   { $_[0]->KAM_SetFields($_[1],$_[2],$_[3],$_[4],$_[5],$_[6],$_[7],$_[8]); }
+sub setfields   { $_[0]->KAM_SetFields($_[1],$_[2],$_[3],$_[4],$_[5],$_[6],$_[7]); }
 
 1;

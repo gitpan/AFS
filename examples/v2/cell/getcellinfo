@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::Cell qw (getcellinfo);
 
 die "Usage: $0 cellname ip_flg \n" if $#ARGV != 1;

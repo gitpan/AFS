@@ -1,0 +1,20 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+
+our ($vos, $server);
+
+die "Usage: $0 server \n" if $#ARGV != 0;
+
+$server = shift;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+my $stat = $vos->status($server);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+print "$stat";

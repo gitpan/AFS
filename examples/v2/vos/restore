@@ -1,0 +1,34 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $server, $part, $volume, $dfile, $id, $inter, $ovwrt, $offln, $ronly, $ok);
+
+die "Usage: $0 server partition volume [ dumpfile [ id [inter [overwrite [offline [ readonly]]]]]]\n" if $#ARGV < 2;
+
+$server = shift;
+$part   = shift;
+$volume = shift;
+$dfile  = shift;
+$id     = shift;
+$inter  = shift;
+$ovwrt  = shift;
+$offln  = shift;
+$ronly  = shift;
+
+$dfile = '' unless $dfile;
+$inter = 0  unless $inter;
+$ovwrt = '' unless $ovwrt;
+$id    = '' unless $id;
+$offln = 0  unless $offln;
+$ronly = 0  unless $ronly;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$ok = $vos->restore($server, $part, $volume, $dfile, $id, $inter, $ovwrt, $offln, $ronly);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+printf "Restored volume $volume on $server /vicep$part \n" if $ok;

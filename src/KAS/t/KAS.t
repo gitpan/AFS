@@ -1,20 +1,20 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl t/$modfname.t'
+# -*-cperl-*-
 
-######################### We start with some black magic to print on failure.
+use strict;
+use lib qw(../../inc ../inc);
 
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
+use Test::More tests => 4;
 
-BEGIN { $| = 1; print "1..1\n"; }
-END {print "not ok 1\n" unless $loaded;}
-use AFS::KAS;
-$loaded = 1;
-print "ok 1\n";
+BEGIN {
+    use_ok('AFS::KAS');
+}
 
-######################### End of black magic.
+use AFS::KTC_TOKEN;
+my $kas = AFS::KAS->AuthServerConn(AFS::KTC_TOKEN->nulltoken, &AFS::KA_MAINTENANCE_SERVICE);
+is(ref($kas), 'AFS::KAS', 'KAS->AuthServerConn(nulltoken)');
 
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):
+my $rkey = $kas->randomkey;
+is(ref($rkey), 'AFS::KTC_EKEY', 'kas->randomkey');
 
+$kas->DESTROY;
+ok(! defined $kas, 'kas->DESTROY');

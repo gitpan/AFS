@@ -1,0 +1,53 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $prefix, $server, $part, $exclude, $xprefix, $dry, $tbackup, $fbackup);
+
+die "Usage: $0 [prefix server partition exclude xprefix dryrun\n" if $#ARGV > 5;
+
+$dry     = 1 if $#ARGV == -1;
+$prefix  = shift;
+$server  = shift;
+$part    = shift;
+$exclude = shift;
+$xprefix = shift;
+$dry     = shift unless $dry;
+
+$prefix  = '' unless $prefix;
+$server  = '' unless $server;
+$part    = '' unless $part;
+$xprefix = '' unless $xprefix;
+$exclude = 0  unless $exclude;
+$dry     = 0  unless $dry;
+
+my $would;
+if ($dry) { $would = 'would have'; }
+else      { $would = ''; }
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+my @prefix  = ($prefix);
+my @xprefix = ();
+@xprefix = ($xprefix) if $xprefix;
+
+# -prefix <>+ -server <> -partition <> -exclude -xprefix <>+ -dryrun
+($tbackup, $fbackup) = $vos->backupsys(\@prefix, $server, $part, $exclude, \@xprefix, $dry);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+if ($#{@$tbackup} > -1) {
+    foreach (@$tbackup) {
+        print "\t$_\n";
+    }
+}
+
+if ($#{@$fbackup} > -1) {
+    foreach (@$fbackup) {
+        print "\t$_\n";
+    }
+}
+
+print "Total volumes $would backed up: ", $#{@$tbackup} + 1, " $would failed to backup: ", $#{@$fbackup} + 1, "\n";

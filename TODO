@@ -20,9 +20,4 @@
 
  LONG TERM
  ---------
- * design and implement the missing interfaces for the vos/vldb command
-   suits;
-
- * design and implement the missing interfaces for the bos command suit;
-
  * develop sufficient test suits;

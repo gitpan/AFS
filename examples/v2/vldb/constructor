@@ -1,0 +1,18 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VLDB;
+
+our ($verbose, $vldb);
+
+die "Usage: $0 [verbose]\n" if $#ARGV > 0;
+
+$verbose = shift;
+
+$vldb = AFS::VLDB->new($verbose);
+if ($AFS::CODE) { print "Error Code: $AFS::CODE\n"; }
+else { print "OK \n"; }
+
+$vldb->DESTROY;

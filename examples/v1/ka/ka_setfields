@@ -4,7 +4,7 @@ use strict;
 use English;
 use 5.004_01;
 
-#use blib './blib/';
+#use blib;
 use AFS 1.8;
 
 print "perl-Test \n";

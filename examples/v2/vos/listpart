@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $server);
+
+die "Usage: $0 server \n" if $#ARGV < 0;
+
+$server = shift;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+my @partlist = $vos->listpart($server);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+print "The partitions on the server are:\n";
+foreach (@partlist) {
+    print "\t$_\n";
+}
+print "Total: ", $#partlist + 1, "\n";

@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlfs.pod,v 2.1 2002/10/11 10:50:17 nog Exp"
+# RCS-Id: "@(#)$Id: afsperlfs.pod 529 2004-01-06 18:38:11Z nog $"
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -15,7 +15,7 @@ B<AFS::FS> - Module to communicate with an B<AFS File Server>
 =head1 SYNOPSIS
 
   use AFS::FS qw(
-                 getfid getquota
+                 getquota
                  isafs lsmount mkmount rmmount
                  setquota whereis
                 );
@@ -51,7 +51,7 @@ This module provides several functions to communicate with an B<AFS file
 server>.  It is used to check the status of a file server machine.  It
 has functions to administer mount points and quotas.  On request it
 returns the server(s) that house a given file or directory.  Any
-function required must by explicitly listed on the use line to be
+function required must by explicitly listed by the C<use> statement to be
 exported into the calling package.
 
 Some of these functions have the optional argument FOLLOW.  FOLLOW
@@ -79,7 +79,7 @@ specifically ask that they be imported.
 
 =over 4
 
-=cut    ???
+=cut
 
 # =item B<($cell, $volume, $vnode, $unique ) = getfid($path [,$follow=1]);>  ???
 
@@ -119,7 +119,7 @@ and an error code is set.
 Sets the QUOTA (maximum possible size) of the read/write volume that
 contains PATH.
 
-=item B<@hosts = whereis(PATH[,IP [,FOLLOW]]);>
+=item B<@hosts = whereis(PATH [,IP [,FOLLOW]]);>
 
 Returns the name of each file server machine housing PATH.  If IP
 (default 0) is set to 1 then IP addresses will be returned instead of
@@ -137,10 +137,23 @@ Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+ Most of the explanations in this document are taken from the original
+ AFS documentation.
+
+ AFS-3 Programmer's Reference:
+ File Server/Cache Manager Interface
+ Edward R. Zayas
+ © 1991 Transarc Corporation.
+ All rights reserved.
+
+ IBM AFS Administration Reference
+ © IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -168,4 +181,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.1
+Revision $Rev: 529 $

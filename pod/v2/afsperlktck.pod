@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlktck.pod,v 2.2 2002/10/11 10:50:17 nog Exp"
+# RCS-Id: "@(#)$Id: afsperlktck.pod 529 2004-01-06 18:38:11Z nog $"
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -15,6 +15,7 @@ B<AFS::KTC_EKEY> - Class to handle the B<AFS structure ktc_encryptionkey>
 =head1 SYNOPSIS
 
   use AFS::KTC_EKEY;
+  use AFS::Cell qw(localcell);
 
   my $key = AFS::KTC_EKEY->ReadPassword('Password:');
   print 'KEY = ', $key->string, " \n";
@@ -38,8 +39,8 @@ exported by default. This style is deprecated !!!>
 =head1 DESCRIPTION
 
 This class provides methods to handle the B<AFS structure ktc_encryptionkey>.
-This structure represents an encryption key which is used in the "Kernel
-Token Cache" (KTC). The KTC is part of the Cache Manager.  It is used to
+This structure represents an encryption key which is used in the I<Kernel
+Token Cache> (KTC). The KTC is part of the Cache Manager.  It is used to
 create B<ktc_encryptionkey> instances.
 
 =head1 COMPATIBILITY
@@ -61,9 +62,21 @@ or interfaces from version 2. You either stick with version 1 or version
 
 =head1 METHODS
 
-=head2 Constructor
-
 =over 4
+
+=item B<CONSTRUCTOR>
+
+=item S< >
+
+=item B<$key = AFS::KTC_EKEY-E<gt>des_string_to_key(STRING);>
+
+The STRING string is converted to a DES encryption key and this key is
+returned as an AFS::KTC_EKEY object.  It calls the AFS system library
+function 'des_string_to_key'.
+
+B<NOTE: this form is deprecated !!!>
+
+ $key = ka_des_string_to_key(STRING);
 
 =item B<$key = AFS::KTC_EKEY-E<gt>ReadPassword(PROMPT [, VERIFY [, CELL]]);>
 
@@ -72,7 +85,7 @@ echoing.  If VERIFY (default 0) is set to 1 it requests that the string
 be entered again and the two strings are compared.  CELL defaults to
 NULL. The string is then converted to a DES encryption key and the
 encryption key is returned as an AFS::KTC_EKEY object.  It calls the AFS
-system library function "ka_ReadPassword".
+system library function 'ka_ReadPassword'.
 
 B<NOTE: this form is deprecated !!!>
 
@@ -82,44 +95,30 @@ B<NOTE: this form is deprecated !!!>
 
 The PASSWD string is converted to a DES encryption key and this key is
 returned as an AFS::KTC_EKEY object.  It calls the AFS system library
-function "ka_StringToKey".
+function 'ka_StringToKey'.
 
 B<NOTE: this form is deprecated !!!>
 
  $key = ka_StringToKey(PASSWD, CELL);
 
-=item B<$key = AFS::KTC_EKEY-E<gt>des_string_to_key(STRING);>
+=item B<CLASS METHODS>
 
-The STRING string is converted to a DES encryption key and this key is
-returned as an AFS::KTC_EKEY object.  It calls the AFS system library
-function "des_string_to_key".
-
-B<NOTE: this form is deprecated !!!>
-
- $key = ka_des_string_to_key(STRING);
-
-=back
-
-=head2 Class methods
-
-=over 4
+=item S< >
 
 =item B<$string = AFS::KTC_EKEY-E<gt>UserReadPassword(PROMPT [, REASON]);>
 
 Prints out a PROMPT and reads a string from the terminal, turning off
 echoing.  This string is returned.  On error the error message is
 returned in REASON.  It calls the AFS system library function
-"ka_UserReadPassword".
+'ka_UserReadPassword'.
 
 B<NOTE: this form is deprecated !!!>
 
  $string = ka_UserReadPassword(PROMPT, REASON);
 
-=back
+=item B<ATTRIBUTES ACCESS>
 
-=head2 Attributes Access
-
-=over 4
+=item S< >
 
 =item B<$key-E<gt>string;>
 
@@ -137,10 +136,23 @@ Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+ Most of the explanations in this document are taken from the original
+ AFS documentation.
+
+ AFS-3 Programmer's Reference:
+ Authentication Server Interface
+ Edward R. Zayas
+ © 1991 Transarc Corporation.
+ All rights reserved.
+
+ IBM AFS Administration Reference
+ © IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -168,4 +180,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.2
+Revision $Rev: 529 $

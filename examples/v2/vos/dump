@@ -1,0 +1,28 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $volume, $time, $file, $server, $part, $ok);
+
+die "Usage: $0 volume [time [file [server partition]]]\n" if $#ARGV < 0;
+
+$volume = shift;
+$time   = shift;
+$file   = shift;
+$server = shift;
+$part   = shift;
+
+$time   = 0  unless $time;
+$file   = '' unless $file;
+$server = '' unless $server;
+$part   = '' unless $part;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$ok = $vos->dump($volume, $time, $file, $server, $part);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+print "Dumped volume $volume in file $file\n" if ($ok and $file);

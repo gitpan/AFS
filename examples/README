@@ -1,0 +1,27 @@
+
+          This is the README file for the AFS Perl examples.
+                      AFS Perl (Version 2.2.0)
+
+
+WHERE ARE THE EXAMPLES?
+    A collection of examples demonstrating various functions and
+    methods are stored in the directories "v1" and "v2".  All scripts
+    in "v2" conform with the interface version 2 and are therefore the
+    preferred and supported set of examples.  All scripts in "v1" are
+    originally written by Roland Schemers.  These are unsupported
+    examples. They are kept there just for backward compatibility.
+    For more details read the appropriate POD documentations.
+
+
+
+HOW TO USE THE EXAMPLES
+    All scripts in "v2" are designed that you can run them without
+    prior installation of the AFS module bundle.  After you have
+    performed the steps "perl Makefile.pl", "make", and eventually
+    "make test" you can run these test scripts.  Just step into the
+    different subdirectories and run the available examples, e.g:
+    
+        cd AFS-2.2.0/examples/v2/base
+        ./error_test
+
+

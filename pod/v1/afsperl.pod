@@ -29,7 +29,7 @@ of sections:
 
 The AFS module is a dynamically loadable (where available) extension to Perl 5.
 It gives the AFS user and administrator access to many of the AFS programming
-APIs, allowing you to make these calls directly from Perl, rather then
+APIs, allowing you to make these calls directly from Perl, rather than
 processing the output of a command.
 
 The AFS module is a thin layer above the low-level AFS APIs. When possible, 

@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -w
 
 use strict;
-use blib '../blib/';
+use blib;
 
 use AFS::ACL;
 

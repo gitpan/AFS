@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use Time::localtime;
 use AFS::KAS;
 use AFS::KTC_PRINCIPAL;

@@ -1,0 +1,247 @@
+Version 2.2.0 (released 03 February 2004, revision 571)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.0.tar.gz
+
+ NOTICE: This release does not support AFS system libraries
+         version 3.4 or version 3.5
+ 
+ User-visible changes:
+ * implementation of the VOS command suite
+ * POD documentation for the modules AFS::VLDB and AFS::VOS
+ * changed VERSION numbering schema.  Beginning with version 2.2.0,
+   the version number convention has been changed to a "dotted
+   integer" scheme that is more commonly found in open source
+   projects.  Maintenance versions of v2.2.0 will be released as
+   v2.2.1, v2,2.2 etc.  The next development series following v2.2.0
+   will be numbered v2.3.x, beginning with v2.3.0, and the next major
+   production release following v2.2.0 will be v2.4.0.
+ * improved Makefile.PL script
+ * improved several test drivers by generalizing test cases.
+ * extended POD documentation for AFS::CM; now enumerates the hash key
+   names for the C structure "VolumeStatus".
+ * support for the CM function 'getvolstats'
+ * fixed kas->getentry method because the returned values for the
+   packed variable were wrong 
+
+
+ Developer-visible changes:
+ * rewrite of the DESTROY function for KAS and PTS
+ * changed memcpy and bcopy to Copy for most XS functions
+ * modified AFS.xs functions "myDisplayFormat", "myXDisplayFormat",
+   and "myEnumerateEntry": patched several hash key names
+ * patched pts->DESTROY method
+ * new modules AFS::VLDB and AFS::VOS
+ * changed VERSION numbering schema
+
+
+
+Version 2.04 (never released, revision 297)
+
+ User-visible changes:
+ * fixed function "constant"
+
+
+ Developer-visible changes:
+ * switched test drivers to Test::More
+ * rewrite of several test drivers
+   ACL.t, CM.t, Cell.t, FS.t, Utils.t
+ * VERSION variable now under SVN control
+ * fixed function AUTOLOAD
+
+
+
+Version 2.03 (released 15 October 2002, revision 230)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.03.tar.gz
+
+ User-visible changes:
+ * Makefile.PL
+   now we can recognize 'Devel' versions too
+
+
+ Developer-visible changes:
+ *closed memory leak because of wrong ref-counter in
+  fs_getvolstats
+  fs_getacl
+  pts_listentry
+  pts_PR_ListEntry
+  pts_dumpentry
+  pts_PR_DumpEntry
+  kas_KAM_GetEntry
+  kas_KAM_Debug
+  kas_KAM_GetStats
+
+
+
+Version 2.02 (released 12 July 2002, revision 221)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.02.tar.gz
+
+ User-visible changes:
+ * fixed bug in method AFS::KAS->setfields resp. AFS::KAS->KAM_SetFields 
+   introduced in version 2.01   
+
+
+ Developer-visible changes:
+ * modified 'typemap' file: added type 'uint32'
+
+
+
+Version 2.01 (released 8 July 2002, revision 211)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.01.tar.gz
+
+ User-visible changes:
+ * improved Makefile.PL script
+ * new method '-AFS::KTC_TOKEN->FromString'
+
+
+ Developer-visible changes:
+ * removed perl-5.6 features from several modules for backward
+   compatibility 
+
+
+
+Version 2.0 (released 2 July 2002, revision 184)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.0.tar.gz
+
+ User-visible changes:
+ * compiles now with IBM AFS 3.6 and OpenAFS system libraries.  This
+   module bundle compiles now with the AFS system libraries for IBM
+   AFS version 3.4.x, 3.5.x, 3.6.x and with the AFS system libraries
+   for all OpenAFS versions.
+ * number of available platforms have increased. Since OpenAFS is
+   running on an increasingly number of platforms so does the AFS Perl
+   module.  Everywhere you can compile OpenAFS and Perl you should be
+   able to install the ASF Perl module.
+ * corrected Constructor Methods for all AFS classes.  The constructor
+   methods for all AFS classes have been corrected to conform with the
+   Perl OO conventions.
+ * module structure has been changed.  In order to have clean Perl
+   interfaces the AFS Perl code has been separated into several
+   logical modules.  All modules have been implemented as OO classes.
+ * compatibility mode for version 1.X.  All old variables and
+   functions from version 1 are still available for compatibility, but
+   are deprecated.  These cases have been marked in the documentation.
+ * numerous example scripts for version 2.0
+ * new functions 'XSVERSION', 'get_syslib_version', 'get_server_version',
+   'getcrypt' and 'setcrypt'
+ * new set of POD documentations for version 2.0
+
+
+
+ Developer-visible changes:
+ * compiles with OpenAFS
+ * constructor methods for all AFS classes have been corrected to
+   conform with the Perl OO conventions.
+ * modified 'typemap' file: renamed following types
+   AFS::PTS_SERVER         AFS::PTS
+   AFS::KA_AUTHSERVER      AFS::KAS
+   AFS::KTC_ENCRYPTIONKEY  AFS::KTC_EKEY
+
+
+
+
+Version 1.11 (released 6 December 2001, revision 80)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.11.tar.gz
+
+ User-visible changes:
+ * major rewrite of the Make.PL script
+ * patched functions lsmount, rmmount (the values of an input argument
+   got corrupted)
+ * improved test driver for module AFS.pm
+ * updated README
+
+ Developer-visible changes:
+ * ACL->length, ACL->nlength, ACL->keys, ACL->nkeys:
+   keyword "keys" changed to CORE::keys
+
+
+Version 1.10 (released 24 July 2001, revision 71)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.10.tar.gz
+
+ User-visible changes:
+ * updated and corrected README
+
+
+ Developer-visible changes:
+ * VERSION variable now under CVS control
+
+
+
+Version 1.09 (released 27 October 2000, revision 60)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.09.tar.gz
+
+ User-visible changes:
+ * none
+
+
+ Developer-visible changes:
+ * applied Patches from Perl Pollution Portability V1.0007
+
+
+
+Version 1.08 beta (released 16 June 1999, revision 57)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08b.tar.gz
+
+ User-visible changes:
+ * added example for function ka_setfields
+
+
+ Developer-visible changes:
+ * none
+
+
+
+Version 1.08 alpha (released 3 May 1999, revision 55)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08a.tar.gz
+
+ User-visible changes:
+ * updated and corrected README
+
+
+ Developer-visible changes:
+ * none
+
+
+
+Version 1.08 (released 27 April 1999, revision 54)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08.tar.gz
+
+ User-visible changes:
+ * patched function fs_setquota
+ * added function flushcb
+
+
+ Developer-visible changes:
+ * none
+
+
+
+Version 1.07 (released 8 April 1999, revision 44)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.07.tar.gz
+
+ User-visible changes:
+ * added support for AIX machines
+ * patched function fs_setquota
+
+
+ Developer-visible changes:
+ * none
+
+
+
+Version 1.06 (released 6 April 1999, revision 40)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.06.tar.gz
+
+ User-visible changes:
+ * renamed function 'access' to 'cm_access'
+ * introduced variable AFS::VERSION
+ * fixed bug in kas_KAM_SetFields
+
+
+ Developer-visible changes:
+ * fixed problems in internal_pts_new and in pts_name
+
+
+
+Version 1.05 (dated 2 November 1996, revision 21)
+
+ * oldest available version, extracted from the original tar 
+   package, compiled by Roland Schemers

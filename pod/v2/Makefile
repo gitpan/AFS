@@ -5,7 +5,7 @@ POD2HTML = $(P2H) \
 	    --podpath=./ \
 	    --verbose \
 	    --noindex \
-	    --libpods=afsperlcm:afsperlfs:afsperlacl:afsperlcell:afsperlpts:afsperlkas:afsperlktct:afsperlktcp:afsperlktck:afsperlutils:afsperlbase
+	    --libpods=afsperlcm:afsperlfs:afsperlacl:afsperlcell:afsperlpts:afsperlkas:afsperlktct:afsperlktcp:afsperlktck:afsperlutils:afsperlbase:afsperlbos:afsperlvos:afsperlvldb
 
 all: $(CONVERTERS)
 
@@ -17,6 +17,7 @@ POD = \
 	afsperl.pod	\
 	afsperlacl.pod	\
 	afsperlbase.pod	\
+	afsperlbos.pod	\
 	afsperlcell.pod	\
 	afsperlcm.pod	\
 	afsperlfs.pod	\
@@ -25,12 +26,15 @@ POD = \
 	afsperlktcp.pod	\
 	afsperlktct.pod	\
 	afsperlpts.pod	\
-	afsperlutils.pod
+	afsperlutils.pod \
+	afsperlvldb.pod	\
+	afsperlvos.pod
 
 HTML = \
 	afsperl.html	\
 	afsperlacl.html	\
 	afsperlbase.html	\
+	afsperlbos.html	\
 	afsperlcell.html	\
 	afsperlcm.html	\
 	afsperlfs.html	\
@@ -39,7 +43,9 @@ HTML = \
 	afsperlktcp.html	\
 	afsperlktct.html	\
 	afsperlpts.html	\
-	afsperlutils.html
+	afsperlutils.html \
+	afsperlvldb.html \
+	afsperlvos.html
 # not perltoc.html
 
 html:	$(P2H) $(HTML)

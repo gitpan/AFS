@@ -1,0 +1,20 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $server, $part, $volume, $ok);
+
+die "Usage: $0 server partition volume\n" if $#ARGV != 2;
+
+$server = shift;
+$part   = shift;
+$volume = shift;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$ok = $vos->online($server, $part, $volume);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+

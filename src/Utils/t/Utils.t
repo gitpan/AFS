@@ -1,20 +1,32 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl t/$modfname.t'
+# -*-cperl-*-
 
-######################### We start with some black magic to print on failure.
+use strict;
+use lib qw(../../inc ../inc);
 
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
+use Test::More tests => 7;
 
-BEGIN { $| = 1; print "1..1\n"; }
-END {print "not ok 1\n" unless $loaded;}
-use AFS::Utils;
-$loaded = 1;
-print "ok 1\n";
+BEGIN {
+    use_ok('AFS::Utils', qw (
+                             XSVERSION get_server_version get_syslib_version
+                             setpag sysname unlog
+                            )
+          );
+}
 
-######################### End of black magic.
+my $setpag = setpag;
+ok(defined $setpag, 'setpag');
 
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):
+my $xsversion = XSVERSION;
+ok(defined $xsversion, 'XSVERSION');
 
+my $syslib_version = get_syslib_version;
+ok(defined $syslib_version, 'get_syslib_version');
+
+my $server_version = get_server_version('cm');
+ok(defined $server_version, 'get_server_version');
+
+my $sysname = sysname;
+ok(defined $sysname, 'sysname');
+
+my $unlog = unlog;
+ok(defined $unlog, 'unlog');

@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::KAS;
 use AFS::KTC_PRINCIPAL;
 use AFS::KTC_TOKEN;
@@ -10,8 +10,6 @@ use AFS qw(raise_exception);
 die "Usage: admin user\n" if ($#ARGV != 1);
 
 raise_exception(1);
-
-
 
 my $princ = AFS::KTC_PRINCIPAL->new(shift);
 my $key   = AFS::KTC_EKEY->ReadPassword($princ->name."'s Password:");
@@ -23,6 +21,17 @@ my $entry = $kas->getentry($user->name, $user->instance);
 print "\n\ngetentry:\n User data for ", $user->name, $user->instance, ": \n";
 foreach my $tp_key (sort keys %$entry) {
     printf("%20s  %s\n",$tp_key, $$entry{$tp_key});
+    if ($tp_key =~ 'misc_auth_bytes') {
+        my $packed = $$entry{$tp_key};
+        my $pwexpire = (($packed >> 24) & 0xff);
+        my $pw_reuse = (($packed >> 16) & 0xff);
+        my $nfail    = (($packed >>  8) & 0xff);
+        my $locktime = (($packed >>  0) & 0xff);
+        print "\t\t pwexpire $pwexpire\n";
+        print "\t\t pw_reuse $pw_reuse\n";
+        print "\t\t nfail    $nfail\n";
+        print "\t\t locktime $locktime\n";
+    }
 }
 
 $entry = $kas->KAM_GetEntry($user->name, $user->instance);

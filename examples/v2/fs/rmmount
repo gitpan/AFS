@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::FS qw(rmmount);
 
 die "Usage: $0 mountp\n" if ($#ARGV==-1);

@@ -1,0 +1,18 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+
+our ($verbose, $vos);
+
+die "Usage: $0 [verbose]\n" if $#ARGV > 0;
+
+$verbose = shift;
+
+$vos = AFS::VOS->new($verbose);
+if ($AFS::CODE) { print "Error Code: $AFS::CODE\n"; }
+else { print "OK \n"; }
+
+$vos->DESTROY;

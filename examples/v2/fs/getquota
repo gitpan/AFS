@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::FS qw(getquota);
 
 die "Usage: $0 path\n" if $#ARGV==-1;

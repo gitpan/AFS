@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlacl.pod,v 2.2 2002/10/11 10:50:17 nog Exp"
+# RCS-Id: "@(#)$Id: afsperlacl.pod 529 2004-01-06 18:38:11Z nog $"
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -23,16 +23,16 @@ B<AFS::ACL> - Class to handle the B<AFS Access Control Lists>
   $acl->clear;
 
   foreach my $user ($acl->get_users) {
-    print " $user ",$acl->get_rights($user),"\n";
+      print " $user ", $acl->get_rights($user), "\n";
   }
 
   foreach my $user ($acl->nget_users) {
-    print " $user ",$acl->nget_rights($user),"\n";
+      print " $user ", $acl->nget_rights($user), "\n";
   }
 
   my $ok = $acl->apply('/afs/mpa/home/guest');
 
-  my $copy = $acl->copy;
+  my $copy   = $acl->copy;
   my $rights = AFS::ACL->crights('read');
 
   my $new_acl = AFS::ACL->retrieve('/afs/mpa/home/nog');
@@ -89,9 +89,11 @@ or interfaces from version 2. You either stick with version 1 or version
 
 =head1 METHODS
 
-=head2 Constructor
-
 =over 4
+
+=item B<CONSTRUCTOR>
+
+=item S< >
 
 =item B<$acl = AFS::ACL-E<gt>new([\%POS [, \%NEG]]);>
 
@@ -105,21 +107,17 @@ B<NOTE: these forms are deprecated !!!>
  $acl = AFS::ACL::new([\%pos [, \%neg]]);
  $acl = newacl([\%pos [, \%neg]]);
 
-=back
+=item B<COPY CONSTRUCTOR>
 
-=head2 Copy Constructor
-
-=over 4
+=item S< >
 
 =item B<$new_acl = $acl-E<gt>copy;>
 
 Returns a copy of an existing ACL object.
 
-=back
+=item B<CLASS METHODS>
 
-=head2 Class methods
-
-=over 4
+=item S< >
 
 =item B<$acl = AFS::ACL-E<gt>retrieve(PATH [, FOLLOW]);>
 
@@ -179,11 +177,9 @@ B<NOTE: this form is deprecated !!!>
 
  $print = rights2ascii($flags);
 
-=back
+=item B<ATTRIBUTES ACCESS>
 
-=head2 Attributes Access
-
-=over 4
+=item S< >
 
 =item B<$rights = $acl-E<gt>get_rights(USER);>
 
@@ -253,11 +249,9 @@ or negative(-E<gt>nlength) ACL list.
 Returns 1 if the given USER exists in the positive(-E<gt>exists)
 or negative(-E<gt>nexists) ACL list.
 
-=back
+=item B<INSTANCE METHODS>
 
-=head2 Instance Methods
-
-=over 4
+=item S< >
 
 =item B<$acl-E<gt>add(NEWACL);>
 
@@ -278,9 +272,9 @@ B<NOTE: this form is deprecated !!!>
 
 =item B<$ok = $acl-E<gt>modifyacl(PATH, [, FOLLOW]);>
 
-Sets the ACL to the union of the given $acl list and the current ACL of
-the PATH.  An access right of "none" or "" will cause an entry to be
-removed from the ACL.
+Sets the ACL to the union of the given $acl list and the current ACL
+of the PATH.  An access right of I<none> or an empty string will cause
+an entry to be removed from the ACL.
 
 B<NOTE: this form is deprecated !!!>
 
@@ -298,10 +292,23 @@ Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+ Most of the explanations in this document are taken from the original
+ AFS documentation.
+
+ AFS-3 Programmer's Reference:
+ File Server/Cache Manager Interface
+ Edward R. Zayas
+ © 1991 Transarc Corporation.
+ All rights reserved.
+
+ IBM AFS Administration Reference
+ © IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -329,4 +336,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.2
+Revision $Rev: 529 $

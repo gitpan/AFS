@@ -1,12 +1,12 @@
 package AFS;
 
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)AFS.pm,v 2.3 2002/10/11 11:03:19 nog Exp"
+# RCS-Id: "@(#)$Id: AFS.pm 565 2004-02-02 12:56:48Z nog $"
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 # Copyright © 1994 Board of Trustees, Leland Stanford Jr. University.
 #
 #  The original library is covered by the following copyright:
@@ -24,15 +24,30 @@ package AFS;
 #     WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 #------------------------------------------------------------------------------
 
+use Carp;
+
 require Exporter;
 require AutoLoader;
 require DynaLoader;
 
 use vars qw(@ISA $VERSION $REVISION);
 
-@ISA      = qw(Exporter AutoLoader DynaLoader);
-$VERSION  = do{my@r=q/V_2_03/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
-$REVISION = sprintf("%d.%02d", q/2.3/ =~ /(\d+)\.(\d+)/);
+@ISA = qw(Exporter AutoLoader DynaLoader);
+
+my $head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/src/AFS.pm $';
+if ($head_url =~ /rc\d/) {
+    # release candidate
+    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/src/AFS.pm $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
+}
+elsif ($head_url =~ /release/) {
+    # normal release
+    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.0/src/AFS.pm $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+}
+else {
+    # development release
+    $VERSION = do{my@r=q/Major Version 2.2 $Rev: 565 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+}
+$REVISION = do{my@r=q/Major Version 2.2 $Rev: 565 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
 
 @CELL = qw (
             configdir
@@ -172,6 +187,8 @@ sub get_server_version {
                 'bos' => 7007,
                );
 
+    if (! defined $port{$server}) { die "Server $server unknown ...\n"; }
+
     $hostname = 'localhost' unless defined $hostname;
     $verbose  = 0           unless defined $verbose;
 
@@ -239,26 +256,35 @@ use AFS::KAS;
 package AFS;
 
 sub AUTOLOAD {
-    if (@_ > 1) {
-	$AutoLoader::AUTOLOAD = $AUTOLOAD;
-	goto &AutoLoader::AUTOLOAD;
-    }
-    local($constname);
+    # This AUTOLOAD is used to 'autoload' constants from the constant()
+    # XS function.  If a constant is not found then control is passed
+    # to the AUTOLOAD in AutoLoader.
+    # taken from perl v5.005_02 for backward compatibility
+
+    my $constname;
 
     ($constname = $AUTOLOAD) =~ s/.*:://;
-    $val = constant($constname);
+    croak "& not defined" if $constname eq 'constant';
+    my $val = constant($constname, @_ ? $_[0] : 0);
     if ($! != 0) {
-	if ($! =~ /Invalid/) {
+	if ($! =~ /Invalid/ || $!{EINVAL}) {
 	    $AutoLoader::AUTOLOAD = $AUTOLOAD;
 	    goto &AutoLoader::AUTOLOAD;
 	}
 	else {
-	    ($pack, $file, $line) = caller;
-	    die "Your vendor has not defined AFS macro $constname, used at $file line $line.";
+	    croak "Your vendor has not defined AFS macro $constname";
 	}
     }
-    if ($val =~ /^-?\d+/) { eval "sub $AUTOLOAD { $val }"; }
-    else                  { eval "sub $AUTOLOAD { \"$val\" }"; }
+    {
+	no strict 'refs';
+	# Fixed between 5.005_53 and 5.005_61
+	if ($] >= 5.00561) {
+	    *$AUTOLOAD = sub () { $val };
+	}
+	else {
+	    *$AUTOLOAD = sub { $val };
+	}
+    }
     goto &$AUTOLOAD;
 }
 

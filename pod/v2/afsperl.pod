@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperl.pod,v 2.3 2002/10/11 10:51:28 nog Exp"
+# RCS-Id: "@(#)$Id: afsperl.pod 569 2004-02-02 14:01:28Z nog $"
 #
-# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -14,14 +14,15 @@ B<AFS> - Perl interface to AFS programming APIs
 
 =head1 VERSION
 
-This document describes the AFS module bundle Version 2 (release
-V_2_03).
+This document describes the AFS module bundle
+(Version 2.2.0)
+
 
 =head1 COMPATIBILITY
 
 In version 2, all functions and special variables have been resorted
 into separate submodules according to their affiliations to different
-AFS command suits.  These resorted functions and variables are not
+AFS command suites.  These resorted functions and variables are not
 exported by default anymore but they are exported only on request.
 
 All old features and interfaces from version 1 are still available for
@@ -36,8 +37,8 @@ or interfaces from version 2. You either stick with version 1 or version
 
 The AFS module bundle is a dynamically loadable (where available)
 extension to Perl.  It gives the AFS user and administrator access to
-many of the AFS programming APIs, allowing you to make these calls
-directly from Perl, rather then processing the output of a command.
+most of the AFS programming APIs, allowing you to make these calls
+directly from Perl, rather than processing the output of a command.
 
 The AFS module bundle is a thin layer above the low-level AFS APIs. When
 possible, function names are similar to the actual API names, or to the
@@ -48,39 +49,54 @@ The AFS module bundle includes the following features:
 
 =over 4
 
-=item * Access to Cache Manager routines
+=item * Access to Basic Overseer Server routines
 
-Functions that deal with the Cache Manager (i.e, part of the 'fs'
-command suit).  See L<afsperlcm>.
+Methods that deal with the Basic Overseer Server (i.e, the I<bos>
+command suite).  See L<afsperlbos>.
+
+=item * Access to Volume Server routines
+
+Methods that deal with the Volume Server (i.e, part of the I<vos>
+command suite).  See L<afsperlvos>.
+
+=item * Access to Volume Location Server routines
+
+Methods that deal with the Volume Location Server (i.e, part of the
+I<vos> command suite).  See L<afsperlvos>.
 
 =item * Access to File Server routines
 
-Functions that deal with the File Server (i.e, part of the 'fs' command
-suit).  See L<afsperlfs>.
+Functions that deal with the File Server (i.e, part of the I<fs>
+command suite).  See L<afsperlfs>.
+
+=item * Access to Cache Manager routines
+
+Functions that deal with the Cache Manager (i.e, part of the I<fs>
+command suite).  See L<afsperlcm>.
 
 =item * Managing Access Control Lists
 
 Methods to control access to directories and all of their files. (i.e,
-part of the 'fs' command suit). See L<afsperlacl>.
+part of the I<fs> command suite). See L<afsperlacl>.
 
 =item * Manipulations of the Cell Configuration
 
-Functions that deal with Cell Configurations (i.e, part of the 'fs'
-command suit).  See L<afsperlcell>.
+Functions that deal with Cell Configurations (i.e, part of the I<fs>
+command suite).  See L<afsperlcell>.
 
 =item * Access to Protection Server routines
 
-Methods that deal with the Protection Server (i.e, the 'pts' command
-suit).  See L<afsperlpts>.
+Methods that deal with the Protection Server (i.e, the I<pts> command
+suite).  See L<afsperlpts>.
 
 =item * Access to the Authentication Server routines
 
-Methods that deal with the Authentication Server (i.e, the 'kas'
-command suit).  See L<afsperlkas>.
+Methods that deal with the Authentication Server (i.e, the I<kas>
+command suite).  See L<afsperlkas>.
 
 =item * Access to the AFS structure ktc_token
 
-Methods that deal with token management in the "Kernel Token Cache"
+Methods that deal with token management in the I<Kernel Token Cache>
 (KTC) (i.e, the tokens command).  See L<afsperlktct>.
 
 =item * Access to the AFS structure ktc_principal
@@ -96,11 +112,11 @@ L<afsperlktck>.
 =item * Access to shared utility routines
 
 Utility functions for the AFS module bundle which are not part of any
-AFS command suit (i.e, the setpag command).  See L<afsperlutils>.
+AFS command suite (i.e, the setpag command).  See L<afsperlutils>.
 
 =item * Access to basic AFS functions and to AFS error codes
 
-Basic functions like raising a perl exception when any AFS function call
+Basic functions like raising a Perl exception when any AFS function call
 fails (useful for debugging) or retrieving the status value of the last
 AFS function call. See L<afsperlbase>.
 
@@ -108,25 +124,36 @@ AFS function call. See L<afsperlbase>.
 
 =head1 PREREQUISITES
 
- Perl 5.005_02 or better
- AFS system libraries (either IBM AFS V 3.3 or better or OpenAFS)
- AFS header files
+=over 4
+
+=item Perl 5.005_02 or better
+
+=item AFS system libraries (either B<IBM/Transarc AFS V 3.6> or B<OpenAFS>)
+
+=item AFS header files
+
+=back
 
 =head1 SEE ALSO
 
- The AFS command suite (fs, pts, kas)
- The AFS source tree :-)
+=over 4
+
+=item OpenAFS documentations
+
+=item OpenAFS source tree
+
+=item AFS command suites (fs, pts, kas, bos, and vos)
+
+=back
 
 =head1 CAVEATS
 
 These modules and their POD documentations have been written with the
-help of the AFS source code and the 'ancient' AFS Programmer's Reference
-documentation.  Unfortunately nearly no documentation was available for
-the interfaces to the AFS structures ktc_token, ktc_principal, and
-ktc_encryptionkey.  Therefore these modules are not very well documented.
-
-Not all of the AFS commands have been implemented (yet), most noticeably
-the vos commands.
+help of the AFS source code, the AFS manuals, and the 'ancient' AFS
+Programmer's Reference documentation.  Unfortunately nearly no
+documentation was available for the interfaces to the AFS structures
+ktc_token, ktc_principal, and ktc_encryptionkey.  Therefore these
+modules are not very well documented.
 
 =head1 AUTHORS
 
@@ -172,9 +199,20 @@ B<Bernard Antoine> - for his bug report about a memory leak in the method
 B<Peter Scott> - for his bug report about a memory leak in the function
 "getvolstats"
 
+B<Peter Scott> - for his bug report about the function AFS::constant
+
+B<Venkata Phani Achanta> - for his improved test drivers for several modules
+
+B<David R. Boldt> - for his bug report about an undefined "typemap" entry
+
+B<Alf Wachsmann> and B<Venkata Phani Achanta> - for their implementation
+of the BOS, VOS, and VLDB modules
+
+B<Phil Moore> - for his bug report on Itanium ia64 platform
+
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
@@ -205,4 +243,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.3
+Revision $Rev: 569 $

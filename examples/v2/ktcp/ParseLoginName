@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::KTC_PRINCIPAL;
 
 die "Usage: $0 name\n" if ($#ARGV != 0);

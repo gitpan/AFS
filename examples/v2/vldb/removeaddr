@@ -1,0 +1,20 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VLDB;
+
+our ($vldb, $address, $ok);
+
+die "Usage: $0 ip_address\n" if $#ARGV != 0;
+
+$address = shift;
+
+die "not yet tested ... \n";
+
+$vldb = AFS::VLDB->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$ok = $vldb->removeaddr($address);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);

@@ -1,0 +1,25 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VLDB;
+
+our ($vldb, $server, $partition, $ok);
+
+die "Usage: $0 server [partition]\n" if $#ARGV < 0;
+
+$server    = shift;
+$partition = shift;
+
+$vldb = AFS::VLDB->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+if (defined $partition) {
+    $ok = $vldb->syncserv($server, $partition);
+    print "Error: $AFS::CODE \n" if ($AFS::CODE);
+}
+else {
+    $ok = $vldb->syncserv($server);
+    print "Error: $AFS::CODE \n" if ($AFS::CODE);
+}

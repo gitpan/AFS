@@ -1,0 +1,18 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::VOS;
+our ($vos, $volume, $quota, $ok);
+
+die "Usage: $0 volume quota\n" if $#ARGV != 1;
+
+$volume = shift;
+$quota  = shift;
+
+$vos = AFS::VOS->new;
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+$ok = $vos->setquota($volume, $quota);
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);

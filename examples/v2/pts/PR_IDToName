@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::PTS;
 
 my @ids = (28053, 1, 105, 32000, 32766);

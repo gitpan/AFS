@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 
-use blib '../blib/';
+use blib;
 use AFS::Cell qw (expandcell);
 
 die "Usage: $0 cellname \n" if $#ARGV != 0;
