@@ -1,0 +1,19 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+  $user= shift;
+
+  $id = shift;
+
+  $pts = AFS::PTS_SERVER::new(1);
+
+  print "AFS::PTS_SERVER::new AFS::CODE = $AFS::CODE\n";
+
+print "----- createuser\n";
+
+  $id = $pts->createuser($user,$id);
+
+  print "createuser AFS::CODE = $AFS::CODE\n";
+  print "id = $id\n";
+

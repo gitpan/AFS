@@ -1,0 +1,11 @@
+#!/usr/local/bin/perl
+
+use AFS; 
+
+$size = shift;
+
+$ok  = AFS::setcachesize($size);
+
+print "AFS::CODE = $AFS::CODE\n";
+print "ok = $ok\n";
+

@@ -1,0 +1,19 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 id\n" if ($#ARGV != 0);
+
+my $id = shift;
+
+my $pts = AFS::PTS->new;
+
+my $over = 1;
+my @names = $pts->PR_ListOwned($id, $over);
+print "AFS::CODE = $AFS::CODE\n";
+print "OVER = $over \n";
+print "Groups owned by $id\n";
+foreach my $mem (sort @names) {
+    print "  $mem\n";
+}

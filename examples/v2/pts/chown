@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+print "name: "; chop(my $name=<STDIN>);
+print "new owner: ";chop(my $new=<STDIN>);
+
+my $pts = AFS::PTS->new;
+
+my $ok = $pts->chown($name, $new);
+print "chown AFS::CODE = $AFS::CODE\n";
+print "success  = $ok\n";

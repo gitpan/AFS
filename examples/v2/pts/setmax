@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+print "id : "; chop(my $id=<STDIN>);
+print "isgroup: "; chop(my $isgroup=<STDIN>);
+
+my $pts = AFS::PTS->new;
+
+my $ok = $pts->setmax($id, $isgroup);
+print "setmax AFS::CODE = $AFS::CODE\n";
+print "success  = $ok\n";

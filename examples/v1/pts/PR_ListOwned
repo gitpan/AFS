@@ -1,0 +1,21 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+AFS::raise_exception(1);
+
+die "Usage: $0 id\n" if $#ARGV !=0;
+
+$id = shift;
+
+$pts = newpts;
+
+@members = $pts ->PR_ListOwned($id,$over);
+
+  print "over = $over\n";
+
+  print "groups owned by $id\n";
+    foreach $mem (sort @members) {
+        printf("  $mem\n");
+    }
+

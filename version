@@ -1,0 +1,2 @@
+$VERSION = do{my@r=q/V_2_0/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
+

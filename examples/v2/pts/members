@@ -1,0 +1,20 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 name convertids\n" if $#ARGV !=1;
+
+my $name = shift;
+my $convert = shift;
+
+my $pts = AFS::PTS->new;
+my $over = 0;
+
+my @members = $pts->members($name, $convert, $over);
+print "over = $over\n";
+print "members for $name\n";
+
+foreach my $mem (sort @members) {
+    printf("  $mem\n");
+}

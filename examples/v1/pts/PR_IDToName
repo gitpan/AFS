@@ -1,0 +1,14 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+AFS::raise_exception(1);
+
+  @ids = (28053, 1, 105, 32000, 32766);
+
+  @names = newpts ->PR_IDToName(\@ids);
+
+  foreach $name (@names) {
+     print "name = $name\n";
+  }
+  

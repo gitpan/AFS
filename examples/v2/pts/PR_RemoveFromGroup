@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 uid gid\n" if $#ARGV !=1;
+
+my $uid = shift;
+my $gid = shift;
+
+my $pts = AFS::PTS->new;
+
+my $ok = $pts->PR_RemoveFromGroup($uid, $gid);
+print "AFS::CODE = $AFS::CODE\n";
+print "success  = $ok\n";

@@ -1,0 +1,140 @@
+# -*-cperl-*-
+#------------------------------------------------------------------------------
+# RCS-Id: "@(#)afsperlutils.pod,v 2.0 2002/06/26 06:24:58 nog Exp"
+#
+# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+#
+# This library is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#------------------------------------------------------------------------------
+
+=head1 NAME
+
+B<AFS::Utils> - Shared utility functions for the B<AFS module bundle>
+
+=head1 SYNOPSIS
+
+  use AFS::Utils qw (
+                    XSVERSION get_server_version get_syslib_version
+                    setpag sysname unlog
+                    );
+
+  my $ok = setpag();
+  print "Return Code = $ok\n";
+
+  print 'XS-Version = ', XSVERSION, "\n";
+  print 'Syslib Version = ', get_syslib_version, "\n";
+  print 'Server Version = ', get_server_version('pts', 'ibm-1'), "\n";
+
+  my $sysname = sysname;
+
+  unlog;
+
+B<NOTE: The following lines are 'version 1' style: all names are
+exported by default. This style is deprecated !!!>
+
+  use AFS;              # import all AFS names
+  use AFS @AFS::MISC;   # import just the misc names
+
+=head1 DESCRIPTION
+
+This module provides several utility functions for the B<AFS module
+bundle>.  You can retrieve the version number for the underlying AFS
+system libraries, for the XS module, and for the AFS server processes.
+And it contains several commands that do not belong to any AFS command
+suites like creating a new PAG or retrieving and setting the
+CPU/operating system type. Any function required must by explicitly
+listed on the use line to be exported into the calling package.
+
+=head1 COMPATIBILITY
+
+In version 2 all functions are exported only on request.  The old
+behavior from version 1 (export by default) is still available for
+compatibility, but is deprecated.
+
+=head1 EXPORTS
+
+=head2 Standard Exports
+
+none
+
+=head2 Optional Exports
+
+The following functions will be exported into your namespace if you
+specifically ask that they be imported.
+
+=over 4
+
+=item B<$version = XSVERSION;>
+
+Reports the version number of the underlying XS file.
+
+=item B<$version = get_server_version(SERVER [, HOST [, VERBOSE]]);>
+
+Reports the version number of the SERVER process running at HOST
+(default localhost). If VERBOSE (default 0) is set to 1 some program
+trace is printed.
+
+=item B<$version = get_syslib_version;>
+
+Reports the version number of the underlying AFS system library.
+
+=item B<$ok = setpag;>
+
+Creates a new command shell (owned by the issuer of the command) and
+associates a new process authentication group (PAG) with the shell and
+the user. A PAG is a number guaranteed to identify the issuer of
+commands in the new shell uniquely to the local Cache Manager.
+
+=item B<$sysname = sysname([NEWSYSNAME]);>
+
+Reports the CPU/operating system type or sets the CPU/operating system
+type to NEWSYSNAME.
+
+=item B<unlog;>
+
+Discards all of the issuer's tokens.
+
+=back
+
+=head1 AUTHORS
+
+The original module was written by
+This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+
+Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
+
+=head1 COPYRIGHT AND DISCLAIMER
+
+ © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ All rights reserved.
+
+ © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=over 6
+
+=item The original module is covered by the following copyright:
+
+Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University
+
+Redistribution and use in source and binary forms are permitted
+provided that the above copyright notice and this paragraph are
+duplicated in all such forms and that any documentation,
+advertising materials, and other materials related to such
+distribution and use acknowledge that the software was developed
+by Stanford University.  The name of the University may not be used
+to endorse or promote products derived from this software without
+specific prior written permission.
+THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+=back
+
+=head1 DOCUMENT VERSION
+
+Version 2.0

@@ -1,0 +1,16 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::KTC_TOKEN;
+use AFS::KTC_PRINCIPAL;
+use AFS::KTC_EKEY;
+
+die "Usage: $0 user\n" if ($#ARGV !=0);
+
+my $user = shift;
+
+my $princ = AFS::KTC_PRINCIPAL->new($user);
+my $key = AFS::KTC_EKEY->ReadPassword("$user Password:");
+my $pw = 0;
+my $ok = AFS::KTC_TOKEN->GetAuthToken($princ, $key, 300, $pw);
+print "ok = $ok  pwexpire = $pw\n";

@@ -1,0 +1,37 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+print "anon: ";chop(my $anon=<STDIN>);
+print "AFS::ANONYMOUSID  = ",&AFS::ANONYMOUSID ,"\n";
+
+my $pts = AFS::PTS->new;
+
+print "----- scaler\n";
+
+my $name = 'nog';
+my $id = $pts->id($name, $anon);
+print "name = $name id = $id\n";
+
+
+print "----- array\n";
+
+my @names = ('nog','testafs','hans','foobar');
+
+my @ids = $pts->id(\@names,$anon);
+
+print "Names = @names \n";
+foreach my $id (@ids) {
+    print "id = $id\n";
+}
+
+
+print "----- hash\n";
+
+foreach my $id (@names) { $idhash{$id} = ''; }
+
+my $hash = $pts->id(\%idhash,$anon);
+foreach $key (keys %$hash) {
+    print "$key = $$hash{$key}\n";
+  }

@@ -1,0 +1,9 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+
+print AFS::error_message(&AFS::PRNOMORE),"\n";
+print AFS::error_message(180502),"\n";
+print &AFS::error_message(0),"\n";
+print &AFS::error_message(13),"\n";

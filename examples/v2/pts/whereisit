@@ -1,0 +1,14 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 name\n" if $#ARGV != 0;
+
+$name = shift;
+
+my $pts = AFS::PTS->new();
+
+my $pos = $pts->whereisit($name);
+
+print "Pos = $pos\n";

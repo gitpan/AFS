@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+AFS::raise_exception(1);
+
+$out = AFS::pioctl("/afs",1,&AFS::VIOC_FILE_CELL_NAME,"",0,1,1);
+
+
+# cellname is null terminated in the output
+
+($cell) =  ($out =~ /([^\000]*)/);
+
+print "cell = ($cell)\n";
+

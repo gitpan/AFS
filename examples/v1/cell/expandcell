@@ -1,0 +1,12 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+$c = shift;
+
+$cell = expandcell($c);
+
+print "AFS::CODE = $AFS::CODE\n";
+
+print "cell = $cell\n";
+

@@ -1,0 +1,16 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::CM qw (cm_access);
+use AFS::ACL;
+
+die "Usage: $0 path perms\n" if ($#ARGV==-1);
+
+my $path = shift;
+my $perms = shift;
+
+my $ok = cm_access($path, AFS::ACL->crights($perms));
+print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+print "ok = $ok\n";
+

@@ -1,0 +1,23 @@
+#!/usr/local/bin/perl -w
+
+use strict;
+use blib '../blib/';
+
+use AFS::ACL;
+
+die "Usage: $0 path\n" if ($#ARGV!=0);
+my $path = shift;
+
+my $acl = AFS::ACL->retrieve($path);
+print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+
+print "Normal rights: \n" if ($acl->length);
+foreach my $user ($acl->get_users) {
+  print " $user ",$acl->get_rights($user),"\n";
+}
+
+print "Negative rights: \n" if ($acl->nlength);
+foreach my $user ($acl->nget_users) {
+  print " $user ",$acl->nget_rights($user),"\n";
+}
+

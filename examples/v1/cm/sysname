@@ -1,0 +1,14 @@
+#!/usr/local/bin/perl
+
+use AFS sysname;
+
+$newname = shift;
+
+if ($newname ne '') {
+   $name = sysname($newname);
+} else{
+    $name = sysname;
+}
+print "AFS::CODE = $AFS::CODE\n";
+
+print "name = $name\n";

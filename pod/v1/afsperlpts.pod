@@ -1,0 +1,471 @@
+=head1 NAME
+
+afsperlpts - Protection Server functions
+
+=head1 SYNOPSIS
+
+         use AFS;
+         use AFS @AFS::PTS;
+ 
+         $pts = AFS::PTS_SERVER::new;
+         $pts = newpts;
+       $value = AFS::convert_numeric_names([$newvalue]);
+       $flags = ascii2ptsaccess($access);
+      $access = ptsaccess2ascii($flags);
+ 
+          $ok = $pts -> adduser($NAME, $GROUP)
+          $ok = $pts -> chid($NAME, $newid);
+          $ok = $pts -> chown($NAME, $OWNER);
+          $id = $pts -> creategroup($name [, $OWNER [, $id]]);
+          $id = $pts -> createuser($name [, $id]);
+          $ok = $pts -> delete($NAME);
+       $entry = $pts -> dumpentry($pos [,$lookupids [,$convertflags]]);
+     @members = $pts -> getcps($NAME [, $lookupids = 1 [, $wentover]]);
+          $id = $pts -> id($name [, $anon]);
+          @id = $pts -> id(\@names [, $anon]);      
+       $idref = $pts -> id(\%names [, $anon]);
+          $ok = $pts -> ismember($NAME, $GROUP);
+       $entry = $pts -> listentry($NAME [, $lookupids [, $convertflags]]);
+  ($uid,$gid) = $pts -> listmax;
+     @members = $pts -> members($NAME [, $lookupids [, $wentover]]);
+        $name = $pts -> name($id [, $anon]); 
+        @name = $pts -> name(@ids [, $anon]);
+     $nameref = $pts -> name(\%ids [, $anon]);
+     @members = $pts -> owned($NAME|0, [, $lookupids [, $wentover]]);
+          $ok = $pts -> rename($NAME, $newname);
+          $ok = $pts -> removeuser($NAME, $GROUP)
+          $ok = $pts -> setaccess ($NAME, $newflags);
+          $ok = $pts -> setgroupquota ($NAME, $ngroups);
+         $max = $pts -> setmax($id [, $isgroup]);
+         $pos = $pts -> whereisit($NAME);
+
+          $ok = $pts -> PR_AddToGroup($uid,$gid);
+          $ok = $pts -> PR_ChangeEntry($id,$name,$oid,$newid);
+          $ok = $pts -> PR_Delete($id);
+       $entry = $pts -> PR_DumpEntry($pos);
+         @ids = $pts -> PR_GetCPS($id,$over)
+       @names = $pts -> PR_IDToName(\@ids);
+          $id = $pts -> PR_INewEntry($name, $id, $oid);
+        $flag = $pts -> PR_IsAMemberOf($uid,$gid);
+         @ids = $pts -> PR_ListElements($id,$over);
+       $entry = $pts -> PR_ListEntry($id);
+  ($uid,$gid) = $pts -> PR_ListMax;
+         @ids = $pts -> PR_ListOwned($id,$over);
+         @ids = $pts -> PR_NameToID(\@names);
+          $id = $pts -> PR_NewEntry($name, $flag, $oid);
+          $ok = $pts -> PR_RemoveFromGroup($uid,$gid)
+          $ok = $pts -> PR_SetFieldsEntry($id,$msk,$flg,$ngrp,$nuser,$s1,$s2);
+         $ok  = $pts -> PR_SetMax($id,$gflag)
+         $pos = $pts -> PR_WhereIsIt($id);
+
+
+=head1 DESCRIPTION
+
+This document describes the PTS (Protection Server) functions
+available in the AFS module. The PR_* routines are essentially
+the same as the low-level AFS APIs. The other routines are more
+"user friendly" and perl-like.
+
+=head1 AFS::convert_numeric_names
+
+  $value = AFS::convert_numeric_names([$new]);
+
+  Sets/gets the behavior when looking up a PTS id. If the name looks like a 
+  number (matches /^-?[0-9]*/) the lookup is skipped and the numeric value 
+  of the name is returned. Default value is 1, and you'll probably
+  want to leave it that way unless you create PTS names that look 
+  exactly like numbers. (not a good idea to begin with :-) 
+
+=head2 EXAMPLES
+
+  AFS::convert_numeric_names(0);
+
+=head1 AFS::PTS::new
+
+  $pts = AFS::PTS_SERVER::new([$sec=1 [, $cell=localcell]]);
+  $pts = newpts(...);
+  $pts = '';  #DESTROY connection
+
+  The AFS::PTS_SERVER::new function is used to create a new PTS_SERVER
+  object. A PTS_SERVER object is required before any of the other PTS
+  functions can be called. A PTS_SERVER object is essentially a handle
+  to talk to the protection servers in a given cell. Interally a PTS_SERVER
+  object is a pointer to a ubik_client structure, although this may change
+  and the value returned from AFS::PTS_SERVER::new should always be treaded
+  as an opaque handle.
+
+  The "newpts" function is exported from the AFS module and is an short-hand
+  for the AFS::PTS_SERVER::new function.
+
+  The are two parameters to the AFS::PTS_SERVER::new function, the security
+  level, and the cell you wish to connect to.
+
+  The security level is a number from 0 to 2:
+
+      0    un-authenticated connection should be made
+      1    try authenticated first, fall back to un-authenticated
+      2    fail if an authenticated connection can't be made
+
+  The remaining methods all need an AFS::PTS_SERVER handle.
+
+=head2 EXAMPLE
+
+      $ir = newpts(1, "ir.stanford.edu");
+  $athena = newpts(1, "athena.mit.edu");
+
+   $ir_name     = $ir ->name($id);
+   $athena_name = $athena ->name($id);
+
+=head1 NOTE
+
+  All the high-level methods that have a uppercased parameter name
+  will accept either a numeric ID or a name. For example:
+
+     $pts -> delete($NAME);
+
+  The "$NAME" means the delete method will take either a numeric ID,
+  or a name. The low-level methods (PR_*) only work with numeric IDs.
+
+=head1 adduser
+
+  $ok = $pts -> adduser($NAME, $GROUP)
+
+  This method adds a user to the specified group. See also PR_AddToGroup 
+  and "pts adduser."
+
+=head1 chid
+
+  $ok = $pts -> chid($NAME, $newid);
+
+  This method changes the id of the given name. See also PR_ChangeEntry.
+
+=head1 chown
+
+  $ok = $pts -> chown($NAME, $OWNER);
+
+  This method changes the owner of the given name. See also PR_ChangeEntry and "pts chown."
+
+=head1 creategroup
+
+  $id = $pts -> creategroup($name [, $OWNER = 0, [, $id=0]]);
+
+  This method creates a new group. You can optionally specify
+  the owner and the id of the new group. See also PR_INewEntry, 
+  PR_NewEntry, and "pts creategroup."
+
+=head1 createuser
+
+  $id = $pts -> createuser($name [, $id=0])
+
+  This method creates a new user. You can optionally specify
+  the id of the new user. See also PR_INewEntry, PR_NewEntry, 
+  and "pts createuser."
+
+=head1 delete
+
+  $ok = $pts -> delete($NAME);
+
+  This method deletes the given name.  See also PR_Delete and "pts delete."
+
+=head1 dumpentry
+
+  $entry = $pts -> dumpentry($pos [, $lookupids=1 [,$convertflags=1]]);
+
+   This method is used in conjunction with the "whereisit" method. It
+   returns a reference to a hash table containing the values from the
+   C structure "prdebugentry". If $lookupids is 1 (which it is by default)
+   then AFS ids in the hash table will be converted to names. If convertflags
+   is 1 (which it is by default) then flags will be converted to its
+   ASCII representation.
+
+   The returned hash table contains the following key/value pairs:
+
+      cellid             child      count      creator
+      entries0-entries9  flags      id         instance
+      name               next       nextID     nextOwned
+      nextname           ngroups    nusers     owned
+      owner              parent     sibling    reserved0-4
+
+   See also whereisit, PR_WhereIsIt, PR_DumpEntry.
+
+=head1 getcps
+
+  @members = $pts -> getcps($NAME [, $lookupids = 1 [, $wentover]]);
+
+  This method returns the "Current Protection Subdomain" (CPS) for the
+  given AFS id. The CPS is the closure of all identities that the given 
+  id can use. This lists includes all the groups the ID belongs to, 
+  the special AFS ids (system:anyuser and system:authuser), as well 
+  as the id itself. If $lookupids is 1 then names will be returned.
+  If the size of list is greater then &AFS::PR_MAXGROUPS then $wentover
+  will be set to a non-zero value and only &AFS::PR_MAXGROUPS items
+  will be returned. See also PR_GetCPS.
+
+=head1 id
+
+     $id = $pts->id($name [, $anon=1]);
+     @id = $pts->id(\@names [, $anon=1]);      
+  $idref = $pts->id(\%names [, $anon=1]);
+
+  This method is used to convert AFS names into AFS ids. The first method
+  returns a single id. The second method takes a reference to an array of
+  names  and returns an array of ids. The third method takes a reference
+  to a hash table, the keys of which are names, and returns a reference
+  to the SAME hash, with the ids as the value of each key.
+
+  If $anon is 1 and a given name does not map into an id then 
+  the value &AFS::ANONYMOUSID will be returned. If $anon is 0 then 
+  the id will be set to undef (the undefined value). See also PR_NameToID
+
+=head1 ismember
+
+  $ok = $pts -> ismember($NAME, $GROUP);
+
+  Returns a non-zero value if $NAME is a member of $GROUP. 
+  See also PR_IsAMemberOf.
+
+=head1 listentry
+
+  $entry = $pts -> listentry($NAME [, $lookupids=1 [, $convertflags=1]]);
+
+   This method returns a reference to a hash table containing the values from 
+   the C structure "prcheckentry". If $lookupids is 1 (which it is by default)
+   then AFS ids in the hash table will be converted to names. If convertflags
+   is 1 (which it is by default) then flags will be converted to its
+   ASCII representation.
+
+   The returned hash table contains the following key/value pairs:
+
+      flags      id      owner      creator
+      ngroups    count   name
+
+   See also PR_ListEntry, and "pts examine."
+
+=head1 listmax
+
+  ($uid,$gid) = $pts -> listmax;
+
+   This method returns the largest allocated user/group ID.
+   See also PR_ListMax and "pts listmax."
+
+=head1 members
+
+   @members = $pts -> members($NAME [, $lookupids = 1 [, $wentover]]);
+
+   For a user, this method returns the list of groups in which the user
+   is a member. For a group, this method returns a list of users which are
+   in that group. See "getcps" for a discussion of $lookupids and $wentover.
+   See also PR_ListElements, "pts membership."
+
+=head1 name
+
+     $name = $pts->name($id [, $anon=1]);
+     @name = $pts->name(@ids [, $anon=1]);
+  $nameref = $pts->name(\%ids [, $anon=1]);
+
+  This method is used to convert AFS ids into names. The first method
+  returns a single name. The second method takes a reference to an array of
+  ids and returns an array of names. The third method takes a reference
+  to a hash table, the keys of which are ids, and returns a reference
+  to the SAME hash, with the names as the value of each key.
+
+  If $anon is 1 and a given id does not map into an name then 
+  the id value will be converted to a string (i.e, 11234 => "11234"). 
+  If $anon is 0 then the name will be set to undef (the undefined value).
+  See also Pr_NameToID.
+
+=head1 owned
+
+  @members = $pts -> owned($NAME|0, [, $lookupids = 1 [, $wentover]]);
+
+  This method returns a list of AFS ids owned by the given user or group.
+  If $NAME is 0, then PDB orphan list is returned. See "getcps" for a 
+  discussion of $lookupids and $wentover. See also PR_ListOwned and 
+  "pts listowned."
+
+=head1 rename
+
+  $ok = $pts -> rename($NAME, $newname);
+
+  This method renames $NAME to $newname. See also PR_ChangeEntry 
+  and "pts rename."
+
+=head1 removeuser
+
+  $ok = $pts -> removeuser($NAME, $GROUP)
+
+  This method removes $NAME from $GROUP.
+
+  See also "PR_RemoveFromGroup" and "pts removeuser."
+
+=head1 setaccess
+
+  $ok = $pts -> setaccess ($NAME, $newflags);
+
+  This method sets the "privacy" flags in the given entry. See the
+  "pts setfields -access" command for more information. See also 
+  PR_SetFieldsEntry and "pts setfields."
+
+=head1 setgroupquota
+
+  $ok = $pts -> setgroupquota ($NAME, $ngroups);
+
+  This method sets the group creation quota for $NAME. See also 
+  PR_SetFieldsEntry and "pts setfields."
+
+=head1 setmax
+
+  $max = $pts -> setmax($id [, $isgroup]);
+
+  This method sets the maximum user/group ID, depending on the value of 
+  $isgroup (which defaults to 0). See also PR_SetMax and "pts setmax."
+
+=head1 whereisit
+
+  $pos = $pts -> whereisit($NAME);
+
+  This method returns the PDB byte offset of $NAME. It is used in conjunction
+  with the dumpentry method. See also whereisit, PR_WhereIsIt, PR_DumpEntry.
+
+=head1 NOTE
+
+ The following low-level methods deal only with numeric AFS ids. 
+
+=head1 PR_AddToGroup
+
+  $ok    = $pts -> PR_AddToGroup($uid,$gid);
+
+  This is the low-level interface to the PR_AddToGroup function. Only numeric
+  ids are accepted as input. See the "adduser" method for a high-level 
+  interface.
+
+=head1 PR_ChangeEntry
+
+  $ok    = $pts -> PR_ChangeEntry($id,$name,$oid,$newid); 
+
+  If $name eq '' then name is not changed.
+  If $oid is 0 then the owner is not changed.
+  If $newid is 0 then the id is not changed.
+
+  See the "chid", "chown", and "rename" methods for a high-level interface.
+
+=head1 PR_Delete
+
+  $ok    = $pts -> PR_Delete($id);
+
+  Deletes the given $id. See the "delete" method for a high-level interface.
+
+=head1 PR_DumpEntry
+
+  $entry = $pts -> PR_DumpEntry($pos);
+
+  See the "dumpentry" method for a high-level interface.
+
+=head1 PR_GetCPS
+
+  @ids   = $pts -> PR_GetCPS($id,$over)
+
+=head1 PR_IDToName
+
+  @names = $pts -> PR_IDToName(\@ids);
+
+  Converts an array of ids to names. If an id does not map to a name then
+  the string representation of the id will be returned. See the "name" 
+  method for a high-level interface.
+
+=head1 PR_INewEntry
+
+  $id    = $pts -> PR_INewEntry($name, $id, $oid);
+
+  Creates a new entry in the PDB for the given $name and $id.
+  See the "createuser" and "creategroup" methods for a high-level interface.
+
+=head1 PR_IsAMemberOf
+
+  $flag  = $pts -> PR_IsAMemberOf($uid,$gid);
+
+  Returns a non-zero value if id $uid is a member of group $gid.
+  See the "ismember" method for a high-level interface.
+
+=head1 PR_ListElements
+
+  @ids   = $pts -> PR_ListElements($id,$over);
+
+  For a user id, this method returns the list of groups in which the user
+  is a member. For a group id, this method returns a list of users which are
+  in that group. Note that this function returns numerical ids, not names.
+  See the "members" method for a high-level interface.
+  
+=head1 PR_ListEntry
+
+  $entry = $pts -> PR_ListEntry($id);
+  
+  This method returns a reference to a hash table containing the values from 
+  the C structure "prcheckentry". No conversion is done on ids or flags.
+  See the "listentry" method for a high-level interface.
+
+=head1 PR_ListMax;
+
+  ($uid,$gid) = $pts -> PR_ListMax;
+
+  This method returns the largest allocated user/group ID. 
+
+=head1 PR_ListOwned
+
+  @ids   = $pts -> PR_ListOwned($id,$over);
+
+  This method returns a list of AFS ids owned by the given user or group.
+  If $NAME is 0, then PDB orphan list is returned. See the "owned" method
+  for a high-level interface.
+
+=head1 PR_NameToID
+
+  @ids   = $pts -> PR_NameToID(\@names);
+
+  This method is used to convert AFS names into ids. If a name does not
+  map into an id then the id will be set to &AFS::ANONYMOUS. See the "id"
+  method for a high-level interface.
+
+=head1 PR_NewEntry
+
+  $id    = $pts -> PR_NewEntry($name, $flag, $oid);
+
+  This method is used to create a new entry. Valid values for $flag are:
+
+  &AFS::PRUSER    create a user
+  &AFS::PRGRP     create a group
+
+  See the "createuser" and "creategroup" methods for a high-level interface.
+
+=head1 PR_RemoveFromGroup
+
+  $ok    = $pts -> PR_RemoveFromGroup($uid,$gid)
+
+  This method removes the id $uid from group $gid. See the "removeuser"
+  method for a high-level interface.
+
+=head1 PR_SetFieldsEntry
+
+  $ok    = $pts -> PR_SetFieldsEntry($id,$mask,$flags,$ngroups,$nusers,$s1,$s2);
+
+  See the "setaccess" and "setgroupquota" methods for a high-level interface.
+
+=head1 PR_SetMax
+
+  $ok    = $pts -> PR_SetMax($id,$gflag)
+
+  This method sets the maximum user/group ID. Valid values for $gflag are:
+
+  &AFS::PRUSER    create a user
+  &AFS::PRGRP     create a group
+
+  See the "setmax" method for a high-level interface.
+
+=head1 PR_WhereIsIt
+
+  $pos   = $pts -> PR_WhereIsIt($id);
+
+  This method returns the PDB byte offset of uid $uid. It is used in 
+  conjunction with the PR_DumpEntry method. See the "whereisit" method 
+  for a high-level interface.
+

@@ -1,0 +1,17 @@
+#!/usr/local/bin/perl -w
+
+use strict;
+use blib '../blib/';
+
+use AFS::ACL;
+
+die "Usage: $0 from to\n" if ($#ARGV==-1);
+
+my $from = shift;
+my $to = shift;
+
+my $ok = AFS::ACL->copyacl($from, $to);
+print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+print "OK = $ok \n";
+
+exit;

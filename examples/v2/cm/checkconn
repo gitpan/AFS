@@ -1,0 +1,9 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::CM qw (checkconn);
+
+my $ok = checkconn;
+print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+print "ok = $ok\n";

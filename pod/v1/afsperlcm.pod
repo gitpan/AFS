@@ -1,0 +1,178 @@
+=head1 NAME
+
+afsperlcm - Cache Manager functions
+
+=head1 SYNOPIS
+
+  use AFS;              # import all AFS names
+  use AFS @AFS::CM;     # import just the cache manager names
+
+  cm_access
+  checkconn
+  checkservers
+  checkvolumes
+  flush
+  flushcb
+  flushvolume
+  getcacheparms
+  getcellstatus
+  getcrypt
+  getfid
+  getquota
+  getvolstats
+  isafs
+  lsmount
+  mkmount
+  pioctl(path,setpath,op,in,setin,setout,follow)
+  rmmount
+  setcachesize
+  setcellstatus
+  setcrypt
+  setquota
+  sysname
+  unlog
+  whereis
+  whichcell
+  wscell
+
+=head1 DESCRIPTION
+
+This document describes the Cache Manager functions (fs command suite)
+available from the AFS module. 
+
+
+=head1 $volstats = getvolstats($path [,$follow=1]);
+
+  Emulates the VIOCGETVOLSTAT pioctl function. Blocks are returned
+  in 1K values. Type is ReadWrite or ReadOnly.
+
+  Returns an associative array containg the following values:
+
+             Blessed  1
+         BlocksInUse  38790
+           InService  1
+            MaxQuota  105000
+            MinQuota  0
+                Motd  
+                Name  user.schemers
+        NeedsSalvage  0
+              OffMsg  
+              Online  1
+            ParentId  669036111
+     PartBlocksAvail  255972
+       PartMaxBlocks  1161063
+                Type  ReadWrite
+                 Vid  669036111
+
+=head1 $quota = getquota($path [,$follow=1]);
+
+   Returns current volume quota (MaxQuota from Volume Status).
+
+=head1 $ok = setquota($path, $quota [,$follow=1]);
+
+   Sets volume's quota.
+
+=head1 @hosts = whereis($path[,$ip=0 [,$follow=1]]);
+
+   Returns the location of $path. If $ip is set to 1 then IP addresses
+   will be returned instead of hostnames. Example:
+
+   @hosts = whereis("/afs",1);
+   # @hosts = ( 36.21.0.73, 36.21.0.108, 36.83.0.11, 36.83.0.227);
+
+=head1 $name = sysname([$newname]);
+
+   Gets (or sets) the value of @sys. 
+
+=head1 $cell = whichcell($path [,$follow=1]);
+
+   Returns the cell hosting $path. Returns undef and sets CODE on error.
+
+=head1 $mount = lsmount($path [,$follow=1]);
+
+   Returns mount point for $path. Returns undef and sets CODE on error.
+
+=head1 $ok = rmmount($path);
+
+   Removes given mount point. Returns 0 and sets CODE on error.
+
+=head1 $ok = mkmount($mountp, $volume [, $rw=0 [, $cell=0]]);
+
+   Creates given mount point. 
+
+=head1 $ok = flushvolume($path [,$follow=1]);  
+
+   Flushes the volume containing path.
+
+=head1 $ok = flush($path [,$follow=1]); # flush the file
+
+   Flushes $path from the cache.
+
+=head1 $ok = flushcb($path [,$follow=1]); # flush the callbacks on the file
+
+   Remove any callbacks on $path kept by the Cache Manager.
+
+=head1 $ok = checkvolumes;
+
+   Check validity of all cached volume information.
+
+=head1 $ok = checkservers;
+
+   Check status of file server machines.
+
+=head1 $ok = checkconn; 
+
+   Check status of all the Callers tokens held by the Cache Manager.
+   Returns success if the caller has tokens, and all those tokens
+   are valid (i.e, not expired).
+
+=head1 ($max, $inuse) = getcacheparms;
+
+   Returns the current cache parameters. All values are expressed as
+   1K blocks. $max is the maximum size of the cache and $inuse is the number
+   of blocks in use.
+
+=head1 $ok = setcachesize($size);
+
+   Sets the maximum cache size. 
+
+=head1 $ok = unlog;
+
+   Discard all tokens.
+
+($cell, $volume, $vnode, $unique ) = getfid($path [,$follow=1]);
+
+   Get the internal augmented file identifier for $PATH. 
+   See also "struct VenusFID".
+
+=head1 $ok = isafs($path [,$follow=1]);
+
+   Returns 1 if $path is in AFS.
+
+=head1 $ok = cm_access($path [, $perm="read" [,$follow=1]]);
+
+   Returns 1 if caller has access to given path.
+
+=head1 $crypt_flg  = getcrypt;
+
+   Get the Cache Manager encryption flag.  This function is only
+   supported under OpenAFS.
+
+=head1 $ok = setcrypt('on');
+
+   Set the Cache Manager encryption flag 'on' or 'off'.  This function
+   is only supported under OpenAFS.
+
+=head1 $setuid  = getcellstatus([$cell=0]);
+
+   Returns 1 if setuid programs are allowed for given (default local) cell.
+
+=head1 $ok = setcellstatus($setuid_allowed[,$cell=0]);
+
+   Sets the setuid flag for the given (default local) cell.
+
+=head1 $cell = wscell;
+
+   Returns local cell.
+
+=head1 pioctl(path,setpath,op,in,setin,setout,follow)

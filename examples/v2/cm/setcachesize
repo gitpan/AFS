@@ -1,0 +1,14 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::CM qw (setcachesize);
+
+die "Usage: $0 size\n" if ($#ARGV==-1);
+
+my $size = shift;
+
+$ok = setcachesize($size);
+print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+print "ok = $ok\n";
+

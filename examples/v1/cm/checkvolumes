@@ -1,0 +1,9 @@
+#!/usr/local/bin/perl
+
+use AFS checkvolumes;
+
+$ok  = checkvolumes();
+
+print "AFS::CODE = $AFS::CODE\n";
+print "ok = $ok\n";
+

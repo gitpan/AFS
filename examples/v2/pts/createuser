@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 user id\n" if $#ARGV != 1;
+
+my $user= shift;
+my $id = shift;
+
+my $pts = AFS::PTS->new;
+
+$id = $pts->createuser($user, $id);
+print "CREATE:  AFS::CODE = $AFS::CODE\n";
+print "   ID number = $id \n";

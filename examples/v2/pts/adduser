@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 user group\n" if $#ARGV != 1;
+
+my $user = shift;
+my $group = shift;
+
+my $pts = AFS::PTS->new;
+
+$ok = $pts->adduser($user, $group);
+print "AFS::CODE = $AFS::CODE\n";
+print "success  = $ok\n";

@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::KTC_PRINCIPAL;
+
+my $index = 0;
+while (my $service = AFS::KTC_PRINCIPAL->ListTokens($index)) {
+    print "\nID: $index \n\tservice = ", $service->principal, "\n";
+    print "\tname      = ", $service->name, "\n";
+    print "\tinstance  = ", $service->instance, "\n";
+    print "\tcell      = ", $service->cell, "\n";
+    print "\tprincipal = ", $service->principal, "\n";
+}

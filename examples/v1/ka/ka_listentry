@@ -1,0 +1,18 @@
+#!/usr/local/bin/perl
+
+use AFS;
+AFS::raise_exception(1);
+
+$princ = ktc_principal("nog","",localcell);
+$key   = ka_ReadPassword($princ->name."'s Password:");
+$token = ka_GetAdminToken($princ, $key, 300);
+
+$kas   = ka_AuthServerConn($token, &AFS::KA_MAINTENANCE_SERVICE);
+
+$i =0; 
+$count = 1; 
+
+while ($count) {
+  ($name,$inst) = $kas->listentry($i,$i,$count);
+  printf("$name%s$inst\t\t$count\n", $inst ne '' ? '.' : '');
+}

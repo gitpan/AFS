@@ -1,0 +1,11 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::Utils qw (unlog);
+
+system "tokens";
+
+unlog;
+
+system "tokens";

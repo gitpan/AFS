@@ -1,0 +1,11 @@
+#!/usr/local/bin/perl
+
+use AFS flushcb;
+
+$file = shift;
+
+$ok  = flushcb($file);
+
+print "AFS::CODE = $AFS::CODE\n";
+print "ok = $ok\n";
+

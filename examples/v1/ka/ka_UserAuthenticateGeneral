@@ -1,0 +1,22 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+AFS::raise_exception(1);
+
+die "Usage: $0 user\n" if ($#ARGV != 0);
+
+$user = ktc_principal(shift);
+
+$password = ka_UserReadPassword("password:");
+
+$ok = ka_UserAthenticateGeneral($user, $password, 300, 
+          &AFS::KA_USERAUTH_VERSION | &AFS::KA_USERAUTH_DOSETPAG,
+          $pw,$reason);
+
+print "AFS::CODE = $AFS::CODE\n";
+print "pwexpires = $pw\n";
+print "reason = $reason\n";
+
+system "tokens";
+

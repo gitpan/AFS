@@ -1,0 +1,11 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::KTC_EKEY;
+
+die "Usage: $0 string\n" if ($#ARGV != 0);
+
+my $string = shift;
+
+$key = AFS::KTC_EKEY->des_string_to_key($string);
+print "KEY = ", $key->string, " \n";

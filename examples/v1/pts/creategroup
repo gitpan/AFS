@@ -1,0 +1,20 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+AFS::raise_exception(1);
+
+die "Usage: $0 name owner id\n" if $#ARGV != 2;
+
+$name = shift;
+$owner = shift;
+$id = shift;
+
+  $pts = newpts;
+
+print "----- creategroup\n";
+
+  $id = $pts ->creategroup($name,$owner, $id);
+
+  print "id = $id\n";
+

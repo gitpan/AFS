@@ -1,0 +1,14 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::CM qw (setcellstatus);
+
+die "Usage: $0 cell setuid\n" if ($#ARGV==-1);
+
+my $cell = shift;
+my $setuid = shift;
+
+my $ok = setcellstatus($setuid, $cell);
+print "AFS::CODE = $AFS::CODE\n";
+printf("Setuid allowed: %s \n", $ok ? 'yes' : 'no');

@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl
+
+use AFS setacl,getacl,modifyacl;
+
+$dir = shift;
+
+ $ok =  modifyacl($dir,{"rjs" => "all"},{});
+
+ print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+ print "ok = $ok\n";
+
+ $ok =  modifyacl($dir,{"rjs" => "none"},{});
+
+ print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+ print "ok = $ok\n";

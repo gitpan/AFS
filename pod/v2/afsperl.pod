@@ -1,0 +1,190 @@
+# -*-cperl-*-
+#------------------------------------------------------------------------------
+# RCS-Id: "@(#)afsperl.pod,v 2.1 2002/07/01 14:28:17 nog Exp"
+#
+# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+#
+# This library is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#------------------------------------------------------------------------------
+
+=head1 NAME
+
+B<AFS> - Perl interface to AFS programming APIs
+
+=head1 VERSION
+
+This document describes the AFS module bundle Version 2 (release
+V_2_0).
+
+=head1 COMPATIBILITY
+
+In version 2, all functions and special variables have been resorted
+into separate submodules according to their affiliations to different
+AFS command suits.  These resorted functions and variables are not
+exported by default anymore but they are exported only on request.
+
+All old features and interfaces from version 1 are still available for
+compatibility, but are deprecated.  These cases have been marked in the
+POD documentations.
+
+You B<must not> intermix names or interfaces from version 1 with names
+or interfaces from version 2. You either stick with version 1 or version
+2.
+
+=head1 DESCRIPTION
+
+The AFS module bundle is a dynamically loadable (where available)
+extension to Perl.  It gives the AFS user and administrator access to
+many of the AFS programming APIs, allowing you to make these calls
+directly from Perl, rather then processing the output of a command.
+
+The AFS module bundle is a thin layer above the low-level AFS APIs. When
+possible, function names are similar to the actual API names, or to the
+AFS command suite names. The ordering of function parameters is not
+always the same though.
+
+The AFS module bundle includes the following features:
+
+=over 4
+
+=item * Access to Cache Manager routines
+
+Functions that deal with the Cache Manager (i.e, part of the 'fs'
+command suit).  See L<afsperlcm>.
+
+=item * Access to File Server routines
+
+Functions that deal with the File Server (i.e, part of the 'fs' command
+suit).  See L<afsperlfs>.
+
+=item * Managing Access Control Lists
+
+Methods to control access to directories and all of their files. (i.e,
+part of the 'fs' command suit). See L<afsperlacl>.
+
+=item * Manipulations of the Cell Configuration
+
+Functions that deal with Cell Configurations (i.e, part of the 'fs'
+command suit).  See L<afsperlcell>.
+
+=item * Access to Protection Server routines
+
+Methods that deal with the Protection Server (i.e, the 'pts' command
+suit).  See L<afsperlpts>.
+
+=item * Access to the Authentication Server routines
+
+Methods that deal with the Authentication Server (i.e, the 'kas'
+command suit).  See L<afsperlkas>.
+
+=item * Access to the AFS structure ktc_token
+
+Methods that deal with token management in the "Kernel Token Cache"
+(KTC) (i.e, the tokens command).  See L<afsperlktct>.
+
+=item * Access to the AFS structure ktc_principal
+
+Methods that deal with principals related to tokens.  See
+L<afsperlktcp>.
+
+=item * Access to the AFS structure ktc_encryptionkey
+
+Methods that deal with encryption keys related to tokens.  See
+L<afsperlktck>.
+
+=item * Access to shared utility routines
+
+Utility functions for the AFS module bundle which are not part of any
+AFS command suit (i.e, the setpag command).  See L<afsperlutils>.
+
+=item * Access to basic AFS functions and to AFS error codes
+
+Basic functions like raising a perl exception when any AFS function call
+fails (useful for debugging) or retrieving the status value of the last
+AFS function call. See L<afsperlbase>.
+
+=back
+
+=head1 PREREQUISITES
+
+ Perl 5.005_02 or better
+ AFS system libraries (either IBM AFS V 3.3 or better or OpenAFS)
+ AFS header files
+
+=head1 SEE ALSO
+
+ The AFS command suite (fs, pts, kas)
+ The AFS source tree :-)
+
+=head1 CAVEATS
+
+These modules and their POD documentations have been written with the
+help of the AFS source code and the 'ancient' AFS Programmer's Reference
+documentation.  Unfortunately nearly no documentation was available for
+the interfaces to the AFS structures ktc_token, ktc_principal, and
+ktc_encryptionkey.  Therefore these modules are not very well documented.
+
+Not all of the AFS commands have been implemented (yet), most noticeably
+the vos commands.
+
+=head1 AUTHORS
+
+This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+
+The original module was written by
+Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
+
+=head1 CREDITS
+
+Thank you to (in chronological order):
+
+B<Lawrence Greenfield> - for his update in the AFS.xs file
+
+B<Alf Wachsmann> - for his bug report on the function "setquota"
+
+B<Gerhard Gonter> - for his configuration report for rs_aix32
+
+B<Peter Scott> - for his improvement on ACL->keys and ACL->nkeys
+
+B<Thomas M. Payerle> - for his configuration report for alpha_dux40
+
+B<Wolfgang Friebel> - for his bug report on the functions "lsmount" and "rmmount"
+
+B<Alf Wachsmann> - for his patches for the XS code and his excellent ideas about
+the Makefile.PL
+
+=head1 COPYRIGHT AND DISCLAIMER
+
+ © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ All rights reserved.
+
+ © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=over 6
+
+=item The original module is covered by the following copyright:
+
+Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University
+
+Redistribution and use in source and binary forms are permitted
+provided that the above copyright notice and this paragraph are
+duplicated in all such forms and that any documentation,
+advertising materials, and other materials related to such
+distribution and use acknowledge that the software was developed
+by Stanford University.  The name of the University may not be used
+to endorse or promote products derived from this software without
+specific prior written permission.
+THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+=back
+
+=head1 DOCUMENT VERSION
+
+Version 2.1

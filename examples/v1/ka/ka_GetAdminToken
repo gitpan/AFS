@@ -1,0 +1,22 @@
+#!/usr/local/bin/perl
+
+require 'ctime.pl';
+
+use AFS;
+
+die "Usage: $0 admin\n" if ($#ARGV !=0);
+
+$admin = shift;
+
+AFS::raise_exception(1);
+
+$key = ka_ReadPassword("Password:");
+
+$princ = ktc_principal($admin);
+
+$token = ka_GetAdminToken($princ, $key, 300);
+
+print "AFS::CODE = $AFS::CODE (", $AFS::CODE+0,")\n";
+
+    print "   startTime = ", &ctime($token -> startTime);
+    print "     endTime = ", &ctime($token -> endTime);

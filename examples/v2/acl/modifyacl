@@ -1,0 +1,27 @@
+#!/usr/local/bin/perl -w
+
+use strict;
+use blib '../blib/';
+
+use AFS::ACL;
+
+die "Usage: $0 dir \n" if $#ARGV != 0;
+my $dir = shift;
+
+system "fs la $dir";
+
+my $new_acl = AFS::ACL->new({ 'guest', AFS::ACL->crights('all')});
+
+my $ok = $new_acl->modifyacl($dir);
+print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+print "OK = $ok \n";
+   
+system "fs la $dir";
+
+$new_acl->set('guest', 'none');
+
+$ok = $new_acl->modifyacl($dir);
+print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+print "OK = $ok \n";
+
+system "fs la $dir";

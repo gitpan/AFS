@@ -1,0 +1,11 @@
+#!/usr/local/bin/perl
+
+use AFS flush;
+
+$dir = shift;
+
+$ok  = flush($dir);
+
+print "AFS::CODE = $AFS::CODE\n";
+print "ok = $ok\n";
+

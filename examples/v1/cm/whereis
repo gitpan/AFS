@@ -1,0 +1,16 @@
+#!/usr/local/bin/perl
+
+use AFS whereis;
+
+$dir = shift;
+$ip = shift;
+
+$ip = 0 if ($ip eq '');
+
+@hosts = whereis($dir,$ip);
+
+print "AFS::CODE = $AFS::CODE\n";
+
+foreach $host (@hosts) {
+    printf(" $host\n");
+}

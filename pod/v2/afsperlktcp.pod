@@ -1,0 +1,218 @@
+# -*-cperl-*-
+#------------------------------------------------------------------------------
+# RCS-Id: "@(#)afsperlktcp.pod,v 2.1 2002/06/28 12:04:00 nog Exp"
+#
+# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+#
+# This library is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#------------------------------------------------------------------------------
+
+=head1 NAME
+
+B<AFS::KTC_PRINCIPAL> - Class to handle the B<AFS structure ktc_principal>
+
+=head1 SYNOPSIS
+
+  use AFS::KTC_PRINCIPAL;
+  use AFS::Cell qw(localcell);
+
+  my ($name, $inst, $cell) = AFS::KTC_PRINCIPAL->ParseLoginName('nog.admin@MPA-GARCHING.MPG.DE');
+  print "name      = ", $name, "\n";
+  print "instance  = ", $inst, "\n";
+  print "cell      = ", $cell, "\n\n";
+
+  my $user = AFS::KTC_PRINCIPAL->new('nog', '', localcell);
+
+  print "name      = ", $user->name, "\n";
+  print "instance  = ", $user->instance, "\n";
+  print "cell      = ", $user->cell, "\n";
+  print "principal = ", $user->principal, "\n";
+
+  $user->set("rjsnfs", "root", localcell);
+  print "principal = ", $user->principal, "\n";
+  undef $user;
+
+  my $index =0;
+  while( $service = AFS::KTC_PRINCIPAL->ListTokens($index)) {
+      print "\nToken Num =  $index\n";
+      print "name      = ", $service->name, "\n";
+      print "instance  = ", $service->instance, "\n";
+      print "cell      = ", $service->cell, "\n";
+      print "principal = ", $service->principal, "\n";
+  }
+  undef $service;
+
+B<NOTE: The following lines are 'version 1' style: all names are
+exported by default. This style is deprecated !!!>
+
+  use AFS;              # import all AFS names
+  use AFS @AFS::KA;     # import just the ka names
+  use AFS @AFS::KTC;    # import just the ktc names
+
+=head1 DESCRIPTION
+
+This class provides methods to handle the B<AFS structure ktc_principal>.
+This structure represents a principal which is used in the "Kernel Token
+Cache" (KTC).  All entities on the network (users and services) are
+called "principals".  The KTC is part of the Cache Manager.
+
+It is used to create, modify, and retrieve B<ktc_principal> instances.
+It has methods to retrieve and to reset the B<KTC_principal>
+attributes.
+
+=head1 COMPATIBILITY
+
+In version 2, some of the methods have been renamed.  All old names and
+interfaces from version 1 are still available for compatibility, but
+are deprecated.  These cases have been marked in the documentation.
+
+You B<must not> intermix names or interfaces from version 1 with names
+or interfaces from version 2. You either stick with version 1 or version
+2.
+
+     Version 1                Version 2
+     -----------------------------------------------------
+     AFS::KTC_PRINCIPAL::new  AFS::KTC_PRINCIPAL->new
+     newprincipal             new AFS::KTC_PRINCIPAL
+     ktc_principal
+     ktc_ListTokens           AFS::KTC_PRINCIPAL->ListTokens
+     ka_ParseLoginName        AFS::KTC_PRINCIPAL->ParseLoginName
+
+
+=head1 OBJECT ATTRIBUTES
+
+=over 4
+
+=item B<name>
+
+Name of the user or service.
+
+=item B<instance>
+
+Instance of the user or service.
+
+=item B<cell>
+
+Name of the cell
+
+=back
+
+=head1 METHODS
+
+=head2 Constructor
+
+=over 4
+
+=item B<$princ = AFS::KTC_PRINCIPAL-E<gt>new([NAME [, INSTANCE [, CELL]]]);>
+
+=item B<$princ = AFS::KTC_PRINCIPAL-E<gt>new([NAME.INSTANCE@CELL]);>
+
+Creates a new object of the class AFS::KTC_PRINCIPAL and sets its
+values for NAME, INSTANCE and CELL.
+
+B<NOTE: these forms are deprecated !!!>
+
+ AFS::KTC_PRINCIPAL::new($user...);
+ $princ = newprincipal($user...);
+ $princ = ktc_principal($user...);
+
+=item B<$service = AFS::KTC_PRINCIPAL-E<gt>ListTokens(INDEX);>
+
+Searches in the token cache for the INDEX+1th token. On success it
+returns the corresponding principal instance $service and it
+increments INDEX.  If there is no INDEX+1th element AFS::CODE is set
+and the return value is "undef".  It calls the AFS system library
+function 'ktc_ListTokens'.
+
+B<NOTE: this form is deprecated !!!>
+
+ $service = ktc_ListTokens($index)
+
+=back
+
+=head2 Class methods
+
+=over 4
+
+=item B<($name, $instance, $cell) = AFS::KTC_PRINCIPAL-E<gt>ParseLoginName(LOGIN);>
+
+Parses the string LOGIN. It defines a syntax to allow a user to
+specify his identity in terms of his name, instance and cell with a
+single string. The syntax is very simple: the first dot ('.')
+separates the name from the instance and the first atsign ('@') begins
+the cell name.  A backslash ('\') can be used to quote these special
+characters.  It calls the AFS system library function
+"ka_ParseLoginName".
+
+B<NOTE: this form is deprecated !!!>
+
+ ($name, $instance, $cell) = ka_ParseLoginName(LOGIN);)
+
+=back
+
+=head2 Attributes Access
+
+=over 4
+
+=item B<$princ-E<gt>ATTRIBUTE([value]);>
+
+Retrieves or sets the value for the specified object attribute, where
+ATTRIBUTE is one of the above listed object attributes (e.g. "name").
+
+=back
+
+=head2 Instance Methods
+
+=over 4
+
+=item B<$princ-E<gt>set(NAME, INSTANCE, CELL);>
+
+=item B<$princ-E<gt>set(NAME.INSTANCE@CELL);>
+
+Resets the value of the attributes NAME, INSTANCE and CELL for the
+principal instance.
+
+=back
+
+=head1 AUTHORS
+
+The original module was written by
+This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+
+Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
+
+=head1 COPYRIGHT AND DISCLAIMER
+
+ © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ All rights reserved.
+
+ © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=over 6
+
+=item The original module is covered by the following copyright:
+
+Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University
+
+Redistribution and use in source and binary forms are permitted
+provided that the above copyright notice and this paragraph are
+duplicated in all such forms and that any documentation,
+advertising materials, and other materials related to such
+distribution and use acknowledge that the software was developed
+by Stanford University.  The name of the University may not be used
+to endorse or promote products derived from this software without
+specific prior written permission.
+THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+=back
+
+=head1 DOCUMENT VERSION
+
+Version 2.1

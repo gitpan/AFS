@@ -1,0 +1,53 @@
+#!/usr/local/bin/perl5
+
+use AFS newacl,crights;
+
+
+$acl = newacl({ "schemers", crights("read")});
+
+
+#print "$acl ",ref($acl),"\n";
+
+$acl->set("rjs" => "write");
+$acl->nset("opusl" => "write");
+#$acl->del("rjsnfs" => "write");
+#$acl->clear;
+
+$copy = $acl->copy;
+$copy->del("rjsnfs");
+
+$copy->addacl(newacl({"foobar"=>"none"},{"anyuser"=>"write"}));
+
+#
+# $acl = getacl("/afs/ir");
+# $acl -> remove("opusl");
+# setacl("/afs/ir",$acl);
+#
+
+print "pos ",($acl->length),"\n";
+
+foreach $key ($acl->keys) {
+  print " $key ",$acl->get($key),"\n";
+}
+
+print "neg\n";
+foreach $key ($acl->nkeys) {
+  print " $key ",$acl->nget($key),"\n";
+
+}
+
+
+
+
+print "pos ",int($copy->keys),"\n";
+
+foreach $key ($copy->keys) {
+  print " $key ",$copy->get($key),"\n";
+}
+
+print "neg\n";
+foreach $key ($copy->nkeys) {
+  print " $key ",$copy->nget($key),"\n";
+
+}
+

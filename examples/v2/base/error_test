@@ -1,0 +1,11 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS qw (error_message);
+
+print error_message(&AFS::PRNOMORE),"\n";
+print error_message(180502),"\n";
+print error_message(0),"\n";
+print error_message(13),"\n";
+

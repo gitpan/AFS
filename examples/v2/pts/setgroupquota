@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+print "name: "; chop(my $name=<STDIN>);
+print "maxgroups: "; chop(my $ngroup=<STDIN>);
+
+my $pts = AFS::PTS->new;
+
+my $ok = $pts->setgroupquota($name, $ngroup);
+print "setgroupquota AFS::CODE = $AFS::CODE\n";
+print "success  = $ok\n";

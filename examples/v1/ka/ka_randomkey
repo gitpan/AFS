@@ -1,0 +1,33 @@
+#!/usr/local/bin/perl
+
+use AFS;
+AFS::raise_exception(1);
+
+die "Usage: $0 admin\n" if ($#ARGV != 0);
+
+$admin = ktc_principal(shift);
+
+$key = ka_ReadPassword($admin->principal . "'s Password:");
+
+$token = ka_GetAdminToken($admin, $key, 300);
+
+$kas = ka_AuthServerConn($token, &AFS::KA_MAINTENANCE_SERVICE);
+
+$r1 = $kas -> randomkey;
+
+$string = $r1 -> string;
+
+for ($i=0; $i<8; $i++) {
+  printf("%o\n",ord(substr($string,$i,1)));
+}
+
+print "\n";
+
+$r2 = $kas -> randomkey;
+
+$string = $r2 -> string;
+
+for ($i=0; $i<8; $i++) {
+  printf("%o\n",ord(substr($string,$i,1)));
+}
+

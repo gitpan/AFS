@@ -1,0 +1,10 @@
+#!/usr/local/bin/perl
+
+use AFS setpag; 
+
+$ok  = setpag;
+
+print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+print "ok = $ok\n";
+
+system "tokens";

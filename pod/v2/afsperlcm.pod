@@ -1,0 +1,192 @@
+# -*-cperl-*-
+#------------------------------------------------------------------------------
+# RCS-Id: "@(#)afsperlcm.pod,v 2.0 2002/06/26 06:24:57 nog Exp"
+#
+# Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+#
+# This library is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#------------------------------------------------------------------------------
+
+=head1 NAME
+
+B<AFS::CM> - Module to administer the B<AFS Cache Manager>
+
+=head1 SYNOPSIS
+
+  use AFS::CM qw (
+                  checkconn checkservers checkvolumes
+                  cm_access flush flushcb flushvolume
+                  getcacheparms getcellstatus
+                  getcrypt setcrypt
+                  setcachesize setcellstatus
+                 );
+
+  my $ok = flushvolume('.');
+  print "Return Code = $ok\n";
+
+  $ok = checkvolumes;
+  print "Return Code = $ok\n";
+
+  $ok = cm_access($path);
+  print "Return Code = $ok\n";
+
+ ($max, $inuse) = getcacheparms;
+  $ok = setcachesize(10000);
+
+  my $crypt_flg = getcrypt;
+  $ok = setcrypt('on');
+
+B<NOTE: The following lines are 'version 1' style: all names are
+exported by default. This style is deprecated !!!>
+
+  use AFS;              # import all AFS names
+  use AFS @AFS::CM;     # import just the cache manager names
+
+=head1 DESCRIPTION
+
+This module provides several functions to administer the B<AFS Cache
+Manager>. It is used to customize the cache size. You can force the
+update of cached data.  And you can determine if a client machine can
+run SETUID programs.  Any function required must by explicitly listed
+on the use line to be exported into the calling package.
+
+Some of these functions have the optional argument FOLLOW.  FOLLOW
+determines which file should be used should PATH be a symbolic link.  If
+FOLLOW be set to 1, then the symbolic link is followed to its target.
+If FOLLOW is set to 0, then the function applies to the symbolic link
+itself.  If not specified FOLLOW defaults to 1.
+
+=head1 COMPATIBILITY
+
+In version 2 all functions are exported only on request.  The old
+behavior from version 1 (export by default) is still available for
+compatibility, but is deprecated.
+
+=head1 EXPORTS
+
+=head2 Standard Exports
+
+none
+
+=head2 Optional Exports
+
+The following functions will be exported into your namespace if you
+specifically ask that they be imported.
+
+=over 4
+
+=item B<$ok = checkconn;>
+
+Checks the status of all the callers tokens held by the Cache Manager.
+Returns success if the caller has tokens, and all those tokens are valid
+(i.e, not expired).
+
+=cut
+
+# does not work properly ???
+
+# =item B<$ok = checkservers(FAST [, CELL [, IP]]);>
+
+# Reports whether certain AFS server machines are accessible from the
+# local client machine.  If the FAST flag is set to 1, the Cache Manager
+# does not probe any machines, but instead reports the results of the most
+# recent previous probe.  If the CELL argument is included, only machines
+# that are marked inaccessible and belong to the specified CELL are
+# listed.  If IP (default 0) is set to 1 then IP addresses will be
+# returned instead of hostnames.
+
+=item B<$ok = checkvolumes;>
+
+Forces the Cache Manager to update volume-related information.
+
+=item B<$ok = cm_access(PATH [, PERMS [,FOLLOW]]);>
+
+Returns 1 if caller has access with the given permissions PERMS (default
+'read') to given PATH.
+
+=item B<$ok = flush(PATH [, FOLLOW]);>
+
+Forces the Cache Manager to discard PATH.
+
+=item B<$ok = flushcb(PATH [, FOLLOW]);>
+
+Forces the Cache Manager to flush only the callback for PATH.
+
+=item B<$ok = flushvolume(PATH [, FOLLOW]);>
+
+Forces the Cache Manager to discard all cached data from the volume
+containing PATH.
+
+=item B<($max, $inuse) = getcacheparms;>
+
+Returns the current size of the cache and the amount being used.
+
+=item B<$setuid = getcellstatus([CELL]);>
+
+Determines whether the local Cache Manager allows SETUID programs to run
+or not.  Returns 1 if SETUID programs are allowed for given CELL
+(default local).
+
+=item B<$crypt_flg = getcrypt;>
+
+Gets the Cache Manager encryption flag.  This function is supported only
+under OpenAFS.
+
+=item B<$ok = setcachesize(NUM);>
+
+Sets the size of the disk cache. NUM is size in 1K byte blocks
+
+=item B<$ok = setcellstatus(SETUID_ALLOWED [,CELL]);>
+
+Enables or disables the local Cache Manager to run SETUID programs for
+the given CELL (default local).
+
+=item B<$ok = setcrypt(FLAG);>
+
+Set the Cache Manager encryption flag to FLAG. Valid values are 'on' or
+'off'.  This function is supported only under OpenAFS.
+
+=back
+
+=head1 AUTHORS
+
+The original module was written by
+This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+
+Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
+
+=head1 COPYRIGHT AND DISCLAIMER
+
+ © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ All rights reserved.
+
+ © 1994 Board of Trustees, Leland Stanford Jr. University.
+ All rights reserved.
+
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=over 6
+
+=item The original module is covered by the following copyright:
+
+Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University
+
+Redistribution and use in source and binary forms are permitted
+provided that the above copyright notice and this paragraph are
+duplicated in all such forms and that any documentation,
+advertising materials, and other materials related to such
+distribution and use acknowledge that the software was developed
+by Stanford University.  The name of the University may not be used
+to endorse or promote products derived from this software without
+specific prior written permission.
+THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+=back
+
+=head1 DOCUMENT VERSION
+
+Version 2.0

@@ -1,0 +1,197 @@
+
+This is the README file for the Perl extension module AFS (version V_2_0)
+
+
+DESCRIPTION
+    The AFS module bundle is a dynamically loadable extension to
+    Perl. It gives the AFS user and administrator access to many of the
+    AFS programming APIs, allowing you to make these calls directly from
+    Perl, rather then processing the output of a command.
+
+
+REQUIREMENTS
+    Before you can build the AFS module bundle you need to have the
+    following installed on your system:
+
+        * Perl 5.005_02 or later
+        * system libraries for IBM AFS (version 3.4 or later) or OpenAFS
+        * GNU gcc (on solaris-2.{5,6,7,8})
+
+
+BUILDING & INSTALLING
+    Assuming you have met all the prerequisites, building the modules
+    should be straightforward. The AFS module bundle is distributed as a
+    single gzipped tar archive file:
+
+            AFS-<version>.tar.gz
+
+    Note that "<version>" represents the current AFS Revision number, of
+    the form "1.5".
+
+    Unpack the archive to create an AFS installation directory:
+
+        gunzip AFS-<version>.tar.gz
+        tar xvf AFS-<version>.tar
+
+    'cd' into that directory, make, test and install the modules. You
+    have to specify the location of the AFS system libraries. While
+    running the perl make script you will be prompted for the location
+    of the AFS system libraries.  If your AFS system type is not yet
+    known by the make file, please follow the printed message.  This is
+    the sequence of commands to build the modules:
+
+        cd AFS-<version>
+        perl Makefile.PL
+             ---->  Which AFS system libraries should be used? [/usr/afsws]
+        make
+        make test
+        make install
+
+
+FEEDBACK
+    I have tested/run the AFS module bundle on several configurations
+    and I have also got reports that it is running on configuration, not
+    available to me.
+
+      OS             @sys       compiler 
+      --------------------------------
+      AIX            rs_aix32     cc       
+                     rs_aix41     cc       
+                     rs_aix42     cc       
+
+      Solaris        sun4x_55     gcc      
+                     sun4x_56     gcc      
+                     sun4x_57     gcc      
+
+      Irix           sgi_65       cc
+
+      Digital Unix   alpha_dux40  
+
+    If you are building the modules on another architecture I would
+    appreciate a note to tell me how you got on. Although I am
+    particularly interested to hear about any problems you encounter
+    when building the system, I would still like to hear from you even
+    if you don't.
+
+    Things I particularly would like to know
+
+       * The Operating system name and version, e.g. SunOS 4.1.3
+       * Architecture, e.g. Solaris
+       * C compiler, e.g. gcc
+       * Where there any warnings/errors printed by the C compiler? If so
+         please send the exact output if possible.
+       * The Perl version
+       * The version of the AFS system libraries
+
+
+Availability
+    The latest version of the AFS module bundle is currently available
+    at
+
+        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.0.tar.gz
+        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.0.tar.gz
+
+
+MAJOR CHANGES
+
+    This module bundle compiles now with the AFS system libraries for
+    IBM AFS version 3.4.x, 3.5.x, 3.6.x and with the AFS system
+    libraries for all OpenAFS versions.
+
+    Since OpenAFS is running on an increasingly number of platforms so
+    does the AFS Perl module.  Everywhere you can compile OpenAFS and
+    Perl you should be able to install the ASF Perl module.
+
+    The constructor methods for all AFS classes have been corrected to
+    conform with the Perl OO conventions.
+
+    In order to have clean Perl interfaces the AFS Perl code has been
+    separated into several logical modules.  All modules have been
+    implemented as OO classes.
+
+    For more details, please see the file named 'ChangeLog' which should
+    have been included in the AFS module distribution.
+
+
+COMPATIBILITY
+    In version 2, all functions and special variables have been resorted
+    into separate modules according to their affiliations to different
+    AFS command suits.  These resorted functions and variables are not
+    exported by default anymore but they are exported only on request.
+
+    All variables and functions from version 1 are still available for
+    compatibility, but are deprecated.  These cases have been marked in
+    the documentation.
+
+    You must not intermix names or interfaces from version 1 with names
+    or interfaces from version 2. You either stick with version 1 or
+    version 2.
+
+
+DOCUMENTATION
+    POD-format documentation for version 1 style is found in the
+    directory 'pod/v1' and for version 2 style in the directory
+    'pod/v2'.  POD is readable with the 'perldoc' utility.
+
+
+EXAMPLES
+    The 'examples' directory contains some simple examples of using the
+    AFS modules.  In the directory 'examples/v1' you will find version 1
+    style examples and in the directory 'examples/v2' you will find
+    version 2 style examples.  However I do not guarantee these scripts
+    to work.
+
+
+AUTHORS 
+    This release was made by Norbert E Gruener
+    <nog@MPA-Garching.MPG.de>.
+
+    The original AFS interface was written by Roland Schemers
+    <schemers@stanford.edu>.  
+
+
+CREDITS
+    See 'afsperl.pod' for details.
+
+
+COPYRIGHT AND DISCLAIMER
+    © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+    All rights reserved.
+
+    © 1994 Board of Trustees, Leland Stanford Jr. University.
+    All rights reserved.
+
+    This library is free software; you can redistribute it and/or modify
+    it under the same terms as Perl itself.
+
+    The original module is covered by the following copyright:
+       Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University
+
+       Redistribution and use in source and binary forms are permitted
+       provided that the above copyright notice and this paragraph are
+       duplicated in all such forms and that any documentation,
+       advertising materials, and other materials related to such
+       distribution and use acknowledge that the software was developed
+       by Stanford University.  The name of the University may not be
+       used to endorse or promote products derived from this software
+       without specific prior written permission.  THIS SOFTWARE IS
+       PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES,
+       INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+       MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+
+KNOWN PROBLEMS
+    The AFS command suites VOS and BOS are not implemented     :-(
+
+
+BUGS
+    Please send all bug reports and suggestions for improvements to
+    Norbert E Gruener <nog@MPA-Garching.MPG.de>.  When reporting
+    bugs/problems please include information about operating system
+    version, perl version, AFS version, AFS module version.  Comments
+    and suggestions are always welcome.
+
+
+Share and Enjoy!
+
+Norbert

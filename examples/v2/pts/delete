@@ -1,0 +1,14 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 name\n" if $#ARGV !=0;
+
+my $name = shift;
+
+my $pts = AFS::PTS->new;
+
+$ok = $pts->delete($name);
+print "AFS::CODE = $AFS::CODE\n";
+print "success  = $ok\n";

@@ -1,0 +1,9 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::CM qw (setcrypt);
+
+my $ok = setcrypt('on');
+print "AFS::CODE = $AFS::CODE\n";
+print "OK = $ok \n";

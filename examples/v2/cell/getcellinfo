@@ -1,0 +1,16 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::Cell qw (getcellinfo);
+
+die "Usage: $0 cellname ip_flg \n" if $#ARGV != 1;
+
+my $c = shift;
+my $ip = shift;
+
+my ($cell, @hosts) = getcellinfo($c, $ip);
+print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+print "Cell: $cell\n";
+foreach my $host (@hosts) {
+    print(" $host\n");
+}

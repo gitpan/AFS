@@ -1,0 +1,23 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+AFS::raise_exception(1);
+
+die "Usage: admin user \n" if ($#ARGV != 1);
+
+$admin = ktc_principal(shift);
+
+$user = ktc_principal(shift);
+
+$key = ka_ReadPassword($admin->principal . "'s Password:");
+
+$newkey = ka_ReadPassword($user->principal . "'s Password:",1,localcell);
+
+$token = ka_GetAdminToken($admin, $key, 300);
+
+$kas = ka_AuthServerConn($token, &AFS::KA_MAINTENANCE_SERVICE);
+
+$ok = $kas -> create($user->name, $user->instance, $newkey);
+
+print "ok = $ok\n";

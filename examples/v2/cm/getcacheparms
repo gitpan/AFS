@@ -1,0 +1,9 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::CM qw (getcacheparms);
+
+my ($max, $inuse) = getcacheparms;
+print "AFS::CODE = $AFS::CODE\n";
+print "InUse = $inuse   Max = $max \n";

@@ -1,0 +1,28 @@
+
+ TO DO
+ =====
+
+ List of outstandings bugs, features and ideas for the AFS module.
+ Please note that the thoughts expressed here do not necessarily imply
+ any guaranteed future functionality of the AFS module.  Please contact the 
+ maintainer if you wish to help implement anything here.  All help is welcome,
+ but do check first to make sure someone isn't already tackling the item 
+ in question.  Any other suggestions, ideas, patches gratefully received.
+
+ Written by Norbert E Gruener <nog@MPA-Garching.MPG.DE>
+
+
+ SHORT TERM
+ ----------
+ * verify whether all OpenAFS constants are included in the 'constant'
+   function
+
+
+ LONG TERM
+ ---------
+ * design and implement the missing interfaces for the vos/vldb command
+   suits;
+
+ * design and implement the missing interfaces for the bos command suit;
+
+ * develop sufficient test suits;

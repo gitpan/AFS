@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::FS qw(lsmount);
+
+die "Usage: $0 path\n" if ($#ARGV != 0);
+
+my $path = shift;
+
+my $vol = lsmount($path);
+print "AFS::CODE = $AFS::CODE\n";
+print "Vol = $vol \n";
+

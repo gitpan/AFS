@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+
+print "mountp: "; chop($mountp = <STDIN>);
+print "volume: "; chop($volume = <STDIN>);
+print "rw    : "; chop($rw = <STDIN>);
+print "cell  : "; chop($cell = <STDIN>);
+
+$ok  = AFS::mkmount($mountp, $volume, $rw, $cell);
+
+print "AFS::CODE = $AFS::CODE\n";
+print "ok = $ok\n";
+

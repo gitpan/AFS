@@ -1,0 +1,16 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 name id ownerid\n" if ($#ARGV != 2);
+
+my $name= shift;
+my $id = shift;
+my $ownerid = shift;
+
+my $pts = AFS::PTS->new;
+
+my $theid = $pts->PR_INewEntry($name, $id, $ownerid);
+print "AFS::CODE = $AFS::CODE\n";
+print "id = $theid\n";

@@ -1,0 +1,16 @@
+#!/usr/local/bin/perl
+
+use AFS getvolstats;
+
+die "Usage: $0 path\n" if $#ARGV != 0;
+
+$path = shift;
+
+$stats = getvolstats($path);
+
+print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+
+foreach $key (sort keys %$stats) {
+  printf("%20s  %s\n",$key, $$stats{$key});
+
+}

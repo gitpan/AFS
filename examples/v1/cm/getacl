@@ -1,0 +1,23 @@
+#!/usr/local/bin/perl
+use AFS;
+
+AFS::raise_exception(1);
+
+die "Usage: $0 path\n" if ($#ARGV!=0);
+$path = shift;
+
+$acl = getacl($path);
+
+print "Access list for $path is\n";
+
+print "Normal rights: \n" if ($acl->length);
+
+foreach $key ($acl->keys) {
+  print "  $key ",$acl->get($key),"\n";
+}
+
+print "Negative rights: \n" if ($acl->nlength);
+
+foreach $key ($acl->nkeys) {
+  print " $key ",$acl->nget($key),"\n";
+}

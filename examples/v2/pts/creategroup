@@ -1,0 +1,18 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 name owner id\n" if $#ARGV != 2;
+
+my $name = shift;
+my $owner = shift;
+my $id = shift;
+
+my $pts = AFS::PTS->new;
+
+print "----- creategroup\n";
+
+$id = $pts->creategroup($name, $owner, $id);
+print "AFS::CODE = $AFS::CODE\n";
+print "id = $id\n";

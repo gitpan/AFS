@@ -1,0 +1,22 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::KTC_TOKEN;
+use AFS::KTC_PRINCIPAL;
+use AFS::Cell qw(localcell);
+
+system "tokens";
+
+my $service = AFS::KTC_PRINCIPAL->new("afs","",localcell);
+my ($token, $user) = AFS::KTC_TOKEN->GetToken($service);
+
+AFS::KTC_TOKEN->ForgetAllTokens();
+
+system "tokens";
+
+my $ok = AFS::KTC_TOKEN->SetToken($service, $token, $user, 0);
+print "AFS::CODE = $AFS::CODE\n";
+
+system "tokens";
+

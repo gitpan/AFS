@@ -1,0 +1,17 @@
+#!/usr/local/bin/perl
+
+use AFS getcellinfo;
+
+$cell = shift;
+$ip = shift;
+
+( $cell, @hosts) = getcellinfo($cell,$ip);
+  
+ print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+
+  printf "cell $cell\n";
+  foreach $host (@hosts) {
+    printf(" $host\n");
+  }
+
+

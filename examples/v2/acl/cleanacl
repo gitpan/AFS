@@ -1,0 +1,14 @@
+#!/usr/local/bin/perl -w
+
+use strict;
+use blib '../blib/';
+
+use AFS::ACL;
+
+die "Usage: $0 path\n" if ($#ARGV==-1);
+
+my $path = shift;
+
+my $ok = AFS::ACL->cleanacl($path);
+print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+print "OK = $ok \n";

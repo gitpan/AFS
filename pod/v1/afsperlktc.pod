@@ -1,0 +1,69 @@
+=head1 NAME
+
+afsperlktc - ktc (Token, KTC object) functions
+
+=head1 SYNOPIS
+
+  use AFS;              # import all AFS names
+  use AFS @AFS::KTC;    # import just the ktc names
+
+  ktc_ForgetAllTokens
+  ktc_GetToken
+  ktc_ListTokens
+  ktc_SetToken
+
+  AFS::KTC_PRINCIPAL
+  AFS::KTC_TOKEN
+  AFS::KTC_ENCRYPTIONKEY
+
+=head1 DESCRIPTION
+
+This document describes the functions for manipulating tokens available in
+the AFS module. 
+
+
+=head1 EXAMPLES
+
+ # token (ktc) routines ----------------------------
+
+  $context = 0;
+$server = ktc_ListTokens($context)
+
+   while( $server = ktc_ListTokens($context)) {
+
+   }
+($token, $client) = ktc_GetToken($server);
+
+$ok = ktc_ForgetAllTokens();
+
+$ok = ktc_SetToken($server,$token,$client,$flags);
+
+
+
+  # AFS::KTC_PRINCIPAL object ------------------------
+
+AFS::KTC_PRINCIPAL::new
+AFS::ktc_principal("n.i@c") || ("n","i","c");
+$princ->set("n.i@c") 
+$princ->set("n","i","c");
+$princ->name([$name])
+$princ->instance([$inst])
+$princ->cell([$cell])
+$princ->principal
+
+  # AFS::KTC_TOKEN object ----------------------------
+
+$t->startTime
+$t->endTime;
+$t->sessionKey
+$t->kvno
+$t->ticketLen
+$t->ticket
+
+$t ->string    # the whole token, as a "string"
+
+  # AFS::KTC_ENCRYPTIONKEY object ------------------------
+
+$key ->string    # the whole key, as a "string"
+
+

@@ -1,0 +1,8 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::Cell qw (configdir);
+
+my $dir = configdir;
+print "AFS::CODE = $AFS::CODE\n";
+print "dir = $dir\n";

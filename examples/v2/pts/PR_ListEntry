@@ -1,0 +1,17 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+die "Usage: $0 id\n" if $#ARGV != 0;
+
+my $id = shift;
+
+my $pts = AFS::PTS->new;
+
+my $entry = $pts->PR_ListEntry($id);
+
+print "LIST:  AFS::CODE = $AFS::CODE\n";
+foreach my $key ( sort keys %$entry) {
+    printf("%20s =>  %s\n", $key, $$entry{$key});
+}

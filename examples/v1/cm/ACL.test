@@ -1,0 +1,48 @@
+#!/usr/local/bin/perl5
+
+package ACL;
+
+sub new {
+  my($pos,$neg) = @_;
+  my($npos, $nneg) = ({},{});
+  %$npos = %$pos;
+  %$nneg = %$neg;
+  bless [$npos, $nneg];
+}
+
+sub keys { keys %{$_[0]->[0]}; }
+sub length { int(keys %{$_[0]->[0]}); }
+sub get {  ${$_[0]->[0]}{$_[1]}; }
+sub exists { exists ${$_[0]->[0]}{$_[1]}; }
+sub set {  ${$_[0]->[0]}{$_[1]} = $_[2]; }
+sub del { delete ${$_[0]->[0]}{$_[1]}; }
+sub clear { $_[0]->[0] = {}; }
+
+#sub keys   { keys %{${$_[0]}{"pos"}}; }
+#sub length { int(keys %{${$_[0]}{"pos"}}); }
+#sub get    { return ${${$_[0]}{"pos"}}{$_[1]}; }
+#sub exists { return exists ${${$_[0]}{"pos"}}{$_[1]}; }
+#sub add    { ${${$_[0]}{"pos"}}{$_[1]} = $_[2]; }
+#sub remove { delete ${${$_[0]}{"pos"}}{$_[1]}; }
+#sub clear  { ${$_[0]}{"pos"} = {} }
+
+
+package main;
+
+$acl = ACL::new({"schemers" => "rl"});
+
+$acl->set("rjs" => "l");
+
+print "length = ",$acl->length,"\n";
+
+print "exits(rjs) = ",$acl->exists("rjs"),"\n";
+
+$acl->del("rjs");
+
+#$acl->clear;
+
+print "$acl\n";
+foreach $key ($acl->keys) {
+ print " $key ",$acl->get($key),"\n";
+
+}

@@ -1,0 +1,16 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+die "Usage: $0 path perms\n" if ($#ARGV==-1);
+
+$path = shift;
+$perms = shift;
+
+  $ok = cm_access($path,crights($perms));
+
+  print "AFS::CODE = $AFS::CODE (",($AFS::CODE+0),")\n";
+  print "ok = $ok\n";
+
+
+

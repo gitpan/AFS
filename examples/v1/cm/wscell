@@ -1,0 +1,10 @@
+#!/usr/local/bin/perl
+
+use AFS wscell;
+
+$cell = wscell();
+
+print "AFS::CODE = $AFS::CODE\n";
+
+print "cell = ($cell)\n";
+

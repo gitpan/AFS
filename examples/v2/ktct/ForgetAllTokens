@@ -1,0 +1,9 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::KTC_TOKEN;
+use AFS qw(raise_exception);
+
+raise_exception(1);
+
+AFS::KTC_TOKEN->ForgetAllTokens;

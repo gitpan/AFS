@@ -1,0 +1,8 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::Utils qw (sysname);
+
+print 'SysName = ', sysname, "\n";
+print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";

@@ -1,0 +1,175 @@
+=head1 NAME
+
+afsperlacl - ACL functions
+
+=head1 SYNOPIS
+
+  use AFS;              # import all AFS names
+  use AFS @AFS::ACL;    # import just the ACL names
+
+  AFS::ACL::new
+  ascii2rights
+  cleanacl
+  copyacl
+  crights 
+  getacl
+  modifyacl
+  newacl
+  rights2ascii
+  setacl
+
+  $acl -> empty;
+  $acl -> addacl
+  $acl -> clear 
+  $acl -> copy;
+  $acl -> exists
+  $acl -> get
+  $acl -> keys 
+  $acl -> length
+  $acl -> remove
+  $acl -> set
+  $acl -> nclear 
+  $acl -> nexists
+  $acl -> nget
+  $acl -> nkeys 
+  $acl -> nlength
+  $acl -> nremove
+  $acl -> nset
+
+=head1 DESCRIPTION
+
+This document describes the ACL related functions available in the AFS module.
+
+
+=head1 $acl = AFS::ACL::new([\%pos [, \%neg]]);
+
+=head1 $acl = newacl([\%pos [, \%neg]]);
+
+ Used to create an ACL object. The second form is exported by the AFS
+ module and is therefore a little easier to use.
+
+ Examples:
+ 
+    $acl = newacl({"schemers"=>crights("all"), "system:anyuser"=>"l"});
+    $acl = newacl({"schemers"=>"rl"}, {"rjs"=>"l"});
+
+=head1 $acl->copy;
+
+ Returns a copy of an existing ACL. 
+
+    $newacl = $acl->copy;
+
+ Changes made to $newacl do not change $acl. 
+
+=head1 $acl ->addacl($newacl);
+
+ Adds all the ACL entries in $newacl to $acl. 
+
+=head1 $acl ->empty;
+
+ Removes all positive and negative entries from an ACL.
+
+=head1 $acl->keys 
+ 
+ Returns all the keys (PTS names) from the positive ACL hash.
+
+=head1 $acl->length
+
+ Returns the length (number of keys) in the postive ACL hash.
+
+=head1 $acl->get($key)
+
+ Returns the access rights for the given key in the positive ACL hash.
+
+=head1 $acl->exists($key)
+
+ Returns 1 if the given key exists in the positive ACL hash.
+
+=head1 $acl->set($key, $rights);
+
+ Adds the given key and access rights to the positive ACL hash.
+
+=head1 $acl->remove($key)
+
+ Removes the given key from the positive ACL hash.
+
+=head1 $acl->clear 
+
+ Removes all positive entries from the ACL.
+
+=head1 $acl->nkeys 
+
+=head1 $acl->nlength
+
+=head1 $acl->nget($key)
+
+=head1 $acl->nexists($key)
+
+=head1 $acl->nset($key, $rights);
+
+=head1 $acl->nremove($key)
+
+=head1 $acl->nclear 
+
+ Same as above but work on the negative ACL hash instead of the positive.
+
+=head1 $acl = getacl($path [,$follow=1]);
+
+  Retrieves the ACL for the given path. 
+
+  For example:
+
+    $acl = getacl("/afs/ir.stanford.edu");
+
+=head1 $ok = setacl($path, $acl [,$follow=1]); 
+
+  Sets the ACL for the given path. This call replaces the existing ACL
+  value with the new ACLs.
+
+=head1 $ok = modifyacl($path, $acl [,$follow=1])
+
+  Sets the ACL to the union of the given ACL and the current ACL.
+  An access right of "none" or "" will cause an entry to be removed from 
+  the ACL. 
+  
+  Example: 
+
+     $ok = modifyacl($path,newacl({"schemers" => "none"}));
+     
+  Will remove "schemers" from the ACL on $path. Since this function does
+  a union on both hash tables it is not an error if "schemers" is not
+  on the existing ACl.
+
+=head1 $ok = copyacl($from_path, $to_path [,$follow=1]);
+
+  Copies the ACL on $from_path to $to_path.
+
+=head1 $ok = cleanacl($path [,$follow=1]);
+
+  Removes any "orphan" ids on an ACL. An orphan id is an ID that
+  corresponds to an ID that is longer in the PTS database. Orphan
+  ids are also removed during a setacl or modifyacl call.
+
+=head1 $flags = ascii2rights($rights);
+
+  Returns -1 if $rights are not valid (rlidwka, read, write, all, none).
+  or returns the internal value (int32 with flags set).
+
+=head1 $print = rights2ascii($flags);
+
+  Converts $internal_value to ascii.
+
+=head1 $crights = crights($rights);
+
+  Canonicalize rights string. Recognizes the following "special" rights
+  strings:
+
+  read  => rl
+  write => rlidwk
+  all   => rlidwka
+  mail  => lik
+
+  Will also remove duplicate rights and "sort" the rights (rlidwka)
+
+  $crights = crights("arkail");  # "rlika"
+

@@ -1,0 +1,9 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::CM qw (getcrypt);
+
+my $crypt_flg = getcrypt;
+
+print "Crypt Flag = $crypt_flg \n";

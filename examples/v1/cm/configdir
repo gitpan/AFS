@@ -1,0 +1,10 @@
+#!/usr/local/bin/perl
+
+use AFS configdir;
+
+$dir = configdir();
+
+print "AFS::CODE = $AFS::CODE\n";
+
+print "dir = $dir\n";
+

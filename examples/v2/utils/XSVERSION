@@ -1,0 +1,7 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::Utils qw (XSVERSION);
+
+print 'XS-Version = ', XSVERSION, "\n";

@@ -1,0 +1,10 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+$pts = AFS::PTS->new;
+print "AFS::CODE = $AFS::CODE\n";
+
+my ($uid, $gid) = $pts->PR_ListMax;
+print "UID = $uid  GID = $gid\n";

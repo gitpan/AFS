@@ -1,0 +1,12 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::FS qw(isafs);
+
+die "Usage: $0 path\n" if ($#ARGV==-1);
+
+my $path = shift;
+
+my $ok = isafs($path);
+print "AFS::CODE = $AFS::CODE\n";
+print "ok isafs = $ok\n";

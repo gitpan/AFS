@@ -1,0 +1,12 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+
+use AFS::Utils qw (setpag);
+
+my $ok = setpag;
+print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+print "ok = $ok\n";
+
+system "tokens";
+

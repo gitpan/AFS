@@ -1,0 +1,8 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+my $bits = AFS::PTS->ascii2ptsaccess("S----");
+my $flags = AFS::PTS->ptsaccess2ascii($bits);
+print "Rights = $flags\n";

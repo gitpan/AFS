@@ -1,0 +1,14 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+#AFS::raise_exception(1);
+
+$context =0;
+
+ while( $server = ktc_ListTokens($context)) {
+    print "server = ", $server -> principal, "\n";
+    ($token,$client) = ktc_GetToken($server);
+    print "  client = ", $client -> principal, "\n";    
+    print "   startTime = ", $token -> startTime, "\n";    
+  }

@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+my $pts = AFS::PTS->new;
+
+my @names = ('nog','testafs','hans','foobar');
+
+my @ids = $pts->PR_NameToID(\@names);
+
+print "Names = @names \n";
+foreach my $id (@ids) {
+    print "id = $id\n";
+}

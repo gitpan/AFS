@@ -1,0 +1,35 @@
+#!/usr/local/bin/perl
+
+require 'ctime.pl';
+
+use AFS;
+
+AFS::raise_exception(1);
+
+die "Usage: user\n" if ($#ARGV != 0);
+
+setpag();
+
+$user = ktc_principal(shift);
+
+$user->cell(localcell) if ($user ->cell eq'');
+
+$key = ka_ReadPassword("Password:");
+
+$kas = ka_GetAuthToken($user, $key, 600);
+
+$server = ktc_principal("afs","",$user->cell);
+
+$token = ka_GetServerToken($server, 600);
+
+$pts = newpts(0,$user->cell);
+
+#need some error checking here...
+
+$id = $pts->id($user->name);
+$user->name("AFS ID $id");
+
+ktc_SetToken($server, $token, $user,0);
+
+system "tokens";
+

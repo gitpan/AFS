@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl
+
+use AFS ascii2rights;
+
+die "Usage: $0 rights\n" if $#ARGV != 0;
+
+$rights=shift;
+
+$value = ascii2rights($rights);
+
+  print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+  print "value = $value\n";
+

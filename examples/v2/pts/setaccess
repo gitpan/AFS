@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::PTS;
+
+print "name: "; chop(my $name=<STDIN>);
+print "access: "; chop(my $access=<STDIN>);
+
+my $pts = AFS::PTS->new;
+
+$ok = $pts->setaccess($name, $access);
+print "setaccess AFS::CODE = $AFS::CODE\n";
+print "success  = $ok\n";

@@ -1,0 +1,11 @@
+#!/usr/local/bin/perl
+
+use AFS isafs;
+
+$path = shift;
+
+$ok  = isafs($path);
+
+print "AFS::CODE = $AFS::CODE\n";
+print "ok = $ok\n";
+

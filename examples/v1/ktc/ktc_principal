@@ -1,0 +1,25 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+AFS::raise_exception(1);
+
+die "Usage: $0 principal\n" if ($#ARGV != 0);
+
+$p1 = ktc_principal(shift);
+
+$p1 -> cell(ka_ExpandCell($p1->cell));
+
+print "name = ",$p1->name,"\n";
+print "instance = ",$p1->instance,"\n";
+print "cell = ",$p1->cell,"\n";
+
+print "principal = ", $p1 -> principal, "\n";
+
+$p2 = ktc_principal("rjs","","stanford.edu");
+
+print "principal = ", $p2 ->principal, "\n";
+
+$p2 -> set("rjsnfs","root",localcell);
+
+print "principal = ", $p2 ->principal, "\n";

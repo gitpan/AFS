@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::FS qw(whereis);
+
+
+die "Usage: $0 dir ip\n" if ($#ARGV==-1);
+
+my $dir = shift;
+my $ip = shift;
+
+my @hosts = whereis($dir, $ip);
+foreach my $host (@hosts) {
+  print " $host\n";
+}

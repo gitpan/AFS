@@ -1,0 +1,13 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+print "cell  : "; chop($cell = <STDIN>);
+print "setuid: "; chop($setuid = <STDIN>);
+
+
+$ok = AFS::setcellstatus($setuid,$cell);
+
+print "AFS::CODE = $AFS::CODE\n";
+
+print "ok = $ok\n";

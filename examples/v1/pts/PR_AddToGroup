@@ -1,0 +1,17 @@
+#!/usr/local/bin/perl
+
+use AFS;
+
+AFS::raise_exception(1);
+
+die "Usage: $0 uid gid\n" if $#ARGV != 1;
+
+$uid = shift;
+$gid = shift;
+
+$pts = newpts;
+
+$success = $pts ->PR_AddToGroup($uid,$gid);
+
+print "success  = $success\n";
+

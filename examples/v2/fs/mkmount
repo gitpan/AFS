@@ -1,0 +1,15 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::FS qw(mkmount);
+
+print "mountp: "; chop(my $mountp = <STDIN>);
+print "volume: "; chop(my $volume = <STDIN>);
+print "rw    : "; chop(my $rw = <STDIN>);
+print "cell  : "; chop(my $cell = <STDIN>);
+
+my $ok  = mkmount($mountp, $volume, $rw, $cell);
+
+print "AFS::CODE = $AFS::CODE\n";
+print "ok = $ok\n";
+

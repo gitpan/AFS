@@ -1,0 +1,8 @@
+#!/usr/local/bin/perl -w
+
+use blib '../blib/';
+use AFS::Cell qw (localcell);
+
+my $cell = localcell;
+print "AFS::CODE = $AFS::CODE\n";
+print "local cell = $cell\n";
