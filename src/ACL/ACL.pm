@@ -1,6 +1,6 @@
 package AFS::ACL;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)ACL.pm,v 1.3 2002/07/04 05:59:18 nog Exp"
+# RCS-Id: "@(#)ACL.pm,v 2.2 2002/10/11 10:58:45 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = sprintf("%d.%02d", q/1.3/ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q/2.2/ =~ /(\d+)\.(\d+)/);
 
 sub new {
     my ($this, $class);
@@ -62,7 +62,7 @@ sub retrieve {
     my $follow = shift;
 
     $follow = 1 unless defined $follow;
-    AFS::getacl($path, $follow);
+    AFS::_getacl($path, $follow);
 }
 
 sub modifyacl {
@@ -70,10 +70,10 @@ sub modifyacl {
     my $path   = shift;
     my $follow = shift;
 
-    my($newacl);
+    my $newacl;
 
     $follow = 1 unless defined $follow;
-    if ($newacl = AFS::getacl($path, $follow)) {
+    if ($newacl = AFS::_getacl($path, $follow)) {
         $newacl->add($self);
         AFS::setacl($path, $newacl, $follow);
     }
@@ -86,10 +86,10 @@ sub copyacl {
     my $to     = shift;
     my $follow = shift;
 
-    my($acl);
+    my $acl;
 
     $follow = 1 unless defined $follow;
-    if ($acl = AFS::getacl($from, $follow)) { AFS::setacl($to, $acl, $follow); }
+    if ($acl = AFS::_getacl($from, $follow)) { AFS::setacl($to, $acl, $follow); }
     else { return 0; }
 }
 
@@ -98,10 +98,10 @@ sub cleanacl {
     my $path   = shift;
     my $follow = shift;
 
-    my($acl);
+    my $acl;
 
     $follow = 1 unless defined $follow;
-    if ($acl = AFS::getacl($path, $follow)) { AFS::setacl($path, $acl, $follow); }
+    if ($acl = AFS::_getacl($path, $follow)) { AFS::setacl($path, $acl, $follow); }
     else { return 0; }
 }
 
@@ -125,11 +125,11 @@ sub rights2ascii {
 
 # old form  DEPRECATED !!!!
 sub addacl {
-    my ($self, $macl) = @_;
-    my ($key);
+    my $self = shift;
+    my $macl = shift;
 
-    foreach $key ($macl->keys)  { $self->set($key, $macl->get($key)); }
-    foreach $key ($macl->nkeys) { $self->nset($key, $macl->nget($key)); }
+    foreach my $key ($macl->keys)  { $self->set($key, $macl->get($key)); }
+    foreach my $key ($macl->nkeys) { $self->nset($key, $macl->nget($key)); }
     return $self;
 }
 

@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)Makefile.PL,v 1.11 2002/07/08 10:33:37 nog Exp"
+# RCS-Id: "@(#)Makefile.PL,v 1.12 2002/10/11 11:09:03 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -11,7 +11,7 @@ use ExtUtils::MakeMaker;
 use Config;
 
 # set XS version to sync the PM-Version and the XS-Version
-$XS_VERSION = do{my@r=q/v_2_02/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
+$XS_VERSION = do{my@r=q/V_2_03/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
 
 # give me the path to the AFS system libraries
 # used to build the AFS extension module
@@ -40,12 +40,13 @@ print "AFS Version = $version \n";
 
 # set the compiler flag "-D$version" according to the AFS version
 my $d_flag = '';
-if ($version =~ /3.4/)    { $d_flag = 'AFS 3.4'; }
-elsif ($version =~ /3.5/) { $d_flag = 'AFS 3.5'; }
-elsif ($version =~ /3.6/) { $d_flag = 'AFS 3.6'; }
-elsif ($version =~ /1.0/) { $d_flag = 'OpenAFS 1.0'; }
-elsif ($version =~ /1.1/) { $d_flag = 'OpenAFS 1.1'; }
-elsif ($version =~ /1.2/) { $d_flag = 'OpenAFS 1.2'; }
+if ($version =~ /3.4/)      { $d_flag = 'AFS 3.4'; }
+elsif ($version =~ /3.5/)   { $d_flag = 'AFS 3.5'; }
+elsif ($version =~ /3.6/)   { $d_flag = 'AFS 3.6'; }
+elsif ($version =~ /1.0/)   { $d_flag = 'OpenAFS 1.0'; }
+elsif ($version =~ /1.1/)   { $d_flag = 'OpenAFS 1.1'; }
+elsif ($version =~ /1.2/)   { $d_flag = 'OpenAFS 1.2'; }
+elsif ($version =~ /devel/) { $d_flag = 'OpenAFS devel'; }
 
 $version = $d_flag;
 $d_flag =~ tr/\. /__/;
@@ -91,6 +92,7 @@ if ( $Config{osname} =~ /aix|irix/ ) {
 				       -llwp -lcom_err -lutil -laudit))];
 }
 elsif ( $Config{osname} =~ /solaris/ ) {
+    $MakefileArgs{DEFINE} .= ' -Dint32=afs_int32 -Duint32=afs_uint32' if $alpha_sys eq 'sun4x_56';  # From Peter@PSDT.com
     $MakefileArgs{LIBS} = ["-L$AFSPath/lib -L$AFSPath/lib/afs " .
 			   join(" ",qw(-lkauth -lprot -lubik -lauth
 				       -lrxkad -lsys -ldes -lrx

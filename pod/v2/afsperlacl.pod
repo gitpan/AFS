@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlacl.pod,v 2.1 2002/06/28 12:03:59 nog Exp"
+# RCS-Id: "@(#)afsperlacl.pod,v 2.2 2002/10/11 10:50:17 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -290,7 +290,8 @@ B<NOTE: this form is deprecated !!!>
 
 =head1 AUTHORS
 
-This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+The current release was written by
+Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
 
 The original module was written by
 Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
@@ -328,4 +329,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.1
+Version 2.2

@@ -1,7 +1,7 @@
 package AFS;
 
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)AFS.pm,v 2.2 2002/07/08 08:42:26 nog Exp"
+# RCS-Id: "@(#)AFS.pm,v 2.3 2002/10/11 11:03:19 nog Exp"
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -31,8 +31,8 @@ require DynaLoader;
 use vars qw(@ISA $VERSION $REVISION);
 
 @ISA      = qw(Exporter AutoLoader DynaLoader);
-$VERSION  = do{my@r=q/v_2_02/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
-$REVISION = sprintf("%d.%02d", q/2.2/ =~ /(\d+)\.(\d+)/);
+$VERSION  = do{my@r=q/V_2_03/=~/\d+/g;sprintf '%d.'.'%02d'x$#r,@r};
+$REVISION = sprintf("%d.%02d", q/2.3/ =~ /(\d+)\.(\d+)/);
 
 @CELL = qw (
             configdir
@@ -180,23 +180,25 @@ sub get_server_version {
 
 
 # acl helpers...
- sub modifyacl {
-     my($path, $macl) = @_;
-     my($acl);
+sub getacl { require AFS::ACL; AFS::ACL->import; AFS::_getacl(@_); }
 
-     if ($acl = getacl($path)) {
-         $acl->addacl($macl);
-         return setacl($path, $acl);
-     }
-     else { return 0; }
- }
+sub modifyacl {
+    my($path, $macl) = @_;
+    my($acl);
+
+    if ($acl = getacl($path)) {
+        $acl->addacl($macl);
+        return setacl($path, $acl);
+    }
+    else { return 0; }
+}
 
 sub copyacl {
     my($from, $to, $follow) = @_;
     my($acl);
 
     $follow = 1 unless defined $follow;
-    if ($acl = getacl($from, $follow)) { return setacl($to, $acl, $follow); }
+    if ($acl = _getacl($from, $follow)) { return setacl($to, $acl, $follow); }
     else { return 0; }
 
 }
@@ -206,7 +208,7 @@ sub cleanacl {
     my($acl);
 
     $follow = 1 unless defined $follow;
-    if ($acl = getacl($path, $follow)) { return setacl($path, $acl, $follow); }
+    if ($acl = _getacl($path, $follow)) { return setacl($path, $acl, $follow); }
     else { return 0; }
 }
 

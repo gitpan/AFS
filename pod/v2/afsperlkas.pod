@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlkas.pod,v 2.3 2002/07/01 14:28:54 nog Exp"
+# RCS-Id: "@(#)afsperlkas.pod,v 2.4 2002/10/11 10:50:17 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -303,9 +303,10 @@ It calls the AFS system library function 'KAM_DeleteUser'.
 
 =head1 AUTHORS
 
-The original module was written by
-This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+The current release was written by
+Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
 
+The original module was written by
 Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
@@ -341,4 +342,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.3
+Version 2.4

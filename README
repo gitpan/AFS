@@ -1,5 +1,5 @@
 
-This is the README file for the Perl extension module AFS (version v_2_02)
+This is the README file for the Perl extension module AFS (version V_2_03)
 
 
 DESCRIPTION
@@ -74,7 +74,7 @@ SunOS
     From: Norbert Gruener <nog@MPA-Garching.MPG.de>
     In the meantime I traced the "sun-problem"
         sun4x_57          compiles with AFS 3.6 Patch 2.0   gcc 2.95.2
-        sun4x_57 does not compile  with AFS 3.6 Patch 2.3   gcc 2.95.2
+        sun4x_57 DOES NOT compile  with AFS 3.6 Patch 2.3   gcc 2.95.2
         sun4x_57          compiles with AFS 3.6 Patch 2.6   gcc 2.95.2
 
     From: Alf Wachsmann <alfw@SLAC.Stanford.EDU>
@@ -134,12 +134,11 @@ Availability
     The latest version of the AFS module bundle is currently available
     at
 
-        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.0.tar.gz
-        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.0.tar.gz
+        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.03.tar.gz
+        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.03.tar.gz
 
 
 MAJOR CHANGES
-
     This module bundle compiles now with the AFS system libraries for
     IBM AFS version 3.4.x, 3.5.x, 3.6.x and with the AFS system
     libraries for all OpenAFS versions.
@@ -189,7 +188,7 @@ EXAMPLES
 
 
 AUTHORS 
-    This release was made by Norbert E Gruener
+    The current release was written by Norbert E Gruener
     <nog@MPA-Garching.MPG.de>.
 
     The original AFS interface was written by Roland Schemers

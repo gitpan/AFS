@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlktct.pod,v 2.3 2002/07/04 06:14:29 nog Exp"
+# RCS-Id: "@(#)afsperlktct.pod,v 2.4 2002/10/11 10:50:18 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -288,9 +288,10 @@ Returns the whole token as a "string".
 
 =head1 AUTHORS
 
-The original module was written by
-This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+The current release was written by
+Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
 
+The original module was written by
 Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
@@ -326,4 +327,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.3
+Version 2.4

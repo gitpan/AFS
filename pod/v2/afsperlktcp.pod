@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperlktcp.pod,v 2.2 2002/07/12 06:21:55 nog Exp"
+# RCS-Id: "@(#)afsperlktcp.pod,v 2.3 2002/10/11 10:50:18 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -177,9 +177,10 @@ principal instance.
 
 =head1 AUTHORS
 
-The original module was written by
-This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+The current release was written by
+Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
 
+The original module was written by
 Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
@@ -215,4 +216,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.2
+Version 2.3

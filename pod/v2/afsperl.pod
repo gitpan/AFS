@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)afsperl.pod,v 2.2 2002/07/04 06:12:46 nog Exp"
+# RCS-Id: "@(#)afsperl.pod,v 2.3 2002/10/11 10:51:28 nog Exp"
 #
 # Copyright © 2001-2002 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -15,7 +15,7 @@ B<AFS> - Perl interface to AFS programming APIs
 =head1 VERSION
 
 This document describes the AFS module bundle Version 2 (release
-v_2_02).
+V_2_03).
 
 =head1 COMPATIBILITY
 
@@ -130,7 +130,8 @@ the vos commands.
 
 =head1 AUTHORS
 
-This release was made by Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+The current release was written by
+Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
 
 The original module was written by
 Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
@@ -161,7 +162,15 @@ B<James E. Flemer> - for his new method AFS::KTC_TOKEN->FromString
 B<Phil Moore> - for his improvements of the Makefile.PL
 
 B<Peter Scott> - for his bug report on the method "pts->id" and for
-his "sun" patches for the Makefile.PL
+his "Sun" patches for the Makefile.PL
+
+B<Nathan Neulinger> - for his improvements of the Makefile.PL
+
+B<Bernard Antoine> - for his bug report about a memory leak in the method
+"AFS::ACL->retrieve".
+
+B<Peter Scott> - for his bug report about a memory leak in the function
+"getvolstats"
 
 =head1 COPYRIGHT AND DISCLAIMER
 
@@ -196,4 +205,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Version 2.2
+Version 2.3

@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)AFS.xs,v 2.2 2002/07/12 05:42:57 nog Exp
+ * RCS-Id: @(#)AFS.xs,v 2.4 2002/10/11 11:17:12 nog Exp
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the same terms as Perl itself.
@@ -82,7 +82,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char * const xs_version = "AFS.xs (2.2)";
+const char * const xs_version = "AFS.xs (2.4)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -955,7 +955,7 @@ fs_getvolstats(dir,follow=1)
            stats = newHV();
            if (parse_volstat(stats,space)) {
                   EXTEND(sp,1);
-                  PUSHs(sv_2mortal(newRV_inc((SV*)stats)));
+                  PUSHs(sv_2mortal(newRV_noinc((SV*)stats)));
            } else {
 		hv_undef(stats);
            }
@@ -1818,7 +1818,7 @@ fs_wscell()
 
 
 void
-fs_getacl(dir,follow=1)
+fs__getacl(dir,follow=1)
 	char *	dir
 	int32	follow
    PPCODE:
@@ -1840,10 +1840,10 @@ fs_getacl(dir,follow=1)
            if (parse_acl(space, ph, nh)) {
                AV *acl;
                acl = newAV();
-               av_store(acl,0, newRV_inc((SV*)ph));
-               av_store(acl,1, newRV_inc((SV*)nh));	
+               av_store(acl,0, newRV_noinc((SV*)ph));
+               av_store(acl,1, newRV_noinc((SV*)nh));	
                EXTEND(sp, 1);
-               PUSHs(sv_bless(sv_2mortal(newRV_inc((SV*)acl)),
+               PUSHs(sv_bless(sv_2mortal(newRV_noinc((SV*)acl)),
                                           gv_stashpv("AFS::ACL",1)));
 	   } else {
                hv_undef(ph);
@@ -2916,7 +2916,7 @@ pts_listentry(server,name,lookupids=1,convertflags=1)
            stats = newHV();
            parse_prcheckentry(server,stats,&entry,lookupids,convertflags);
            EXTEND(sp, 1);
-	   PUSHs(sv_2mortal(newRV_inc((SV*)stats)));
+	   PUSHs(sv_2mortal(newRV_noinc((SV*)stats)));
      }
    }
 
@@ -2939,7 +2939,7 @@ pts_PR_ListEntry(server,id)
            stats = newHV();
            parse_prcheckentry(server,stats,&entry,0,0);
            EXTEND(sp, 1);
-	   PUSHs(sv_2mortal(newRV_inc((SV*)stats)));
+	   PUSHs(sv_2mortal(newRV_noinc((SV*)stats)));
      }
    }
 
@@ -2963,7 +2963,7 @@ pts_dumpentry(server,pos,lookupids=1,convertflags=1)
            stats = newHV();
            parse_prdebugentry(server,stats,&entry,lookupids,convertflags);
            EXTEND(sp, 1);
-	   PUSHs(sv_2mortal(newRV_inc((SV*)stats)));
+	   PUSHs(sv_2mortal(newRV_noinc((SV*)stats)));
      }
    }
 
@@ -2986,7 +2986,7 @@ pts_PR_DumpEntry(server,pos)
            stats = newHV();
            parse_prdebugentry(server,stats,&entry,0,0);
            EXTEND(sp, 1);
-	   PUSHs(sv_2mortal(newRV_inc((SV*)stats)));
+	   PUSHs(sv_2mortal(newRV_noinc((SV*)stats)));
      }
    }
 
@@ -3401,7 +3401,7 @@ kas_KAM_GetEntry(server,user,inst)
            HV *stats = newHV();
            if (parse_kaentryinfo(stats,&entry)) {
                   EXTEND(sp,1);
-                  PUSHs(sv_2mortal(newRV_inc((SV*)stats)));
+                  PUSHs(sv_2mortal(newRV_noinc((SV*)stats)));
            } else {
 		hv_undef(stats);
            }
@@ -3423,7 +3423,7 @@ kas_KAM_Debug(server,version)
            HV *stats = newHV();
            if (parse_ka_debugInfo(stats,&entry)) {
                   EXTEND(sp,1);
-                  PUSHs(sv_2mortal(newRV_inc((SV*)stats)));
+                  PUSHs(sv_2mortal(newRV_noinc((SV*)stats)));
            } else {
 		hv_undef(stats);
            }
@@ -3450,8 +3450,8 @@ kas_KAM_GetStats(server,version)
            if (parse_ka_getstats(stats,dstats, &kas, &kad)) {
                   EXTEND(sp,3);
                   PUSHs(sv_2mortal(newSViv(admin_accounts)));
-                  PUSHs(sv_2mortal(newRV_inc((SV*)stats)));
-                  PUSHs(sv_2mortal(newRV_inc((SV*)dstats)));
+                  PUSHs(sv_2mortal(newRV_noinc((SV*)stats)));
+                  PUSHs(sv_2mortal(newRV_noinc((SV*)dstats)));
            } else {
 		hv_undef(stats);
 		hv_undef(dstats);
