@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlutils.pod 529 2004-01-06 18:38:11Z nog $"
+# RCS-Id: "@(#)$Id: afsperlutils.pod 662 2005-02-12 17:14:10Z nog $"
 #
-# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -97,17 +97,17 @@ Discards all of the issuer's tokens.
 
 =back
 
-=head1 AUTHORS
+=head1 CURRENT AUTHOR
 
-The current release was written by
 Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
 
-The original module was written by
+=head1 AUTHOR EMERITUS
+
 Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
@@ -151,4 +151,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 529 $
+Revision $Rev: 662 $

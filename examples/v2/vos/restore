@@ -4,7 +4,8 @@ use blib;
 
 use strict;
 use AFS::VOS;
-our ($vos, $server, $part, $volume, $dfile, $id, $inter, $ovwrt, $offln, $ronly, $ok);
+
+my ($vos, $server, $part, $volume, $dfile, $id, $inter, $ovwrt, $offln, $ronly, $ok);
 
 die "Usage: $0 server partition volume [ dumpfile [ id [inter [overwrite [offline [ readonly]]]]]]\n" if $#ARGV < 2;
 

@@ -7,7 +7,7 @@ use AFS::VLDB;
 use AFS::VOS;
 use Time::localtime;
 
-our ($vos, $vldb, $volume, $vollist, $vldblist);
+my ($vos, $vldb, $volume, $vollist, $vldblist);
 
 die "Usage: $0 volume \n" if $#ARGV != 0;
 

@@ -4,7 +4,8 @@ use blib;
 
 use strict;
 use AFS::VOS;
-our ($vos, $volume, $time, $file, $server, $part, $ok);
+
+my ($vos, $volume, $time, $file, $server, $part, $ok);
 
 die "Usage: $0 volume [time [file [server partition]]]\n" if $#ARGV < 0;
 

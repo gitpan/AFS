@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VOS;
 
-our ($verbose, $vos);
+my ($verbose, $vos);
 
 die "Usage: $0 [verbose]\n" if $#ARGV > 0;
 

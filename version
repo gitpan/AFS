@@ -1,14 +1,26 @@
-$head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/version $';
+#
+# if changed, copy new content to AFS.pm !!!
+#
+sub set_version {
 
-if ($head_url =~ /rc\d/) {
-    # release candidate
-    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/version $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
+    my $head_url = '$HeadURL: svn+ssh://Sams/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.3/version $';
+
+    if ($head_url =~ /rc\d/) {
+        # release candidate
+        do{my@r=$head_url=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
+    }
+    elsif ($head_url =~ /release/) {
+        # normal release
+        do{my($a,$b)=split(/SVN/,$head_url);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    }
+    elsif ($head_url =~ /trunk/) {
+        # development release
+        do{my@r=q/Major Version 2.2 $Rev: 652 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    }
+    else {
+        # should never happen
+        do{my$a='Unknown Release 9.9.99';};
+    }
 }
-elsif ($head_url =~ /release/) {
-    # normal release
-    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/version $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
-}
-else {
-    # development release
-    $VERSION = do{my@r=q/Major Version 2.2 $Rev: 561 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
-}
+
+1;

@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL 621 2004-05-05 10:01:34Z nog $"
+# RCS-Id: "@(#)$Id: Makefile.PL 668 2005-02-15 15:19:17Z nog $"
 #
-# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -12,22 +12,60 @@ use English;
 use ExtUtils::MakeMaker;
 use Config;
 
-my $archname = $Config{'archname'};
-if ($archname =~ /thread/i) { die "Threaded Perl is not supported ...\n"; }
-
-my $VERSION;
-my $head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/Makefile.PL $';
-if ($head_url =~ /rc\d/) {
-    # release candidate
-    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/Makefile.PL $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
+BEGIN {
+    require '../version';
 }
-elsif ($head_url =~ /release/) {
-    # normal release
-    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/Makefile.PL $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+my $VERSION = set_version();
+
+my $archname = $Config{'archname'};
+my $libs;
+my $p_flag = '';
+
+if ($archname =~ /thread/i) {
+    # use the threaded version of the AFS libraries for threaded Perl...
+    $libs = join (" ", qw(
+                          -lbos
+                          -lvolser
+                          -lvldb
+                          -lafsrpc
+                          -lafsauthent
+                          -lcmd
+                          -lusd
+                          -laudit
+                          -lutil
+                          -lutil -lafsrpc -lutil
+                          -lutil -lafsauthent -lutil
+                         )
+                 );
+    $p_flag = '-DAFS_PTHREAD_ENV';
 }
 else {
-    # development release
-    $VERSION = do{my@r=q/Major Version 2.2 $Rev: 621 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    # use the unthreaded version of the AFS libraries for unthreaded Perl...
+    $libs = join (" ", qw(
+                          -lkauth
+                          -lprot
+                          -lbos
+                          -lrx
+                          -lvolser
+                          -lvldb
+
+                          -lcmd
+                          -lubik
+                          -lauth
+
+                          -lrxkad
+                          -lrxstat
+                          -lrx
+
+                          -lsys
+                          -ldes
+                          -llwp
+                          -lcom_err
+                          -lutil
+                          -lusd
+                          -laudit
+                         )
+                 );
 }
 
 # give me the path to the AFS system libraries
@@ -49,8 +87,19 @@ else {
     $AFSPath = $answer if $answer;
     print "\n";
 }
-
 $AFSPath =~ s\/$\\;
+
+# determine the alpha_sys value
+#my $alpha_sys = 'i386_linux24';
+my $alpha_sys = 'unknown';
+if (-e "$AFSPath/bin/fs") {
+    my $fs_sysname = `$AFSPath/bin/fs sysname 2>&1`;
+    if ($fs_sysname =~ s/Current sysname is:? //) {
+        $fs_sysname =~ s/list? //;
+        $fs_sysname =~ /(\w+)/;
+        $alpha_sys  = $1;
+    }
+}
 
 # find out the AFS version of the AFS system libraries
 open FILE, ">fotav.c";
@@ -70,9 +119,17 @@ if ($CHILD_ERROR) {
 }
 my $version = `./a.out` || die "\nCould not run test code to retrieve the version of AFS system libraries...\n";
 unlink 'a.out', 'fotav.c';
-print "AFS Version = $version \n";
 
-if ($version =~ /3.[4,5]/)   { warn "This release does not support AFS 3.4/3.5 system libraries ...\n"; exit 1; }
+if ($version =~ /3.[4,5]/) { warn "This release does not support AFS 3.4/3.5 system libraries ...\n"; exit 1; }
+if ($archname =~ /thread/i and $version !~ /openafs/) {
+    die "\nAFS modules (Threaded Perl) in conjunction with Transarc/IBM AFS is not supported ...\n";
+}
+if ($archname =~ /thread/i and $alpha_sys =~ /amd64_linux2/) {
+    die "\nAFS modules (Threaded Perl) on AMD Opteron platforms are currently not supported ...\n";
+}
+if ($archname =~ /thread/i and $alpha_sys =~ /rs_aix4/) {
+    die "\nAFS modules (Threaded Perl) on AIX platforms are currently not supported ...\n";
+}
 
 # set the compiler flag "-D$version" according to the AFS version
 my ($d_flag, $a_flag) = ('', '');
@@ -82,6 +139,7 @@ elsif ($version =~ /3.6/)   { $d_flag = 'AFS 3.6'; }
 elsif ($version =~ /1.0/)   { $d_flag = 'OpenAFS 1.0'; }
 elsif ($version =~ /1.1/)   { $d_flag = 'OpenAFS 1.1'; }
 elsif ($version =~ /1.2/)   { $d_flag = 'OpenAFS 1.2'; }
+elsif ($version =~ /1.3/)   { $d_flag = 'OpenAFS 1.3'; }
 elsif ($version =~ /devel/) { $d_flag = 'OpenAFS devel'; }
 
 if ($version =~ /openafs/)  { $a_flag = '-DOpenAFS'; }
@@ -90,54 +148,22 @@ $version = $d_flag;
 $d_flag =~ tr/\. /__/;
 $d_flag = '-D' . $d_flag;
 
-# determine the alpha_sys value
-#my $alpha_sys = 'i386_linux24';
-my $alpha_sys = `$AFSPath/bin/fs sysname 2>&1` || 'unknown';
-if ($alpha_sys =~ s/Current sysname is:? //) {
-    $alpha_sys =~ s/list? //;
-    $alpha_sys =~ /(\w+)/;
-    $alpha_sys = $1;
-}
-
 # print out a summary of determined data
-print "Your AFS system library is located at:  $AFSPath \n";
-print "              and it is major version:  $version \n";
-print "Your AFS system type seems to be:       $alpha_sys \n\n";
+print "AFS Version = $version \n";
+print "Your AFS system libraries are located at:  $AFSPath \n";
+print "                  their major version is:  $version \n";
+print "                  and their type is:       \"pthreaded\"\n" if ($archname =~ /thread/i);
+print "Your AFS system type seems to be:          $alpha_sys \n\n";
 
 # set the Makefile values
 my %MakefileArgs = (
     'NAME'         => 'AFS',
     'VERSION'      => "$VERSION",
-    'DEFINE'	   => "$d_flag $a_flag",
+    'DEFINE'	   => "$d_flag $p_flag $a_flag",
     'INC'          => "-I$AFSPath/include",
     'LIBS'         => [
                        "-L$AFSPath/lib -L$AFSPath/lib/afs "
-                       . join (
-                                   " ", qw(
-                                           -lkauth
-                                           -lprot
-					   -lbos
-                                           -lrx
-                                           -lvolser
-                                           -lvldb
-
-                                           -lcmd
-                                           -lubik
-                                           -lauth
-
-                                           -lrxkad
-                                           -lrxstat
-                                           -lrx
-
-                                           -lsys
-                                           -ldes
-                                           -llwp
-                                           -lcom_err
-                                           -lutil
-                                           -lusd
-                                           -laudit
-                                          )
-                              )
+                       . $libs
                       ],
     'realclean'    => {FILES => 'Makefile.bak lib'},
                    );
@@ -180,6 +206,14 @@ system("perl -p -i.bak -e $command Makefile") unless -f "$AFSPath/lib/afs/libvli
 
 # change the library name of the AFS system library "libcom_err"
 $command = "\'s#-lcom_err#$AFSPath/lib/afs/libcom_err.a#\'";
+system("perl -p -i.bak -e $command Makefile");
+
+# change the library name of the AFS system library "-lafsrpc"
+$command = "\'s#-lutil -lafsrpc -lutil#$AFSPath/lib/libafsrpc.a#\'";
+system("perl -p -i.bak -e $command Makefile");
+
+# change the library name of the AFS system library "-lafsauthent"
+$command = "\'s#-lutil -lafsauthent -lutil#$AFSPath/lib/libafsauthent.a#\'";
 system("perl -p -i.bak -e $command Makefile");
 
 # make changes to the typemap file if Perl < 5.6.0

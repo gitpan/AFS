@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::CM qw(getvolstats);
 
-our ($path, $stats);
+my ($path, $stats);
 
 die "Usage: $0 path\n" if $#ARGV != 0;
 

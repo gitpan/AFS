@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperl.pod 603 2004-04-22 11:48:13Z nog $"
+# RCS-Id: "@(#)$Id: afsperl.pod 677 2005-02-17 07:52:29Z nog $"
 #
-# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -15,7 +15,7 @@ B<AFS> - Perl interface to AFS programming APIs
 =head1 VERSION
 
 This document describes the AFS module bundle
-(Version 2.2.2)
+(Version 2.2.3)
 
 
 =head1 COMPATIBILITY
@@ -126,7 +126,7 @@ AFS function call. See L<afsperlbase>.
 
 =over 4
 
-=item Perl 5.005_02 or newer but "unthreaded" version
+=item Perl 5.005_02 or newer
 
 =item AFS system libraries (either B<IBM/Transarc AFS V 3.6> or B<OpenAFS>)
 
@@ -155,12 +155,12 @@ documentation was available for the interfaces to the AFS structures
 ktc_token, ktc_principal, and ktc_encryptionkey.  Therefore these
 modules are not very well documented.
 
-=head1 AUTHORS
+=head1 CURRENT AUTHOR
 
-The current release was written by
 Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
 
-The original module was written by
+=head1 AUTHOR EMERITUS
+
 Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 CREDITS
@@ -215,9 +215,16 @@ to Perl "unthreaded" version with the Debian "unstable" distribution
 
 B<Pierre-Yves Fontaniere> - for his configuration report for rs_aix51
 
+B<Chaskiel M Grundman> and B<Derrick J Brashear> - for their valuable
+information about threaded OpenAFS libraries
+
+B<Russ Allbery> - for his improvements of the I<threaded case> Makefile.PL
+
+B<Yannick Bergeron> - for his corrections for the AFS::KTC_TOKEN documentation
+
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
@@ -248,4 +255,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 603 $
+Revision $Rev: 677 $

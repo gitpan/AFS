@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VLDB;
 
-our ($verbose, $vldb);
+my ($verbose, $vldb);
 
 die "Usage: $0 [verbose]\n" if $#ARGV > 0;
 

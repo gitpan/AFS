@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlktct.pod 529 2004-01-06 18:38:11Z nog $"
+# RCS-Id: "@(#)$Id: afsperlktct.pod 678 2005-02-17 07:54:52Z nog $"
 #
-# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -66,8 +66,10 @@ B<AFS::KTC_TOKEN> - Class to handle the B<AFS structure ktc_token>
   $user     = AFS::KTC_PRINCIPAL->new('nog');
   $password = AFS::KTC_EKEY->UserReadPassword("Password:");
 
+  my $pwexp  = 0;
+  my $reason = '';
   $ok = AFS::KTC_TOKEN->UserAuthenticateGeneral($user, $password, 300,
-            &AFS::KA_USERAUTH_VERSION | &AFS::KA_USERAUTH_DOSETPAG, 0, '');
+            &AFS::KA_USERAUTH_VERSION | &AFS::KA_USERAUTH_DOSETPAG, $pwexp, $reason);
 
   AFS::KTC_TOKEN->ForgetAllTokens();
 
@@ -282,17 +284,17 @@ Returns the whole token as a C<string>.
 
 =back
 
-=head1 AUTHORS
+=head1 CURRENT AUTHOR
 
-The current release was written by
 Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
 
-The original module was written by
+=head1 AUTHOR EMERITUS
+
 Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
@@ -336,4 +338,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 529 $
+Revision $Rev: 678 $

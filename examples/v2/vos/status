@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VOS;
 
-our ($vos, $server);
+my ($vos, $server);
 
 die "Usage: $0 server \n" if $#ARGV != 0;
 

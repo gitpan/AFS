@@ -1,4 +1,26 @@
-Version 2.2.2 (released 06 May 2004, revision 627)
+Version 2.2.3 (released 17 Feb 2005, revision 679)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.3.tar.gz
+
+ NOTICE:
+ * This release does not support AFS system libraries version 3.4 or
+   version 3.5
+ 
+ User-visible changes:
+ * now supports Perl "threaded" version on several platforms
+ * fixed method AFS::VOS->backupsys: fixed segmentation error and
+   added some error handling 
+ * fixed method AFS::VLDB->delentry: added some error handling 
+
+
+ Developer-visible changes:
+ * modified AFS.xs functions "SendFile", "ReceiveFile",
+   and "DoSalvage" to handle "threaded" and "unthreaded" case
+ * modified AFS.xs: added dummy functions for "threaded" case
+ * redesigned the computing of the VERSION numbers
+
+
+
+Version 2.2.2 (released 07 May 2004, revision 627)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.2.tar.gz
 
  NOTICE:

@@ -13,10 +13,6 @@ BEGIN {
     use_ok('AFS::ACL');
 }
 
-#use AFS::FS;
-#if (AFS::FS::isafs('./')) { plan tests => 13; }
-#else { plan skip_all => 'Working directory is not in AFS file system ...'; }
-
 is(AFS::ACL->ascii2rights('write'), 63, 'ascii2rights');
 
 my $acl = AFS::ACL->new({'foobar' => 'none'}, {'anyuser' => 'write'});

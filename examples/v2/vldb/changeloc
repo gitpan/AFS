@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VLDB;
 
-our ($vldb, $volume, $server, $part, $ok);
+my ($vldb, $volume, $server, $part, $ok);
 
 die "Usage: $0 volume dest_server dest_partition \n" if $#ARGV != 2;
 

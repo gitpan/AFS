@@ -6,7 +6,7 @@ use strict;
 use AFS::PTS;
 use AFS::Cell qw (localcell);
 
-our ($sec, $cell, $pts);
+my ($sec, $cell, $pts);
 
 die "Usage: $0 [security [cell]]\n" if $#ARGV > 1;
 

@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VLDB;
 
-our ($vldb, $host, $nores, $prtuid);
+my ($vldb, $host, $nores, $prtuid);
 
 die "Usage: $0 [host [noresolv [printuuid]]]\n" if $#ARGV > 2;
 

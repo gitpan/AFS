@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VLDB;
 
-our ($vldb, $address, $ok);
+my ($vldb, $address, $ok);
 
 die "Usage: $0 ip_address\n" if $#ARGV != 0;
 

@@ -6,7 +6,7 @@ use strict;
 use AFS::VOS;
 use Time::localtime;
 
-our ($vos, $server, $part, $fast, $extend, $Debugging);
+my ($vos, $server, $part, $fast, $extend, $Debugging);
 
 $Debugging = 0;
 if (defined @ARGV and $ARGV[0] eq '-d') { $Debugging = 1; shift; }

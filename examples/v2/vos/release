@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VOS;
 
-our ($vos, $volume, $force, $ok);
+my ($vos, $volume, $force, $ok);
 
 die "Usage: $0 volume [force]\n" if $#ARGV < 0;
 

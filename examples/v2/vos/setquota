@@ -4,7 +4,8 @@ use blib;
 
 use strict;
 use AFS::VOS;
-our ($vos, $volume, $quota, $ok);
+
+my ($vos, $volume, $quota, $ok);
 
 die "Usage: $0 volume quota\n" if $#ARGV != 1;
 

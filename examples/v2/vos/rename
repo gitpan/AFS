@@ -4,7 +4,8 @@ use blib;
 
 use strict;
 use AFS::VOS;
-our ($vos, $oldvol, $newvol, $ok);
+
+my ($vos, $oldvol, $newvol, $ok);
 
 die "Usage: $0 oldvol newvol\n" if $#ARGV != 1;
 

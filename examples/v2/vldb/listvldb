@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VLDB;
 
-our ($vldb, $serv, $part, $lock, $Debugging);
+my ($vldb, $serv, $part, $lock, $Debugging);
 
 $Debugging = 0;
 if (defined @ARGV and $ARGV[0] eq '-d') { $Debugging = 1; shift; }

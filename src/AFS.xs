@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 609 2004-04-22 12:12:16Z nog $
+ * RCS-Id: @(#)$Id: AFS.xs 667 2005-02-15 15:14:13Z nog $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -97,7 +97,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Major Version 2.2 $Rev: 609 $)";
+const char *const xs_version = "AFS.xs (Major Version 2.2 $Rev: 667 $)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -153,6 +153,12 @@ static int32 convert_numeric_names = 1;
 #define AFS_ABORT 1
 #define AFS_FULL  2
 #define AFS_INC   3
+
+#ifdef AFS_PTHREAD_ENV
+#undef clock_haveCurrentTime
+#undef clock_UpdateTime
+struct clock clock_now;
+#endif /* AFS_PTHREAD_ENV*/
 
 /* error handling macros */
 
@@ -389,6 +395,37 @@ set_errbuff(buffer, errcode)
     }
     return 0;
 }
+
+#ifdef AFS_PTHREAD_ENV
+void IOMGR_Sleep (seconds)
+  int seconds;
+{
+    double i,j;
+
+    croak("DEBUG: IOMGR_Sleep not available ...\nPlease inform the author...");
+    j = 0.0;
+    i = 1.0/j;
+}
+
+void clock_UpdateTime ()
+{
+    double i,j;
+
+    croak("DEBUG: clock_UpdateTime not available ...\nPlease inform the author..  .");
+    j = 0.0;
+    i = 1.0/j;
+}
+
+int clock_haveCurrentTime ()
+{
+    double i,j;
+
+    croak("DEBUG: clock_haveCurrentTime not available...\nPlease inform the auth or...");
+    j = 0.0;
+    i = 1.0/j;
+    return 1;
+}
+#endif /* AFS_PTHREAD_ENV*/
 
 static int32 not_here(s)
     char *s;
@@ -1046,7 +1083,11 @@ SendFile(ufd, call, blksize)
         FD_ZERO(&in);
         FD_SET((long) (ufd->handle), &in);
         /* don't timeout if read blocks */
-        IOMGR_Select(((long) (ufd->handle)) + 1, &in, 0, 0, 0);
+#ifdef AFS_PTHREAD_ENV
+        select(((long) (ufd->handle)) + 1, &in, 0, 0, 0);
+#else
+        IOMGR_Select(((long) (ufd->handle)) + 1, &in, 0, 0, 0); 
+#endif /* AFS_PTHREAD_ENV*/
 #endif
         error = USD_READ(ufd, buffer, blksize, &nbytes);
         if (error) {
@@ -1151,7 +1192,11 @@ int ReceiveFile(ufd, call, blksize)
             FD_ZERO(&out);
             FD_SET((long) (ufd->handle), &out);
             /* don't timeout if write blocks */
-            IOMGR_Select(((long) (ufd->handle)) + 1, 0, &out, 0, 0);
+#ifdef AFS_PTHREAD_ENV
+            select(((long) (ufd->handle)) + 1, 0, &out, 0, 0);
+#else
+            IOMGR_Select(((long) (ufd->handle)) + 1, 0, &out, 0, 0); 
+#endif /* AFS_PTHREAD_ENV*/
 #endif
             error = USD_WRITE(ufd, &buffer[bytesread - bytesleft], bytesleft, &w);
             if (error) {
@@ -2556,7 +2601,11 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     }
     /* now wait for bnode to disappear */
     while (1) {
+#ifdef AFS_PTHREAD_ENV
+        sleep(5);
+#else
         IOMGR_Sleep(5);
+#endif /* AFS_PTHREAD_ENV*/
         tp = tbuffer;
         code = BOZO_GetInstanceInfo(aconn, "salvage-tmp", &tp, &istatus);
         if (code)
@@ -6071,26 +6120,28 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             goto done;
         }
 
-        #printf("DEBUG-6\n");
-        av = (AV *) SvRV(seenprefix);
-        len = av_len(av);
-        if (len != -1) {
-            for (j = 0; j <= len; j++) {
-                regex = *av_fetch(av, j, 0);
-                itp = SvPV_nolen(regex);
-                if (strncmp(itp, "^", 1) == 0) {
-                    ccode = (char *) re_comp(itp);
-                    if (ccode) {
-                        char buffer[80];
-                        sprintf(buffer,
-                                "Unrecognizable PREFIX regular expression: '%s': %s\n", itp,
-                                ccode);
-                        VSETCODE(ccode, buffer);
-                        XSRETURN_UNDEF;
-                        goto done;
+        if (seenprefix) {
+            #printf("DEBUG-6\n");
+            av = (AV *) SvRV(seenprefix);
+            len = av_len(av);
+            if (len != -1) {
+                for (j = 0; j <= len; j++) {
+                    regex = *av_fetch(av, j, 0);
+                    itp = SvPV_nolen(regex);
+                    if (strncmp(itp, "^", 1) == 0) {
+                        ccode = (char *) re_comp(itp);
+                        if (ccode) {
+                            char buffer[80];
+                            sprintf(buffer,
+                                    "Unrecognizable PREFIX regular expression: '%s': %s\n", itp,
+                                    ccode);
+                            VSETCODE(ccode, buffer);
+                            XSRETURN_UNDEF;
+                            goto done;
+                        }
                     }
-                }
-            }                       /*for loop */
+                }                       /*for loop */
+            }
         }
         
         #printf("DEBUG-7\n");
@@ -6103,26 +6154,28 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             XSRETURN_UNDEF;
             goto done;
         }
-        #printf("DEBUG-8-1\n");
-        av = (AV *) SvRV(seenxprefix);
-        len = av_len(av);
-        if (len != -1) {
-            for (j = 0; j <= len; j++) {
-                regex = *av_fetch(av, j, 0);
-                itp = SvPV_nolen(regex);
-                if (strncmp(itp, "^", 1) == 0) {
-                    ccode = (char *) re_comp(itp);
-                    if (ccode) {
-                        char buffer[80];
-                        sprintf(buffer,
-                                "Unrecognizable XPREFIX regular expression: '%s': %s\n", itp,
-                                ccode);
-                        VSETCODE(ccode, buffer);
-                        XSRETURN_UNDEF;
-                        goto done;
+        if (seenxprefix) {
+            #printf("DEBUG-8-1\n");
+            av = (AV *) SvRV(seenxprefix);
+            len = av_len(av);
+            if (len != -1) {
+                for (j = 0; j <= len; j++) {
+                    regex = *av_fetch(av, j, 0);
+                    itp = SvPV_nolen(regex);
+                    if (strncmp(itp, "^", 1) == 0) {
+                        ccode = (char *) re_comp(itp);
+                        if (ccode) {
+                            char buffer[80];
+                            sprintf(buffer,
+                                    "Unrecognizable XPREFIX regular expression: '%s': %s\n", itp,
+                                    ccode);
+                            VSETCODE(ccode, buffer);
+                            XSRETURN_UNDEF;
+                            goto done;
+                        }
                     }
-                }
-            }                       /*for */
+                }                       /*for */
+            }
         }
         
         #printf("DEBUG-9\n");

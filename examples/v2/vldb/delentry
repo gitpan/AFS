@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VLDB;
 
-our ($vldb, $volume, $noexec);
+my ($vldb, $volume, $noexec);
 
 die "Usage: $0 volume [noexec]\n" if $#ARGV < 0;
 
@@ -20,4 +20,4 @@ my @vols = ($volume);
 my ($succ, $fail) = $vldb->delentry(\@vols, $noexec);
 print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
 
-if (! $noexec) { print "Deleted $succ VLDB entry \n"; }
+if (! $noexec and defined $succ) { print "Deleted $succ VLDB entry \n"; }

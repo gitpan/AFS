@@ -4,7 +4,7 @@ use blib;
 
 use strict;
 use AFS::VOS;
-our ($vos, $prefix, $server, $part, $exclude, $xprefix, $dry, $tbackup, $fbackup);
+my ($vos, $prefix, $server, $part, $exclude, $xprefix, $dry, $tbackup, $fbackup);
 
 die "Usage: $0 [prefix server partition exclude xprefix dryrun\n" if $#ARGV > 5;
 

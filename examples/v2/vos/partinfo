@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VOS;
 
-our ($vos, $server, $part, $Debugging);
+my ($vos, $server, $part, $Debugging);
 
 $Debugging = 0;
 if ($ARGV[0] eq '-d') { $Debugging = 1; shift; }

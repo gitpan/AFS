@@ -4,7 +4,8 @@ use blib;
 
 use strict;
 use AFS::VLDB;
-our ($vldb, $server, $partition, $ok);
+
+my ($vldb, $server, $partition, $ok);
 
 die "Usage: $0 server [partition] \n" if $#ARGV < 0;
 

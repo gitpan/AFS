@@ -1,13 +1,21 @@
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
-use Config;
 
-my $archname = $Config{'archname'};
+BEGIN {
+    require './version';
+}
+my $VERSION = set_version();
 
-if ($archname =~ /thread/i) { die "Threaded Perl is not supported ...\n"; }
-
-require 'version';
+WriteMakefile(
+              'NAME'       => 'AFS',
+              'VERSION'    => $VERSION,
+              ($] >= 5.005 ?
+                   ('AUTHOR'   => 'Norbert E Gruener <nog@MPA-Garching.MPG.de>',
+                    'ABSTRACT' => 'Perl interface to AFS programming APIs',
+                    'NO_META'  => true) : () ),
+              'realclean'  => {FILES => 'Makefile.bak pod/v2/*.html pod/v2/pod2htm* lib' },
+             );
 
 # provide the POD documentation
 mkdir('./lib');
@@ -27,16 +35,6 @@ system("cp ./pod/v2/afsperlpts.pod lib/AFS/PTS.pod");
 system("cp ./pod/v2/afsperlutils.pod lib/AFS/Utils.pod");
 system("cp ./pod/v2/afsperlvldb.pod lib/AFS/VLDB.pod");
 system("cp ./pod/v2/afsperlvos.pod lib/AFS/VOS.pod");
-
-WriteMakefile(
-              'NAME'       => 'AFS',
-              'VERSION'    => $VERSION,
-              ($] >= 5.005 ?
-                   ('AUTHOR'   => 'Norbert E Gruener <nog@MPA-Garching.MPG.de>',
-                    'ABSTRACT' => 'Perl interface to AFS programming APIs',
-                    'NO_META'  => true) : () ),
-              'realclean'  => {FILES => 'Makefile.bak pod/v2/*.html pod/v2/pod2htm* lib' },
-             );
 
 sub MY::postamble {
         '

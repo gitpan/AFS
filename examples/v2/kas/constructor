@@ -6,11 +6,9 @@ use strict;
 use AFS::KAS;
 use AFS::KTC_TOKEN;
 
-our ($kas);
-
 die "Usage: $0 \n" if $#ARGV != -1;
 
-$kas = AFS::KAS->AuthServerConn(AFS::KTC_TOKEN->nulltoken, &AFS::KA_MAINTENANCE_SERVICE);
+my $kas = AFS::KAS->AuthServerConn(AFS::KTC_TOKEN->nulltoken, &AFS::KA_MAINTENANCE_SERVICE);
 if ($AFS::CODE) { print "Error Code: $AFS::CODE\n"; }
 else { print "OK \n"; }
 

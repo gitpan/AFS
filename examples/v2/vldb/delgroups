@@ -4,7 +4,8 @@ use blib;
 
 use strict;
 use AFS::VLDB;
-our ($vldb, $prefix, $server, $partition, $noexec);
+
+my ($vldb, $prefix, $server, $partition, $noexec);
 
 die "Usage: $0 prefix server partition [noexec] \n" if $#ARGV < 2;
 

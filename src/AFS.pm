@@ -1,12 +1,12 @@
 package AFS;
 
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: AFS.pm 565 2004-02-02 12:56:48Z nog $"
+# RCS-Id: "@(#)$Id: AFS.pm 662 2005-02-12 17:14:10Z nog $"
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 # Copyright © 1994 Board of Trustees, Leland Stanford Jr. University.
 #
 #  The original library is covered by the following copyright:
@@ -30,24 +30,39 @@ require Exporter;
 require AutoLoader;
 require DynaLoader;
 
+BEGIN {
+    # insert file ../version
+    # do NOT change here
+sub set_version {
+
+    my $head_url = '$HeadURL: svn+ssh://Sams/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.3/src/AFS.pm $';
+
+    if ($head_url =~ /rc\d/) {
+        # release candidate
+        do{my@r=$head_url=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
+    }
+    elsif ($head_url =~ /release/) {
+        # normal release
+        do{my($a,$b)=split(/SVN/,$head_url);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    }
+    elsif ($head_url =~ /trunk/) {
+        # development release
+        do{my@r=q/Major Version 2.2 $Rev: 662 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+    }
+    else {
+        # should never happen
+        do{my$a='Unknown Release 9.9.99';};
+    }
+}
+
+}
+
 use vars qw(@ISA $VERSION $REVISION);
 
 @ISA = qw(Exporter AutoLoader DynaLoader);
 
-my $head_url = '$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/AFS.pm $';
-if ($head_url =~ /rc\d/) {
-    # release candidate
-    $VERSION = do{my@r=q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/AFS.pm $\=~/\d+/g;sprintf'%d.%d.%d-rc%d',$r[0],$r[1],$r[2],$r[3];};
-}
-elsif ($head_url =~ /release/) {
-    # normal release
-    $VERSION = do{my($a,$b)=split(/SVN/,q\$HeadURL: svn+ssh://Fuji/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.2/src/AFS.pm $\);my@r=$b=~/\d+/g;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
-}
-else {
-    # development release
-    $VERSION = do{my@r=q/Major Version 2.2 $Rev: 565 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
-}
-$REVISION = do{my@r=q/Major Version 2.2 $Rev: 565 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
+$VERSION  = set_version();
+$REVISION = do{my@r=q/Major Version 2.2 $Rev: 662 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
 
 @CELL = qw (
             configdir

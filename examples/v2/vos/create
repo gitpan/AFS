@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VOS;
 
-our ($vos, $server, $part, $volume, $maxquota, $volid);
+my ($vos, $server, $part, $volume, $maxquota, $volid);
 
 die "Usage: $0 server partition volume [max_quota]\n" if $#ARGV < 2;
 

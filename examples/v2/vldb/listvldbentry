@@ -5,7 +5,7 @@ use blib;
 use strict;
 use AFS::VLDB;
 
-our ($vldb, $vol);
+my ($vldb, $vol);
 
 die "Usage: $0 volume \n" if $#ARGV != 0;
 
