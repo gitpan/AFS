@@ -7,13 +7,16 @@ use Test::More;
 
 BEGIN {
     use AFS::FS;
-    if (AFS::FS::isafs('./')) { plan tests => 9; }
+    if (AFS::FS::isafs('./')) { plan tests => 15; }
     else { plan skip_all => 'Working directory is not in AFS file system ...'; }
 
     use_ok('AFS::CM', qw (
                           checkvolumes
                           cm_access flush flushcb flushvolume
                           getcacheparms getcrypt
+                          
+                          checkconn getcellstatus getvolstats
+                          setcachesize setcellstatus setcrypt
                          )
           );
 }
@@ -36,3 +39,10 @@ my ($max, undef) = getcacheparms;
 ok($max, 'getcacheparms');
 
 can_ok('AFS::CM', qw(getcrypt));
+
+can_ok('AFS::CM', qw(checkconn));
+can_ok('AFS::CM', qw(getcellstatus));
+can_ok('AFS::CM', qw(getvolstats));
+can_ok('AFS::CM', qw(setcachesize));
+can_ok('AFS::CM', qw(setcellstatus));
+can_ok('AFS::CM', qw(setcrypt));

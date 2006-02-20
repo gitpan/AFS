@@ -1,9 +1,7 @@
 #
-# if changed, copy new content to AFS.pm !!!
-#
 sub set_version {
 
-    my $head_url = '$HeadURL: svn+ssh://Sams/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.2.3/version $';
+    my $head_url = '$HeadURL: svn+ssh://Sams/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.4.0/version $';
 
     if ($head_url =~ /rc\d/) {
         # release candidate
@@ -15,7 +13,9 @@ sub set_version {
     }
     elsif ($head_url =~ /trunk/) {
         # development release
-        do{my@r=q/Major Version 2.2 $Rev: 652 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
+        my $v = `svnversion .` || '999999';
+        my $r = "Major Version 2.4 $v";
+        do{my@r=$r=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%d'x($#r-1),@r;};
     }
     else {
         # should never happen

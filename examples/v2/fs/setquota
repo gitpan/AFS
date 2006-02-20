@@ -3,12 +3,14 @@
 use blib;
 use AFS::FS qw(setquota);
 
-die "Usage: $0 path quota\n" if $#ARGV==-1;
+my ($path, $quota, $ok);
 
-my $path = shift;
-my $quota = shift;
+die "Usage: $0 path quota\n" if ($#ARGV == -1);
 
-my $ok = setquota($path, $quota);
-print "AFS::CODE = $AFS::CODE\n";
+$path  = shift;
+$quota = shift;
+
+$ok = setquota($path, $quota);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 print "ok setquota = $ok\n";
 

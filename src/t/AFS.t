@@ -1,3 +1,4 @@
+# -*-cperl-*-
 use strict;
 
 use lib qw(../../inc ../inc ./inc);

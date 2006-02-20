@@ -58,10 +58,7 @@ sub print_ext {
     foreach my $part (sort keys %$partlist) {
         print "Partition $part:\n";
         foreach my $vol (sort keys %{$partlist->{$part}}) {
-            if ($vol =~ /total/) {
-                print "\tKey: $vol, Value: $partlist->{$part}->{$vol}\n";
-            }
-            else {
+            if ($vol !~ /total/) {
                 print "\tVolume: $vol\n";
                 foreach my $key (sort keys %{$partlist->{$part}->{$vol}}) {
                     if ($key =~ /(Reads|Writes|>1wk|1day-1wk|1hr-1day|10min-1hr|1-10min|0-60sec)/) {
@@ -79,6 +76,8 @@ sub print_ext {
                 }
             }
         }
+        print "\ttotalBusy: $partlist->{$part}->{' totalBusy'}\n";
+        print "\ttotalNotOK: $partlist->{$part}->{' totalNotOK'}\n";
     }
 }
 
@@ -88,16 +87,15 @@ sub print_long {
     foreach my $part (sort keys %$partlist) {
         print "$part:\n";
         foreach my $vol (sort keys %{$partlist->{$part}}) {
-            if ($vol =~ /total/) {
-                print "\t$vol: $partlist->{$part}->{$vol}\n";
-            }
-            else {
+            if ($vol !~ /total/) {
                 print "\t$vol:\n";
                 foreach (sort keys %{$partlist->{$part}->{$vol}}) {
                     print "\t\tKey: $_, Value: $partlist->{$part}->{$vol}->{$_}\n";
                 }
             }
         }
+        print "\ttotalBusy: $partlist->{$part}->{' totalBusy'}\n";
+        print "\ttotalNotOK: $partlist->{$part}->{' totalNotOK'}\n";
     }
 }
 
@@ -159,8 +157,8 @@ sub print_default {
 #             }
         }
         print "\nTotal volumes onLine ",
-          $totvol - $partlist->{$part}->{'totalNotOK'} - $partlist->{$part}->{'totalBusy'}, " ;";
-        print "\tTotal volumes offLine $partlist->{$part}->{'totalNotOK'} ;";
-        print "\tTotal busy $partlist->{$part}->{'totalBusy'} \n";
+          $totvol - $partlist->{$part}->{' totalNotOK'} - $partlist->{$part}->{' totalBusy'}, " ;";
+        print "\tTotal volumes offLine $partlist->{$part}->{' totalNotOK'} ;";
+        print "\tTotal busy $partlist->{$part}->{' totalBusy'} \n";
     }
 }

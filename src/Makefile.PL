@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL 668 2005-02-15 15:19:17Z nog $"
+# RCS-Id: "@(#)$Id: Makefile.PL 751 2005-12-22 06:32:52Z nog $"
 #
 # Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -140,6 +140,7 @@ elsif ($version =~ /1.0/)   { $d_flag = 'OpenAFS 1.0'; }
 elsif ($version =~ /1.1/)   { $d_flag = 'OpenAFS 1.1'; }
 elsif ($version =~ /1.2/)   { $d_flag = 'OpenAFS 1.2'; }
 elsif ($version =~ /1.3/)   { $d_flag = 'OpenAFS 1.3'; }
+elsif ($version =~ /1.4/)   { $d_flag = 'OpenAFS 1.4'; }
 elsif ($version =~ /devel/) { $d_flag = 'OpenAFS devel'; }
 
 if ($version =~ /openafs/)  { $a_flag = '-DOpenAFS'; }

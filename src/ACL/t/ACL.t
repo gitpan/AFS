@@ -7,7 +7,7 @@ use Test::More;
 
 BEGIN {
     use AFS::FS;
-    if (AFS::FS::isafs('./')) { plan tests => 13; }
+    if (AFS::FS::isafs('./')) { plan tests => 25; }
     else { plan skip_all => 'Working directory is not in AFS file system ...'; }
 
     use_ok('AFS::ACL');
@@ -29,12 +29,6 @@ ok(! defined $acl->[0]->{rjs}, 'remove');
 $acl->clear;
 ok(! defined $acl->[0]->{foobar}, 'clear');
 
-can_ok('AFS::ACL', qw(apply));
-
-can_ok('AFS::ACL', qw(modifyacl));
-
-can_ok('AFS::ACL', qw(cleanacl));
-
 my $copy = $acl->copy;
 is(ref($copy), 'AFS::ACL', 'acl->copy()');
 
@@ -43,3 +37,21 @@ is($rights, 'rl', 'crights');
 
 my $new_acl = AFS::ACL->retrieve('./');
 is(ref($new_acl), 'AFS::ACL', 'AFS::ACL->retrieve()');
+
+
+can_ok('AFS::ACL', qw(apply));
+can_ok('AFS::ACL', qw(copyacl));
+can_ok('AFS::ACL', qw(modifyacl));
+can_ok('AFS::ACL', qw(cleanacl));
+can_ok('AFS::ACL', qw(empty));
+can_ok('AFS::ACL', qw(rights2ascii));
+can_ok('AFS::ACL', qw(get_rights));
+can_ok('AFS::ACL', qw(nget_rights));
+can_ok('AFS::ACL', qw(get_users));
+can_ok('AFS::ACL', qw(nget_users));
+can_ok('AFS::ACL', qw(length));
+can_ok('AFS::ACL', qw(nlength));
+can_ok('AFS::ACL', qw(exists));
+can_ok('AFS::ACL', qw(nexists));
+can_ok('AFS::ACL', qw(add));
+

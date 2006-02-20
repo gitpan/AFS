@@ -1,6 +1,6 @@
 
 This is the README file for the POD documentation of the Perl
-extension module AFS (Version 2.2.3) 
+extension module AFS (Version 2.4.0) 
 
 
 POD DOCUMENTATION
@@ -18,7 +18,7 @@ GENERATING HTML DOCUMENTATION
     explicitly.  'cd' into the pod directory and 'make' the HTML
     documentation.  This is the sequence of commands to build the docs:
 
-        cd AFS-2.2.3/pod/v2
+        cd AFS-2.4.0/pod/v2
         make html
 
     After this you can start your browser with the file 'afsperl.html'

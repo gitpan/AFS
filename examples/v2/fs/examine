@@ -7,12 +7,12 @@ use AFS::CM qw(getvolstats);
 
 my ($path, $stats);
 
-die "Usage: $0 path\n" if $#ARGV != 0;
+die "Usage: $0 path\n" if ($#ARGV != 0);
 
 $path = shift;
 
 $stats = getvolstats($path);
-print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 
 print "Volume status for vid = $stats->{'Vid'} named $stats->{'Name'} \n";
 print "Current disk quota is $stats->{'MaxQuota'} \n";

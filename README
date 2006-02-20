@@ -1,6 +1,6 @@
 
 This is the README file for the Perl extension module AFS
-(Version 2.2.3) 
+(Version 2.4.0) 
 
 
 DESCRIPTION
@@ -15,7 +15,7 @@ REQUIREMENTS
     following installed on your system:
 
         * Perl 5.005_02 or newer
-        * system libraries for IBM AFS (version 3.6) or OpenAFS
+        * system libraries for OpenAFS or IBM AFS (version 3.6)
         * GNU gcc (on solaris-2.[5-9])
 
 
@@ -33,8 +33,8 @@ RECOMMENDATIONS
 AVAILABILITY
     The latest version of the AFS module bundle is currently available at
 
-        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.2.3.tar.gz
-        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.2.3.tar.gz
+        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.4.0.tar.gz
+        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.4.0.tar.gz
 
 
 BUILDING & INSTALLING
@@ -42,12 +42,12 @@ BUILDING & INSTALLING
     should be straightforward. The AFS module bundle is distributed as a
     single gzipped tar archive file:
 
-            AFS-2.2.3.tar.gz
+            AFS-2.4.0.tar.gz
 
     Unpack the archive to create an AFS installation directory:
 
-        gunzip AFS-2.2.3.tar.gz
-        tar xvf AFS-2.2.3.tar
+        gunzip AFS-2.4.0.tar.gz
+        tar xvf AFS-2.4.0.tar
 
     'cd' into that directory, make, test and install the modules. You
     have to specify the location of the AFS system libraries. While
@@ -59,7 +59,7 @@ BUILDING & INSTALLING
 
     This is the sequence of commands to build the modules:
 
-        cd AFS-2.2.3
+        cd AFS-2.4.0
 
         [1] this step is optional
         setenv AFSPATH 'path_to_the_AFS_system_libraries' # tcsh-shell
@@ -170,7 +170,8 @@ FEEDBACK
 
 
 CAVEATS
-    The AFS command suite BOS is not yet released     :-(
+    A few methods from the AFS command suite BOS are not yet
+    released.  For details, please see 'afsperlbos.pod'.
 
 
 KNOWN PROBLEMS
@@ -239,7 +240,7 @@ CREDITS
 
 
 COPYRIGHT AND DISCLAIMER
-    © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+    © 2001-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
     All rights reserved.
 
     © 1994 Board of Trustees, Leland Stanford Jr. University.

@@ -3,10 +3,12 @@
 use blib;
 use AFS::FS qw(rmmount);
 
-die "Usage: $0 mountp\n" if ($#ARGV==-1);
+my ($mountp, $ok);
 
-my $mountp = shift;
+die "Usage: $0 mountp\n" if ($#ARGV == -1);
 
-my $ok = rmmount($mountp);
-print "AFS::CODE = $AFS::CODE\n";
+$mountp = shift;
+
+$ok = rmmount($mountp);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 print "ok rmmount = $ok\n";

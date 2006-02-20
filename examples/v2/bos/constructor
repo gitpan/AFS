@@ -1,0 +1,25 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::BOS;
+
+my ($server, $cellname, $bos);
+
+die "Usage: $0 server [cell]\n" if $#ARGV < 0;
+
+$server   = shift;
+$cellname = shift;
+
+if ($cellname) { $bos = AFS::BOS->new($server, 0, 0, $cellname); }
+else           { $bos = AFS::BOS->new($server); }
+if ($AFS::CODE) { print "Error Code: $AFS::CODE\n"; }
+else { print "OK \n"; }
+
+test_it($bos);
+
+sub test_it {
+    my $self = shift;
+    $self->DESTROY;
+}

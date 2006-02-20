@@ -1,3 +1,29 @@
+Version 2.4.0 (released 20 Feb 2006, revision 777)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.4.0.tar.gz
+
+ NOTICE:
+ * This release does not support AFS system libraries version 3.4 or
+   version 3.5
+ 
+ User-visible changes:
+ * implementation of most commands of the BOS command suite
+ * POD documentation for the module AFS::BOS
+ * compiles now with OpenAFS 1.4 system libraries
+ * improved several test drivers;
+ * fixed method AFS::VOS->listvolume: returns volume name when
+   volume id number is given
+ * patched function fs_getquota
+ * improved POD documentation for AFS::VOS
+
+
+ Developer-visible changes:
+ * all unit test drivers are now using Test::More
+ * modified the computing of the VERSION numbers
+ * added dummy function "GetUInt32"
+ * modified internal function set_code
+
+
+
 Version 2.2.3 (released 17 Feb 2005, revision 679)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.3.tar.gz
 

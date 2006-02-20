@@ -7,7 +7,7 @@ use Test::More;
 
 BEGIN {
     use AFS::FS;
-    if (AFS::FS::isafs('./')) { plan tests => 7; }
+    if (AFS::FS::isafs('./')) { plan tests => 21; }
     else { plan skip_all => 'Working directory is not in AFS file system ...'; }
 
     use_ok('AFS::VOS');
@@ -32,7 +32,22 @@ isa_ok($vos->partinfo($server), 'HASH', 'vos->partinfo(server)');
 
 my $status;
 chomp($status = $vos->status($server));
-like($status, qr/No active transactions/, 'vos->status(server)');
+like($status, qr/transactions/, 'vos->status(server)');
 
 $vos->DESTROY;
 ok(! defined $vos, 'vos->DESTROY');
+
+can_ok('AFS::VOS', qw(backup));
+can_ok('AFS::VOS', qw(backupsys));
+can_ok('AFS::VOS', qw(create));
+can_ok('AFS::VOS', qw(dump));
+can_ok('AFS::VOS', qw(listvolume));
+can_ok('AFS::VOS', qw(move));
+can_ok('AFS::VOS', qw(offline));
+can_ok('AFS::VOS', qw(online));
+can_ok('AFS::VOS', qw(release));
+can_ok('AFS::VOS', qw(remove));
+can_ok('AFS::VOS', qw(rename));
+can_ok('AFS::VOS', qw(restore));
+can_ok('AFS::VOS', qw(setquota));
+can_ok('AFS::VOS', qw(zap));

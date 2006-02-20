@@ -1,0 +1,33 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::BOS;
+
+my ($server, $cellname, $bos);
+
+die "Usage: $0 server [cell]\n" if $#ARGV < 0;
+
+$server   = shift;
+$cellname = shift;
+
+if ($cellname) { $bos = AFS::BOS->new($server, 0, 0, $cellname); }
+else           { $bos = AFS::BOS->new($server); }
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+
+die "not yet tested ... \n";
+
+print "bos->removeuser()...\n";
+
+my $ok = $bos->removeuser('kiran');
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+print "OK is $ok\n";
+
+$ok = $bos->removeuser(['shadow']);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+
+$ok = $bos->removeuser(['venkata','alfw']);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+
+$bos->DESTROY;

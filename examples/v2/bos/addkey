@@ -1,0 +1,31 @@
+#!/usr/bin/perl -w
+
+use blib;
+
+use strict;
+use AFS::BOS;
+
+my ($server, $cellname, $bos);
+
+die "Usage: $0 server [cell]\n" if $#ARGV < 0;
+
+$server   = shift;
+$cellname = shift;
+
+if ($cellname) { $bos = AFS::BOS->new($server, 0, 0, $cellname); }
+else           { $bos = AFS::BOS->new($server); }
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+
+die "not yet tested ... \n";
+
+print "bos->addkey()...\n";
+
+my $ok = $bos->addkey(2); # kvno = 2
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+print "Something went wrong\n" unless $ok;
+
+$ok = $bos->addkey(3, 'I will not tell you'); # kvno = 3
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+print "Something went wrong\n" unless $ok;
+
+$bos->DESTROY;

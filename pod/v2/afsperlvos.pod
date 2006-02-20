@@ -1,8 +1,9 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlvos.pod 563 2004-02-02 08:06:25Z nog $"
+# RCS-Id: "@(#)$Id: afsperlvos.pod 772 2006-02-16 13:13:16Z nog $"
 #
-# Copyright © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>
+# Copyright © 2005-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+#           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>
 #                       Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
 #                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -119,7 +120,7 @@ ubik_client structure.
 
 =item B<$ok = $vos-E<gt>backup(VOLUME);>
 
-Clones the indicated read/write VOLUME to create a backup version,
+Clones the indicated read/write volume to create a backup version,
 placing it at the same site as the read/write version. VOLUME
 specifies either the complete name or volume ID number of the
 read/write source volume.
@@ -170,7 +171,7 @@ It calls the AFS system library function I<UV_CreateVolume2>.
 
 =item B<$ok = $vos-E<gt>dump(VOLUME [, TIME [, FILE [, SERVER, PARTITION]]]);>
 
-Converts the contents of the indicated VOLUME, which can be
+Converts the contents of the indicated volume, which can be
 read/write, read-only or backup, into ASCII format.  VOLUME specifies
 either the complete name or volume ID number of the volume.  The
 Volume Server writes the converted contents to the FILE or to the
@@ -225,10 +226,11 @@ returned hash reference in the C<examples/v2/vos> directory.
 
 =item B<$vollist = $vos-E<gt>listvolume(VOLUME);>
 
-Returns information about the volume header of the indicated VOLUME.
-The return value is a reference to a hash table containing the values
-from the C structure C<volintinfo>.  For a list of the hash keys see
-above.
+Returns information about the volume header of the indicated volume.
+VOLUME specifies either the complete name or volume ID number of the
+volume. The return value is a reference to a hash table containing the
+values from the C structure C<volintinfo>.  For a list of the hash
+keys see above.
 
 It calls the AFS system library function I<UV_ListOneVolume>.
 
@@ -237,21 +239,25 @@ returned hash reference in the C<examples/v2/vos> directory.
 
 =item B<$volid = $vos-E<gt>move(VOLUME, FSERVER, FPARTITION, TSERVER, TPARTITION);>
 
-Moves the indicated read/write VOLUME from its current site FSERVER,
-FPARTITION to the destination site TSERVER, TPARTITION.
-It returns the volume id number of the moved volume.
-It calls the AFS system library function I<UV_MoveVolume>.
+Moves the indicated read/write volume from its current site FSERVER,
+FPARTITION to the destination site TSERVER, TPARTITION.  VOLUME
+specifies either the complete name or volume ID number of the volume.
+It returns the volume id number of the moved volume.  It calls the AFS
+system library function I<UV_MoveVolume>.
 
 =item B<$ok = $vos-E<gt>offline(SERVER, PARTITION, VOLUME [, BUSY, SLEEP]);>
 
-Takes the specified volume offline.  If you set BUSY (default 0) to 1
-the volume will be marked as I<busy> for the specified SLEEP seconds.
-It calls the AFS system library function I<UV_SetVolume>.
+Takes the specified volume offline.  VOLUME specifies either the
+complete name or volume ID number of the volume.  If you set BUSY
+(default 0) to 1 the volume will be marked as I<busy> for the
+specified SLEEP seconds.  It calls the AFS system library function
+I<UV_SetVolume>.
 
 =item B<$ok = $vos-E<gt>online(SERVER, PARTITION, VOLUME);>
 
-Brings the specified volume online.
-It calls the AFS system library function I<UV_SetVolume>.
+Brings the specified volume online.  VOLUME specifies either the
+complete name or volume ID number of the volume.  It calls the AFS
+system library function I<UV_SetVolume>.
 
 =item B<$partinfo = $vos-E<gt>partinfo( SERVER [, PARTITION]);>
 
@@ -267,17 +273,19 @@ returned hash reference in the C<examples/v2/vos> directory.
 
 =item B<$ok = $vos-E<gt>release(VOLUME [, FORCE]);>
 
-Copies the contents of the indicated read/write source VOLUME to each
-read-only site. If FORCE (default 0) is set to 1, a complete release is
-enforced.
-It calls the AFS system library function I<UV_ReleaseVolume>.
+Copies the contents of the indicated read/write source volume to each
+read-only site.  VOLUME specifies either the complete name or volume
+ID number of the volume.  If FORCE (default 0) is set to 1, a complete
+release is enforced.  It calls the AFS system library function
+I<UV_ReleaseVolume>.
 
 =item B<$volid = $vos-E<gt>remove(VOLUME [, SERVER, PARTITION]);>
 
-Removes the indicated VOLUME.  To remove the read-only volume from a
-particular site, specify the SERVER and PARTITION arguments. It
-returns the volume id number of the removed volume.
-It calls the AFS system library function I<UV_DeleteVolume>.
+Removes the indicated volume.  VOLUME specifies either the complete
+name or volume ID number of the volume.  To remove the read-only
+volume from a particular site, specify the SERVER and PARTITION
+arguments. It returns the volume id number of the removed volume.  It
+calls the AFS system library function I<UV_DeleteVolume>.
 
 =item B<$ok = $vos-E<gt>rename(ONAME, NNAME);>
 
@@ -314,8 +322,9 @@ It calls the AFS system library function I<UV_RestoreVolume>.
 
 =item B<$ok = $vos-E<gt>setquota(VOLUME, QUOTA);>
 
-Sets the QUOTA for VOLUME.
-It calls the AFS system library function I<UV_SetVolumeInfo>.
+Sets the QUOTA for the specified volume.  VOLUME specifies either the
+complete name or volume ID number of the volume. It calls the AFS
+system library function I<UV_SetVolumeInfo>.
 
 =item B<$stat = $vos-E<gt>status(SERVER);>
 
@@ -357,6 +366,7 @@ documentation were written by
 
 =head1 COPYRIGHT AND DISCLAIMER
 
+ © 2005-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>,
              Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
              Norbert E. Gruener <nog@MPA-Garching.MPG.de>
@@ -380,4 +390,4 @@ under the same terms as Perl itself.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 563 $
+Revision $Rev: 772 $

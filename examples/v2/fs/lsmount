@@ -3,11 +3,13 @@
 use blib;
 use AFS::FS qw(lsmount);
 
+my ($path, $vol);
+
 die "Usage: $0 path\n" if ($#ARGV != 0);
 
-my $path = shift;
+$path = shift;
 
-my $vol = lsmount($path);
-print "AFS::CODE = $AFS::CODE\n";
+$vol = lsmount($path);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 print "Vol = $vol \n";
 

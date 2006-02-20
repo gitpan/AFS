@@ -3,11 +3,13 @@
 use blib;
 use AFS::FS qw(getquota);
 
-die "Usage: $0 path\n" if $#ARGV==-1;
+my ($path, $quota);
 
-my $path = shift;
+die "Usage: $0 path\n" if ($#ARGV == -1);
 
-my $quota = getquota($path);
-print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
+$path = shift;
+
+$quota = getquota($path);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 print "quota = $quota\n";
 

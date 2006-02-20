@@ -1,11 +1,20 @@
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
+use POSIX qw(R_OK access);
 
 BEGIN {
     require './version';
 }
 my $VERSION = set_version();
+my $rm_file = '';
+
+if (access('./src/AFS.pm.inp', R_OK)) {
+    `perl -p -i.bak -e "s/Major Version 2.4 development_release/$VERSION/" ./src/AFS.pm.inp`;
+    system("mv ./src/AFS.pm.inp ./src/AFS.pm");
+    system("mv ./src/AFS.pm.inp.bak ./src/AFS.pm.inp");
+    $rm_file = './src/AFS.pm';
+}
 
 WriteMakefile(
               'NAME'       => 'AFS',
@@ -14,7 +23,7 @@ WriteMakefile(
                    ('AUTHOR'   => 'Norbert E Gruener <nog@MPA-Garching.MPG.de>',
                     'ABSTRACT' => 'Perl interface to AFS programming APIs',
                     'NO_META'  => true) : () ),
-              'realclean'  => {FILES => 'Makefile.bak pod/v2/*.html pod/v2/pod2htm* lib' },
+              'realclean'  => {FILES => "Makefile.bak pod/v2/*.html pod/v2/pod2htm* lib $rm_file" },
              );
 
 # provide the POD documentation

@@ -3,10 +3,12 @@
 use blib;
 use AFS::FS qw(isafs);
 
-die "Usage: $0 path\n" if ($#ARGV==-1);
+my ($path, $ok);
 
-my $path = shift;
+die "Usage: $0 path\n" if ($#ARGV == -1);
 
-my $ok = isafs($path);
-print "AFS::CODE = $AFS::CODE\n";
+$path = shift;
+
+$ok = isafs($path);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 print "ok isafs = $ok\n";

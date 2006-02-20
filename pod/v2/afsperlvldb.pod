@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlvldb.pod 563 2004-02-02 08:06:25Z nog $"
+# RCS-Id: "@(#)$Id: afsperlvldb.pod 560 2004-02-01 13:05:30Z nog $"
 #
 # Copyright © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
@@ -338,4 +338,4 @@ under the same terms as Perl itself.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 563 $
+Revision $Rev: 560 $

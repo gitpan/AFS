@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlktct.pod 678 2005-02-17 07:54:52Z nog $"
+# RCS-Id: "@(#)$Id: afsperlktct.pod 689 2005-02-21 14:05:54Z nog $"
 #
 # Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -338,4 +338,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 678 $
+Revision $Rev: 689 $

@@ -3,13 +3,16 @@
 use blib;
 use AFS::FS qw(whereis);
 
+my ($dir, $ip, @hosts);
 
-die "Usage: $0 dir ip\n" if ($#ARGV==-1);
+die "Usage: $0 dir ip\n" if ($#ARGV == -1);
 
-my $dir = shift;
-my $ip = shift;
+$dir = shift;
+$ip  = shift;
 
-my @hosts = whereis($dir, $ip);
+@hosts = whereis($dir, $ip);
+print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+
 foreach my $host (@hosts) {
-  print " $host\n";
+    print " $host\n";
 }

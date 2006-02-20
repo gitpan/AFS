@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 667 2005-02-15 15:14:13Z nog $
+ * RCS-Id: @(#)$Id: AFS.xs 772 2006-02-16 13:13:16Z nog $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -11,7 +11,7 @@
  * directory or online at http://www.openafs.org/dl/license10.html
  *
  * Contributors
- *         2004: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ *    2004-2006: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  *         2003: Alf Wachsmann <alfw@slac.stanford.edu>
  *               Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
  *               Norbert E. Gruener <nog@MPA-Garching.MPG.de>
@@ -97,7 +97,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Major Version 2.2 $Rev: 667 $)";
+const char *const xs_version = "AFS.xs (Major Version 2.4 $Rev: 772 $)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -165,7 +165,6 @@ struct clock clock_now;
 #define ERROR_EXIT(code) {error=(code); goto error_exit;}
 
 #define SETCODE(code) set_code(code)
-#define FSSETCODE(code) {if (code == -1) set_code(errno); else set_code(code);}
 #define BSETCODE(code, msg) bv_set_code(code, msg)
 #define VSETCODE(code, msg) bv_set_code(code, msg)
 
@@ -197,6 +196,8 @@ static void set_code(code)
     int32 code;
 {
     SV *sv = perl_get_sv("AFS::CODE", TRUE);
+    if (code == -1) { code = errno; }
+/*     printf("SET_CODE %d\n", code); */
     sv_setiv(sv, (IV) code);
     if (code == 0) {
         sv_setpv(sv, "");
@@ -1347,6 +1348,7 @@ static void myDisplayFormat(vol, pntr, server, part, totalOK, totalNotOK, totalB
     char pname[10];
     char hostname[256];
 
+    hv_store(vol, "name", 4,  newSVpv(pntr->name, strlen((char *) pntr->name)), 0);
     if (fast) {
         hv_store(vol, "volid", 5, newSViv(pntr->volid), 0);
     }
@@ -1612,8 +1614,8 @@ static void DisplayVolumes(partition, server, part, pntr, count, fast)
         pntr++;
     }
     if (!fast) {
-        hv_store(partition, "totalBusy", 9, newSViv(totalBusy), 0);
-        hv_store(partition, "totalNotOK", 10, newSViv(totalNotOK), 0);
+        hv_store(partition, " totalBusy", 10, newSViv(totalBusy), 0);
+        hv_store(partition, " totalNotOK", 11, newSViv(totalNotOK), 0);
     }
 }
 
@@ -1719,8 +1721,8 @@ static void XDisplayVolumes(part, a_servID, a_partID, a_xInfoP, a_count)
     }
 
     /* If any volumes were found to be busy or screwed, display them.*/
-    hv_store(part, "totalBusy", 9, newSViv(totalBusy), 0);
-    hv_store(part, "totalNotOK", 10, newSViv(totalNotOK), 0);
+    hv_store(part, " totalBusy", 10, newSViv(totalBusy), 0);
+    hv_store(part, " totalNotOK", 11, newSViv(totalNotOK), 0);
 }                               /*XDisplayVolumes */
 /* end of helper functions for VOS class */
 
@@ -2054,6 +2056,15 @@ afs_uint32 GetUInt32(as, aval)
     *aval = total;
     return 0;
 }
+#else
+#if defined(OpenAFS_1_3) || defined(OpenAFS_1_4)
+afs_uint32 GetUInt32(as, aval)
+    register char *as;
+    afs_uint32 *aval;
+{
+    croak("DEBUG: GetUInt32 for OpenAFS not available ...\nPlease inform the author..  .");
+}
+#endif
 #endif
 
 /* keep those lines small */
@@ -3119,7 +3130,7 @@ fs_pioctl(path,setpath,op,in,setin,setout,follow)
         }
         
         code = pioctl(path, op, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0 && setout) {
             EXTEND(sp, 1);
             printf("out_size = %d\n", vi.out_size);
@@ -3142,7 +3153,7 @@ fs_getvolstats(dir,follow=1)
         vi.in_size = 0;
         vi.out = space;
         code = pioctl(dir, VIOCGETVOLSTAT, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0) {
             stats = newHV();
             if (parse_volstat(stats, space)) {
@@ -3170,7 +3181,7 @@ fs_whereis(dir,ip=0,follow=1)
         vi.in_size = 0;
         vi.out = space;
         code = pioctl(dir, VIOCWHEREIS, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0) {
             struct in_addr *hosts = (struct in_addr *) space;
             struct hostent *ht;
@@ -3225,7 +3236,7 @@ fs_checkservers(fast,cell=0,ip=0)
         
         code = pioctl(0, VIOCCKSERV, &vi, 1);
         num = (int32 *) space;
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0 && *num > 0) {
             struct in_addr *hosts = (struct in_addr *) (space + sizeof(int32));
             struct hostent *ht;
@@ -3269,7 +3280,7 @@ fs_getcell(in_index,ip=0)
         vi.out_size = MAXSIZE;
         vi.out = space;
         code = pioctl(NULL, VIOCGETCELL, &vi, 1);
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0) {
             struct in_addr *hosts = (struct in_addr *) space;
             /* int32 *magic = (int32 *) space; */
@@ -3326,7 +3337,7 @@ fs__get_server_version(port,hostName="localhost",verbose=0)
             th = (struct hostent *) hostutil_GetHostByName(hostName);
             if (!th) {
                 warn("rxdebug: host %s not found in host table\n", hostName);
-                FSSETCODE(EFAULT);
+                SETCODE(EFAULT);
                 XSRETURN_UNDEF;
             }
             /* bcopy(th->h_addr, &host, sizeof(int32)); */
@@ -3345,7 +3356,7 @@ fs__get_server_version(port,hostName="localhost",verbose=0)
         taddr.sin_addr.s_addr = 0;
         
         code = bind(s, (struct sockaddr *) &taddr, sizeof(struct sockaddr_in));
-        FSSETCODE(code);
+        SETCODE(code);
         if (code) {
             perror("bind");
             XSRETURN_UNDEF;
@@ -3354,7 +3365,7 @@ fs__get_server_version(port,hostName="localhost",verbose=0)
         code = rx_GetServerVersion(s, host, port_num, length, version);
         ST(0) = sv_newmortal();
         if (code < 0) {
-            FSSETCODE(code);
+            SETCODE(code);
         }
         else {
             sv_setpv(ST(0), version);
@@ -3401,7 +3412,7 @@ fs_sysname(newname=0)
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
         code = pioctl(NULL, VIOC_AFS_SYSNAME, &vi, 0);
-        FSSETCODE(code);
+        SETCODE(code);
         ST(0) = sv_newmortal();
         if (code == 0) {
             sv_setpv(ST(0), space + sizeof(set));
@@ -3421,7 +3432,7 @@ fs_getcrypt()
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
         code = pioctl(0, VIOC_GETRXKCRYPT, &vi, 1);
-        FSSETCODE(code);
+        SETCODE(code);
         
         ST(0) = sv_newmortal();
         if (code == 0) {
@@ -3449,7 +3460,7 @@ fs_setcrypt(as)
             flag = 0;
         else {
             warn("setcrypt: %s must be \"on\" or \"off\".\n", as);
-            FSSETCODE(EINVAL);
+            SETCODE(EINVAL);
             XSRETURN_UNDEF;
         }
         
@@ -3457,7 +3468,7 @@ fs_setcrypt(as)
         vi.in_size = sizeof(flag);
         vi.out_size = 0;
         code = pioctl(0, VIOC_SETRXKCRYPT, &vi, 1);
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
 #else
         not_here("AFS::CM::setcrypt");
@@ -3480,7 +3491,7 @@ fs_whichcell(dir,follow=1)
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
         code = pioctl(dir, VIOC_FILE_CELL_NAME, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         ST(0) = sv_newmortal();
         if (code == 0) {
             sv_setpv(ST(0), space);
@@ -3520,7 +3531,7 @@ fs_lsmount(path,follow=1)
             code = pioctl(dir, VIOC_AFS_STAT_MT_PT, &vi, follow);
         }
         
-        FSSETCODE(code);
+        SETCODE(code);
         ST(0) = sv_newmortal();
         if (code == 0) {
             sv_setpv(ST(0), space);
@@ -3557,7 +3568,7 @@ fs_rmmount(path)
             code = pioctl(dir, VIOC_AFS_DELETE_MT_PT, &vi, 0);
         }
         
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3577,7 +3588,7 @@ fs_flushvolume(path,follow=1)
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
         code = pioctl(path, VIOC_FLUSHVOLUME, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3598,7 +3609,7 @@ fs_flush(path,follow=1)
         vi.out = (caddr_t) space;
         code = pioctl(path, VIOCFLUSH, &vi, follow);
         
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3618,7 +3629,7 @@ fs_flushcb(path,follow=1)
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
         code = pioctl(path, VIOCFLUSHCB, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3651,7 +3662,7 @@ fs_setquota(path,newquota,follow=1)
         *(input++) = '\0';              /* motd  */
         
         code = pioctl(path, VIOCSETVOLSTAT, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3665,17 +3676,20 @@ fs_getquota(path,follow=1)
     {
         struct ViceIoctl vi;
         int32 code;
-        struct VolumeStatus status;
-        
+        char space[MAXSIZE];
+        struct VolumeStatus *status;
+
+        vi.out_size = MAXSIZE;
         vi.in_size = 0;
         vi.in = 0;
-        vi.out_size = sizeof(status);
-        vi.out = (char *) &status;
+        vi.out = space;
+
         code = pioctl(path, VIOCGETVOLSTAT, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0) {
+            status = (VolumeStatus *)space;
             EXTEND(sp, 1);
-            PUSHs(sv_2mortal(newSViv(status.MaxQuota)));
+            PUSHs(sv_2mortal(newSViv(status->MaxQuota)));
         }
     }
 
@@ -3713,7 +3727,7 @@ fs_mkmount(mountp,volume,rw=0,cell=0)
                     rw ? '%' : '#', cell ? cell : "", cell ? ":" : "", volume);
             code = symlink(buffer, mountp);
         }
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3729,7 +3743,7 @@ fs_checkvolumes()
         vi.in_size = 0;
         vi.out_size = 0;
         code = pioctl(NULL, VIOCCKBACK, &vi, 0);
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3747,7 +3761,7 @@ fs_checkconn()
         vi.out_size = sizeof(status);
         vi.out = (caddr_t) & status;
         code = pioctl(NULL, VIOCCKCONN, &vi, 0);
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (status == 0);
     }
     OUTPUT:
@@ -3767,7 +3781,7 @@ fs_getcacheparms()
         vi.out = (char *) stats;
         code = pioctl(NULL, VIOCGETCACHEPARMS, &vi, 0);
         
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0) {
             EXTEND(sp, 2);
             PUSHs(sv_2mortal(newSViv(stats[0])));
@@ -3788,7 +3802,7 @@ fs_setcachesize(size)
         vi.out_size = 0;
         vi.out = 0;
         code = pioctl(NULL, VIOCSETCACHESIZE, &vi, 0);
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3804,7 +3818,7 @@ fs_unlog()
         vi.in_size = 0;
         vi.out_size = 0;
         code = pioctl(NULL, VIOCUNLOG, &vi, 0);
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3824,7 +3838,7 @@ fs_getfid(path,follow=1)
         vi.out_size = sizeof(vf);
         vi.out = (char *) &vf;
         code = pioctl(path, VIOCGETFID, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0) {
             EXTEND(sp, 4);
             PUSHs(sv_2mortal(newSViv(vf.Cell)));
@@ -3846,7 +3860,7 @@ fs_isafs(path,follow=1)
             code = errno;
         else
             code = 0;
-        FSSETCODE(code);
+        SETCODE(code);
     }
     OUTPUT:
         RETVAL
@@ -3870,7 +3884,7 @@ fs_cm_access(path,perm="read",follow=1)
             vi.out = 0;
             code = pioctl(path, VIOCACCESS, &vi, follow);
         }
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -3884,7 +3898,7 @@ fs_ascii2rights(perm)
         int32 code, rights = -1;
         
         code = canonical_parse_rights(perm, &rights);
-        FSSETCODE(code);
+        SETCODE(code);
         
         if (code != 0)
             rights = -1;
@@ -3901,7 +3915,7 @@ fs_rights2ascii(perm)
         char *p;
         p = format_rights(perm);
         
-        FSSETCODE(0);
+        SETCODE(0);
         
         ST(0) = sv_newmortal();
         sv_setpv(ST(0), p);
@@ -3942,7 +3956,7 @@ fs_getcellstatus(cell=0)
             vi.out = (char *) &flags;
             code = pioctl(0, VIOC_GETCELLSTATUS, &vi, 0);
         }
-        FSSETCODE(code);
+        SETCODE(code);
         if (code == 0) {
             EXTEND(sp, 1);
             PUSHs(sv_2mortal(newSViv((flags & 0x2) == 0)));
@@ -3980,7 +3994,7 @@ fs_setcellstatus(setuid_allowed,cell=0)
             vi.out = (char *) 0;
             code = pioctl(0, VIOC_SETCELLSTATUS, &vi, 0);
         }
-        FSSETCODE(code);
+        SETCODE(code);
         EXTEND(sp, 1);
         PUSHs(sv_2mortal(newSViv(code == 0)));
     }
@@ -3997,7 +4011,7 @@ fs_wscell()
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
         code = pioctl(NULL, VIOC_GET_WS_CELL, &vi, 0);
-        FSSETCODE(code);
+        SETCODE(code);
         ST(0) = sv_newmortal();
         if (code == 0) {
             sv_setpv(ST(0), space);
@@ -4018,7 +4032,7 @@ fs__getacl(dir,follow=1)
         vi.in_size = 0;
         vi.out = space;
         code = pioctl(dir, VIOCGETAL, &vi, follow);
-        FSSETCODE(code);
+        SETCODE(code);
         
         if (code == 0) {
             ph = newHV();
@@ -4131,7 +4145,7 @@ fs_setacl(dir,acl,follow=1)
             vi.out = 0;
             code = pioctl(dir, VIOCSETAL, &vi, follow);
         }
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -5333,7 +5347,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
                                 restoreflags, WriteData, afilename);
         if (code) {
             PrintDiagnostics("restore", code);
-            FSSETCODE(code);
+            SETCODE(code);
             RETVAL = 0;
             goto done;
         }
@@ -5680,7 +5694,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
         }
         
         ST(0) = sv_2mortal(newRV_inc((SV *) vollist));
-        FSSETCODE(0);
+        SETCODE(0);
         XSRETURN(1);
         
         done:
@@ -5803,11 +5817,11 @@ vos_move(cstruct, id, froms, fromp, tos, top)
         code = UV_MoveVolume(volid, fromserver, frompart, toserver, topart);
         if (code) {
             PrintDiagnostics("move", code);
-            FSSETCODE(code);
+            SETCODE(code);
             goto done;
         }
         
-        #FSSETCODE(1);  ???
+        #SETCODE(1);  ???
         SETCODE(0);
         RETVAL = volid;
         
@@ -6464,7 +6478,7 @@ vos_listvolume(cstruct, name)
             else {
                 foundserv = 1;
                 MapPartIdIntoName(apart, apartName);
-                hv_store(volinfo, "name", 4, newSVpv(name, strlen((char *) name)), 0);
+                /* hv_store(volinfo, "name", 4, newSVpv(name, strlen((char *) name)), 0); */
                 hv_store(volinfo, "partition", 9, newSVpv(apartName, strlen((char *) apartName)), 0);
                 VolumeStats(volinfo, pntr, &entry, aserver, apart, voltype);
         
@@ -6825,7 +6839,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
         /* printf("DEBUG-19 \n"); */
         ST(0) = sv_2mortal(newRV_inc((SV *) status));
         code = 0;
-        FSSETCODE(code);
+        SETCODE(code);
         XSRETURN(1);
         
         done:
@@ -6935,7 +6949,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
                 break;
         }
         
-        FSSETCODE(vcode);
+        SETCODE(vcode);
         XSRETURN(j);
         
         done:
@@ -7795,7 +7809,7 @@ bos__DESTROY(self)
         RETVAL
 
 void
-bos_status(self, lng=0, object=NULL)
+bos__status(self, lng=0, object=NULL)
         AFS::BOS self
         int lng
         SV* object
@@ -7811,6 +7825,12 @@ bos_status(self, lng=0, object=NULL)
         int32p = (lng != 0 ? 2 : 0);
         status = (HV *) sv_2mortal((SV *) newHV());
         
+        if (object && (! (SvTYPE(SvRV(object)) == SVt_PVAV))) {
+            BSETCODE(-1, "AFS::BOS: SERVER not an array reference\n");
+            XSRETURN_UNDEF;
+            goto done;
+        }
+
         if (object && (SvTYPE(SvRV(object)) == SVt_PVAV)) {
             AV *av;
             SV *sv;
@@ -7828,7 +7848,11 @@ bos_status(self, lng=0, object=NULL)
                         stats = (HV *) sv_2mortal((SV *) newHV());
                         instance = (char *) safemalloc(BOZO_BSSIZE);
                         instance = SvPV(sv, namelen);
-                        DoStat(stats, instance, self, int32p, firstTime);
+                        code = DoStat(stats, instance, self, int32p, firstTime);
+                        if (code) {
+                            XSRETURN_UNDEF;
+                            goto done;
+                        }
                         hv_store(status, instance, strlen(instance), newRV_inc((SV *) (stats)),
                                  0);
                         firstTime = 0;
@@ -7853,14 +7877,21 @@ bos_status(self, lng=0, object=NULL)
                     break;
                 }
                 stats = (HV *) sv_2mortal((SV *) newHV());
-                DoStat(stats, ibuffer, self, int32p, (i == 0));
+                code = DoStat(stats, ibuffer, self, int32p, (i == 0));
+                if (code) {
+                    XSRETURN_UNDEF;
+                    goto done;
+                }
                 hv_store(status, ibuffer, strlen(ibuffer), newRV_inc((SV *) (stats)), 0);
             }
         }
         
         ST(0) = sv_2mortal(newRV_inc((SV *) status));
-        FSSETCODE(0);
+        SETCODE(0);
         XSRETURN(1);
+        
+        done:
+        ;
   }
 
 int32
@@ -7872,6 +7903,8 @@ bos_setauth(self, tp)
         int32 flag;
     CODE: 
     {
+        not_here("AFS::BOS::setauth");
+
         RETVAL = 42;
         if (strcmp(tp, "on") == 0)
             flag = 0;                   /* auth req.: noauthflag is false */
@@ -7914,7 +7947,7 @@ bos_exec(self, cmd)
             sprintf(buffer, "AFS::BOS: failed to execute command (%s)\n", em(code));
             BSETCODE(code, buffer);
         }
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -7929,6 +7962,8 @@ bos_addhost(self, object, clone=0)
         int32 code = 0;
     CODE:
     {
+        not_here("AFS::BOS::addhost");
+
         RETVAL = 0;
         if (SvTYPE(SvRV(object)) == SVt_PVAV) {
             int len, i;
@@ -7971,7 +8006,7 @@ bos_addhost(self, object, clone=0)
                 }                       /* for loop */
             }
         }                               /* object is array ref */
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
         
         done:
@@ -7989,6 +8024,8 @@ bos_removehost(self, object)
         char *host;
     CODE:
     {
+        not_here("AFS::BOS::removehost");
+
         if (!SvROK(object)) {
             host = (char *) SvPV_nolen(object);
             code = BOZO_DeleteCellHost(self, host);
@@ -8018,7 +8055,7 @@ bos_removehost(self, object)
                 }                       /* for loop */
             }
         }                               /* object is array ref */
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
         if (host)
             Safefree(host);
@@ -8046,14 +8083,22 @@ bos_prune(self, all=0, bak=0, old=0, core=0)
         if (all)
             flags |= 0xff;
         
-        code = BOZO_Prune(self, flags);
-        if (code) {
+        if (!flags) {
             char buffer[80];
-            sprintf(buffer, "AFS::BOS has failed to prune server files");
-            BSETCODE(code, buffer);
+            sprintf(buffer, "AFS::BOS nothing to prune");
+            BSETCODE(999, buffer);
+            RETVAL = 0;
         }
-        FSSETCODE(code);
-        RETVAL = (code == 0);
+        else {
+            code = BOZO_Prune(self, flags);
+            if (code) {
+              char buffer[80];
+              sprintf(buffer, "AFS::BOS has failed to prune server files");
+              BSETCODE(code, buffer);
+            }
+            SETCODE(code);
+            RETVAL = (code == 0);
+        }
     }
     OUTPUT:
         RETVAL
@@ -8067,6 +8112,8 @@ bos_adduser(self, object)
         char *name;
     CODE:
     {
+        not_here("AFS::BOS::adduser");
+
         if (!SvROK(object)) {
             name = (char *) SvPV_nolen(object);
             code = BOZO_AddSUser(self, name);
@@ -8096,7 +8143,7 @@ bos_adduser(self, object)
                 }                       /* for loop */
             }
         }
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
         if (name)
             Safefree(name);
@@ -8113,6 +8160,8 @@ bos_removeuser(self, object)
         char *name;
     CODE:
     {
+        not_here("AFS::BOS::removeuser");
+
         if (!SvROK(object)) {
             name = (char *) SvPV_nolen(object);
             code = BOZO_DeleteSUser(self, name);
@@ -8173,6 +8222,8 @@ bos_addkey(self, kvno, string=NULL)
         char buf[BUFSIZ], ver[BUFSIZ];
     CODE:
     {
+        not_here("AFS::BOS::addkey");
+
         Zero(&tkey, 1, struct ktc_encryptionKey);
         
         RETVAL = 42;
@@ -8218,7 +8269,7 @@ bos_addkey(self, kvno, string=NULL)
                 BSETCODE(code, buffer);
             }
         
-            FSSETCODE(code);
+            SETCODE(code);
             RETVAL = (code == 0);
         }
         if (tcell)
@@ -8236,6 +8287,8 @@ bos_removekey(self, object)
         int32 temp;
     CODE:
     {
+        not_here("AFS::BOS::removekey");
+
         if (SvIOK(object)) {
             temp = (int32) SvIV(object);
             code = BOZO_DeleteKey(self, temp);
@@ -8263,14 +8316,14 @@ bos_removekey(self, object)
                 }                       /* for loop */
             }
         }
-        FSSETCODE(code);
+        SETCODE(code);
         RETVAL = (code == 0);
     }
     OUTPUT:
         RETVAL
 
 int32
-bos_create(self, name, type, object, notifier=NULL)
+bos__create(self, name, type, object, notifier=NULL)
         AFS::BOS self
         char *name
         char *type
@@ -8284,9 +8337,8 @@ bos_create(self, name, type, object, notifier=NULL)
     CODE:
     {
         if (SvTYPE(SvRV(object)) != SVt_PVAV) {
-            char buffer[80];
-            sprintf(buffer, "cmd not an array reference!\n");
-            BSETCODE(-1, buffer);
+            code = -1;
+            BSETCODE(code, "AFS::BOS COMMAND not an array reference\n");
             goto done;
         }
         
@@ -8314,12 +8366,12 @@ bos_create(self, name, type, object, notifier=NULL)
                     "AFS::BOS: failed to create new server instance %s of type '%s' (%s)\n", name,
                     type, em(code));
             BSETCODE(code, buffer);
+            goto done;
         }
         
-        FSSETCODE(code);
-        RETVAL = (code == 0);
+        SETCODE(code);
         done:
-        ;
+        RETVAL = (code == 0);
     }
     OUTPUT:
         RETVAL
@@ -8386,9 +8438,7 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
                 int i, len;
         
                 if (SvTYPE(SvRV(object)) != SVt_PVAV) {
-                    char buffer[80];
-                    sprintf(buffer, "instance not an array reference!\n");
-                    BSETCODE(-1, buffer);
+                    BSETCODE(-1, "AFS::BOS: SERVER not an array reference\n");
                     RETVAL = 0;
                     goto done;
                 }
@@ -8410,7 +8460,7 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
                             }
                         }
                     }                   /* for loop */
-                    FSSETCODE(code);
+                    SETCODE(code);
                     RETVAL = (code == 0);
                 }
             }
@@ -8434,6 +8484,8 @@ bos_setrestart(self, time, general=0, newbinary=0)
         afs_int32 type;
     CODE:
     {
+        not_here("AFS::BOS::setrestart");
+
         if (general) {
             count++;
             type = 1;
@@ -8467,7 +8519,7 @@ bos_setrestart(self, time, general=0, newbinary=0)
             goto done;
         }
         code = 0;
-        FSSETCODE(code);
+        SETCODE(code);
         
         done:
         RETVAL = (code == 0);
@@ -8598,7 +8650,7 @@ bos_listhosts(self)
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av))));
         
         XSRETURN(2);
-        FSSETCODE(code);
+        SETCODE(code);
         
         done:
         ;
@@ -8615,29 +8667,38 @@ bos_delete(self, object)
         STRLEN namelen;
     CODE:
     {
+/*         printf("DEBUG-bos-delete-1 \n");  */
         if (!SvROK(object)) {
+/*         printf("DEBUG-bos-delete-2 \n"); */
             name = (char *) SvPV_nolen(object);
             code = BOZO_DeleteBnode(self, name);
             if (code) {
                 char buffer[240];
+/*         printf("DEBUG-bos-delete-3 %d \n", code); */
                 if (code == BZBUSY)
                     sprintf(buffer, "AFS::BOS: can't delete running instance '%s'\n", name);
                 else
                     sprintf(buffer, "AFS::BOS: failed to delete instance '%s' (%s)\n", name,
                             em(code));
                 BSETCODE(code, buffer);
+/*         printf("DEBUG-bos-delete-4 %s \n", buffer); */
+                goto done;
             }
         }
         else if (SvTYPE(SvRV(object)) == SVt_PVAV) {
+/*         printf("DEBUG-bos-delete-5 \n"); */
             av = (AV *) SvRV(object);
             len = av_len(av);
             if (len != -1) {
+/*         printf("DEBUG-bos-delete-6 \n"); */
                 for (i = 0; i <= len; i++) {
                     sv = *av_fetch(av, i, 0);
                     if (sv) {
                         name = (char *) safemalloc(BOZO_BSSIZE);
                         name = SvPV(sv, namelen);
+/*         printf("DEBUG-bos-delete-7 %s\n", name); */
                         code = BOZO_DeleteBnode(self, name);
+/*         printf("DEBUG-bos-delete-8 %d \n", code); */
                         if (code) {
                             char buffer[240];
                             if (code == BZBUSY)
@@ -8647,15 +8708,21 @@ bos_delete(self, object)
                                 sprintf(buffer, "AFS::BOS: failed to delete instance '%s' (%s)\n",
                                         name, em(code));
                             BSETCODE(code, buffer);
+                            goto done;
                         }
                     }
                 }                       /* for loop */
             }
         }
         SETCODE(0);
+/*         printf("DEBUG-bos-delete-9 \n"); */
+
+        done:
         RETVAL = (code == 0);
-        if (name)
-            Safefree(name);
+/*         printf("DEBUG-bos-delete-10 \n"); */
+/*         if (name) */
+/*             Safefree(name); */
+/*         printf("DEBUG-bos-delete-11 \n"); */
     }
     OUTPUT:
         RETVAL
@@ -8713,13 +8780,19 @@ bos_getlog(self, file)
     }
 
 int32
-bos_startup(self, object=NULL)
+bos__start(self, object=NULL)
         AFS::BOS self
         SV * object
     PREINIT:
         int32 code = 0;
     CODE:
     {
+        if (object && (! (SvTYPE(SvRV(object)) == SVt_PVAV))) {
+            code = -1;
+            BSETCODE(code, "AFS::BOS: SERVER not an array reference\n");
+            goto done;
+        }
+
         if (object && (SvTYPE(SvRV(object)) == SVt_PVAV)) {
             AV *av;
             SV *sv;
@@ -8733,20 +8806,74 @@ bos_startup(self, object=NULL)
                 for (i = 0; i <= len; i++) {
                     sv = *av_fetch(av, i, 0);
                     if (sv) {
-                        instance = (char *) safemalloc(BOZO_BSSIZE);
+                      /* instance = (char *) safemalloc(BOZO_BSSIZE); */
+                        New(0, instance, BOZO_BSSIZE, char);
+                        instance = SvPV(sv, namelen);
+                        code = BOZO_SetStatus(self, instance, BSTAT_NORMAL);
+                        if (code) {
+                            char buffer[240];
+                            sprintf(buffer, "AFS::BOS: failed to start instance %s (%s)\n",
+                                    instance, em(code));
+                            BSETCODE(code, buffer);
+                            goto done;
+                        }
+                        /*if (instance) */
+                        /*    Safefree(instance); */
+                    }
+                }                       /* for loop */
+            }
+        }
+        
+        SETCODE(code);
+        done:
+        RETVAL = (code == 0);
+    }
+    OUTPUT:
+        RETVAL
+
+int32
+bos__startup(self, object=NULL)
+        AFS::BOS self
+        SV * object
+    PREINIT:
+        int32 code = 0;
+    CODE:
+    {
+        if (object && (! (SvTYPE(SvRV(object)) == SVt_PVAV))) {
+            code = -1;
+            BSETCODE(code, "AFS::BOS: SERVER not an array reference\n");
+            goto done;
+        }
+
+        if (object && (SvTYPE(SvRV(object)) == SVt_PVAV)) {
+            AV *av;
+            SV *sv;
+            char *instance;
+            STRLEN namelen;
+            int i, len;
+        
+            av = (AV *) SvRV(object);
+            len = av_len(av);
+            if (len != -1) {
+                for (i = 0; i <= len; i++) {
+                    sv = *av_fetch(av, i, 0);
+                    if (sv) {
+                      /* instance = (char *) safemalloc(BOZO_BSSIZE); */
+                        New(0, instance, BOZO_BSSIZE, char);
                         instance = SvPV(sv, namelen);
                         code = BOZO_SetTStatus(self, instance, BSTAT_NORMAL);
                         if (code) {
                             char buffer[240];
                             sprintf(buffer, "AFS::BOS: failed to start instance %s (%s)\n",
-                                    buffer, instance, em(code));
+                                    instance, em(code));
                             BSETCODE(code, buffer);
+                            goto done;
                         }
+                        /*if (instance) */
+                        /*    Safefree(instance); */
                     }
                 }                       /* for loop */
             }
-            if (instance)
-                Safefree(instance);
         }
         else {
             code = BOZO_StartupAll(self);
@@ -8754,17 +8881,19 @@ bos_startup(self, object=NULL)
                 char buffer[240];
                 sprintf(buffer, "AFS::BOS: failed to startup servers (%s)\n", em(code));
                 BSETCODE(code, buffer);
+                goto done;
             }
         }
         
-        FSSETCODE(code);
+        SETCODE(code);
+        done:
         RETVAL = (code == 0);
     }
     OUTPUT:
         RETVAL
 
 int32
-bos_shutdown(self, object=NULL, wait=0)
+bos__stop(self, object=NULL, wait=0)
         AFS::BOS self
         SV * object
         int wait
@@ -8772,6 +8901,86 @@ bos_shutdown(self, object=NULL, wait=0)
         int32 code = 0;
     CODE:
     {
+      /*                printf("DEBUG-XS-bos-stop-1 \n"); */
+        if (object && (! (SvTYPE(SvRV(object)) == SVt_PVAV))) {
+            code = -1;
+            BSETCODE(code, "AFS::BOS: SERVER not an array reference\n");
+            goto done;
+        }
+
+       /*                 printf("DEBUG-XS-bos-stop-2 \n"); */
+        if (object && (SvTYPE(SvRV(object)) == SVt_PVAV)) {
+            AV *av;
+            SV *sv;
+            char *instance;
+            STRLEN namelen;
+            int i, len;
+        
+            /*                      printf("DEBUG-XS-bos-stop-3 \n"); */
+            av = (AV *) SvRV(object);
+            len = av_len(av);
+            if (len != -1) {
+                for (i = 0; i <= len; i++) {
+                    sv = *av_fetch(av, i, 0);
+                    if (sv) {
+                      /* instance = (char *) safemalloc(BOZO_BSSIZE); */
+                        New(0, instance, BOZO_BSSIZE, char);
+                        instance = SvPV(sv, namelen);
+                        /*                      printf("DEBUG-XS-bos-stop-3-1 %d %s\n", len, instance); */
+                        code = BOZO_SetStatus(self, instance, BSTAT_SHUTDOWN); 
+                       /*                      printf("DEBUG-XS-bos-stop-3-2 %d \n", code); */
+                        if (code) {
+                            char buffer[240];
+                            sprintf(buffer, "AFS::BOS: failed to change stop instance %s (%s)\n",
+                                    instance, em(code));
+                            BSETCODE(code, buffer);
+                            goto done;
+                        }
+                        /*if (instance) */
+                        /*    Safefree(instance); */
+                    }
+                }                       /* for loop */
+            }
+            /*                      printf("DEBUG-XS-bos-stop-4 \n"); */
+        }
+        
+        /*         printf("DEBUG-XS-bos-stop-5 \n"); */
+        if (wait) {
+          /*                  printf("DEBUG-XS-bos-stop-5-1 \n"); */
+            code = BOZO_WaitAll(self);
+/*                  printf("DEBUG-XS-bos-stop-5-2 %d \n", code); */
+            if (code) {
+                char buffer[240];
+                sprintf(buffer, "AFS::BOS: can't wait for processes to shutdown (%s)\n",
+                        em(code));
+                BSETCODE(code, buffer);
+                goto done;
+            }
+        }
+        /*                  printf("DEBUG-XS-bos-stop-6 \n"); */
+        SETCODE(code);
+        done:
+        /*                  printf("DEBUG-XS-bos-stop-7 \n"); */
+        RETVAL = (code == 0);
+    }
+    OUTPUT:
+        RETVAL
+
+int32
+bos__shutdown(self, object=NULL, wait=0)
+        AFS::BOS self
+        SV * object
+        int wait
+    PREINIT:
+        int32 code = 0;
+    CODE:
+    {
+        if (object && (! (SvTYPE(SvRV(object)) == SVt_PVAV))) {
+            code = -1;
+            BSETCODE(code, "AFS::BOS: SERVER not an array reference\n");
+            goto done;
+        }
+
         if (object && (SvTYPE(SvRV(object)) == SVt_PVAV)) {
             AV *av;
             SV *sv;
@@ -8785,7 +8994,8 @@ bos_shutdown(self, object=NULL, wait=0)
                 for (i = 0; i <= len; i++) {
                     sv = *av_fetch(av, i, 0);
                     if (sv) {
-                        instance = (char *) safemalloc(BOZO_BSSIZE);
+                      /* instance = (char *) safemalloc(BOZO_BSSIZE); */
+                        New(0, instance, BOZO_BSSIZE, char);
                         instance = SvPV(sv, namelen);
                         code = BOZO_SetTStatus(self, instance, BSTAT_SHUTDOWN);
                         if (code) {
@@ -8793,12 +9003,13 @@ bos_shutdown(self, object=NULL, wait=0)
                             sprintf(buffer, "AFS::BOS: failed to shutdown instance %s (%s)\n",
                                     instance, em(code));
                             BSETCODE(code, buffer);
+                            goto done;
                         }
+                        /*if (instance) */
+                        /*    Safefree(instance); */
                     }
                 }                       /* for loop */
             }
-            if (instance)
-                Safefree(instance);
         }
         else {
             code = BOZO_ShutdownAll(self);
@@ -8806,6 +9017,7 @@ bos_shutdown(self, object=NULL, wait=0)
                 char buffer[240];
                 sprintf(buffer, "AFS::BOS: failed to shutdown servers (%s)\n", em(code));
                 BSETCODE(code, buffer);
+                goto done;
             }
         }
         
@@ -8816,9 +9028,11 @@ bos_shutdown(self, object=NULL, wait=0)
                 sprintf(buffer, "AFS::BOS: can't wait for processes to shutdown (%s)\n",
                         em(code));
                 BSETCODE(code, buffer);
+                goto done;
             }
         }
-        FSSETCODE(code);
+        SETCODE(code);
+        done:
         RETVAL = (code == 0);
     }
     OUTPUT:
@@ -8832,6 +9046,8 @@ bos_setcellname(self, name)
         int32 code = 0;   
     CODE:
     {
+        not_here("AFS::BOS::setcellname");
+
         code = BOZO_SetCellName(self, name);
         if (code) {
             char buffer[240];
@@ -8993,6 +9209,8 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
         char *tp;
     CODE:
     {
+        not_here("AFS::BOS::salvage");
+
         if (partition && strlen(partition) == 0)
             partition = NULL;
         if (volume && strlen(volume) == 0)
