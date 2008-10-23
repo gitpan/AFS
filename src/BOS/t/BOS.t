@@ -2,6 +2,7 @@
 
 use strict;
 use lib qw(../../inc ../inc);
+use blib;
 
 use Test::More;
 
@@ -25,10 +26,10 @@ is(ref($bos), 'AFS::BOS', 'bos->new()');
 
 my ($cell, $hostlist) = $bos->listhosts;
 is($cell, $l_cell, 'bos-listhost: Cellname OK');
-ok($#$hostlist > 0, 'bos->listhost: Host list OK');
+ok(defined $$hostlist[0], 'bos->listhost: Host list OK');
 
 my @users = $bos->listusers;
-ok($#users > 0, 'bos->listusers: User list OK');
+ok(defined $users[0], 'bos->listusers: User list OK');
 
 my ($generalTime, $newBinaryTime) = $bos->getrestart;
 ok(defined $generalTime, 'bos->getrestart: GeneralTime OK');

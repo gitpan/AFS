@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL 751 2005-12-22 06:32:52Z nog $"
+# RCS-Id: "@(#)$Id: Makefile.PL 795 2008-03-06 14:00:16Z nog $"
 #
-# Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -9,13 +9,16 @@
 use strict;
 use English;
 
+use lib qw(./inc);
+
 use ExtUtils::MakeMaker;
 use Config;
+use version;
 
 BEGIN {
     require '../version';
 }
-my $VERSION = set_version();
+my $API_VERSION = set_version();
 
 my $archname = $Config{'archname'};
 my $libs;
@@ -74,19 +77,12 @@ my $guess_path;
 if    (-r "/usr/local/include/afs/afs.h") { $guess_path = '/usr/local'; }
 elsif (-r "/usr/afsws/include/afs/afs.h") { $guess_path = '/usr/afsws'; }
 elsif (-r "/usr/include/afs/afs.h")       { $guess_path = '/usr'; }
+else                                      { $guess_path = 'unknown'; }
 
-my $AFSPath;
-if (defined $ENV{AFSPATH}) {
-    $AFSPath = $ENV{AFSPATH};
-}
-else {
-    $AFSPath = $guess_path || 'unknown';
-    print "\nPath to the AFS installation (libraries, binaries, \n";
-    print "header files) to be used for this installation? \t [$AFSPath] ";
-    chomp(my $answer = <STDIN>);
-    $AFSPath = $answer if $answer;
-    print "\n";
-}
+my $AFSPath = $ENV{AFSPATH} || $guess_path;
+my $msg = "\nPath to the AFS installation (libraries, binaries, \n"
+        . "header files) to be used for this installation? \t ";
+$AFSPath = prompt($msg, $AFSPath);
 $AFSPath =~ s\/$\\;
 
 # determine the alpha_sys value
@@ -104,6 +100,8 @@ if (-e "$AFSPath/bin/fs") {
 # find out the AFS version of the AFS system libraries
 open FILE, ">fotav.c";
 print FILE <<'EOF';
+#include <stdio.h>
+
 int main(void)
 {
   extern char *AFSVersion;
@@ -120,8 +118,14 @@ if ($CHILD_ERROR) {
 my $version = `./a.out` || die "\nCould not run test code to retrieve the version of AFS system libraries...\n";
 unlink 'a.out', 'fotav.c';
 
-if ($version =~ /3.[4,5]/) { warn "This release does not support AFS 3.4/3.5 system libraries ...\n"; exit 1; }
-if ($archname =~ /thread/i and $version !~ /openafs/) {
+my ($v_string, $v_numb) = ('', '');
+if ($version =~ />(\S+)\s*(\S+)</) {
+  $v_string = $1;
+  $v_numb   = version->new($2);
+}
+
+if ($v_numb =~ /3.[4,5]/) { warn "This release does not support AFS 3.4/3.5 system libraries ...\n"; exit 1; }
+if ($archname =~ /thread/i and $v_string !~ /openafs/) {
     die "\nAFS modules (Threaded Perl) in conjunction with Transarc/IBM AFS is not supported ...\n";
 }
 if ($archname =~ /thread/i and $alpha_sys =~ /amd64_linux2/) {
@@ -131,36 +135,41 @@ if ($archname =~ /thread/i and $alpha_sys =~ /rs_aix4/) {
     die "\nAFS modules (Threaded Perl) on AIX platforms are currently not supported ...\n";
 }
 
-# set the compiler flag "-D$version" according to the AFS version
-my ($d_flag, $a_flag) = ('', '');
-if    ($version =~ /3.4/)   { $d_flag = 'AFS 3.4'; }
-elsif ($version =~ /3.5/)   { $d_flag = 'AFS 3.5'; }
-elsif ($version =~ /3.6/)   { $d_flag = 'AFS 3.6'; }
-elsif ($version =~ /1.0/)   { $d_flag = 'OpenAFS 1.0'; }
-elsif ($version =~ /1.1/)   { $d_flag = 'OpenAFS 1.1'; }
-elsif ($version =~ /1.2/)   { $d_flag = 'OpenAFS 1.2'; }
-elsif ($version =~ /1.3/)   { $d_flag = 'OpenAFS 1.3'; }
-elsif ($version =~ /1.4/)   { $d_flag = 'OpenAFS 1.4'; }
-elsif ($version =~ /devel/) { $d_flag = 'OpenAFS devel'; }
+my $m_version = '';
+if    ($v_numb =~ /3.4/)   { $m_version = 'AFS 3.4'; }
+elsif ($v_numb =~ /3.5/)   { $m_version = 'AFS 3.5'; }
+elsif ($v_numb =~ /3.6/)   { $m_version = 'AFS 3.6'; }
+elsif ($v_numb =~ /1.0/)   { $m_version = 'OpenAFS 1.0'; }
+elsif ($v_numb =~ /1.1/)   { $m_version = 'OpenAFS 1.1'; }
+elsif ($v_numb =~ /1.2/)   { $m_version = 'OpenAFS 1.2'; }
+elsif ($v_numb =~ /1.3/)   { $m_version = 'OpenAFS 1.3'; }
+elsif ($v_numb =~ /1.4/)   { $m_version = 'OpenAFS 1.4'; }
+elsif ($v_numb =~ /devel/) { $m_version = 'OpenAFS devel'; }
 
-if ($version =~ /openafs/)  { $a_flag = '-DOpenAFS'; }
+# set the different compiler flags according to the AFS version
+my ($d_flag, $a_flag, $e_flag) = ('', '', '');
+if ($v_string =~ /openafs/)  { $a_flag = '-DOpenAFS'; }
 
-$version = $d_flag;
+$d_flag = $m_version;
 $d_flag =~ tr/\. /__/;
 $d_flag = '-D' . $d_flag;
 
+if ($v_numb gt "1.4.4") {
+    $e_flag = '-DAFS_OLD_COM_ERR';
+}
+
 # print out a summary of determined data
-print "AFS Version = $version \n";
+print "AFS Version = $v_string $v_numb \n";
 print "Your AFS system libraries are located at:  $AFSPath \n";
-print "                  their major version is:  $version \n";
+print "                  their major version is:  $m_version \n";
 print "                  and their type is:       \"pthreaded\"\n" if ($archname =~ /thread/i);
 print "Your AFS system type seems to be:          $alpha_sys \n\n";
 
 # set the Makefile values
 my %MakefileArgs = (
     'NAME'         => 'AFS',
-    'VERSION'      => "$VERSION",
-    'DEFINE'	   => "$d_flag $p_flag $a_flag",
+    'VERSION'      => "$API_VERSION",
+    'DEFINE'	   => "$d_flag $p_flag $a_flag $e_flag",
     'INC'          => "-I$AFSPath/include",
     'LIBS'         => [
                        "-L$AFSPath/lib -L$AFSPath/lib/afs "

@@ -2,8 +2,10 @@
 
 use strict;
 use lib qw(../../inc ../inc);
+use blib;
 
 use Test::More tests => 10;
+
 
 BEGIN {
     use_ok('AFS::KTC_TOKEN');

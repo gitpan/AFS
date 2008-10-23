@@ -2,12 +2,13 @@
 
 use strict;
 use lib qw(../../inc ../inc);
+use blib;
 
 use Test::More;
 
 BEGIN {
     use AFS::FS;
-    if (AFS::FS::isafs('./')) { plan tests => 7; }
+    if (AFS::FS::isafs('./')) { plan tests => 8; }
     else { plan skip_all => 'Working directory is not in AFS file system ...'; }
 
     use_ok('AFS::VLDB');
@@ -26,7 +27,10 @@ $vldblist = $vldb->listvldb($server, $part, 0);
 isa_ok($vldblist, 'HASH', 'vldb->listvldb 1.level');
 
 my @addrlist = $vldb->listaddrs($server);
-is($addrlist[0]->{name}, $server, 'vldb->listaddrs(HOST)');
+is($addrlist[0]->{'name-1'}, $server, 'vldb->listaddrs(HOST)');
+
+@addrlist = $vldb->listaddrs;
+ok(defined $addrlist[0], 'vldb->listaddrs()');
 
 $vldb->DESTROY;
 ok(! defined $vldb, 'vldb->DESTROY');

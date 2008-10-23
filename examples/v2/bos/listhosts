@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/local/bin/perl -w
 
 use blib;
 
@@ -19,11 +19,14 @@ print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 my ($cell, $hostlist) = $bos->listhosts;
 print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 
-print "Cell name is $cell\n";
-my $i = 1;
-foreach (@$hostlist) {
-    print "\tHost $i is $_ \n";
-    $i++;
+if (defined $cell) { print "Cell name is $cell\n"; }
+
+if (defined $$hostlist[0]) {
+    my $i = 1;
+    foreach (@$hostlist) {
+        print "\tHost $i is $_ \n";
+        $i++;
+    }
 }
 
 $bos->DESTROY;

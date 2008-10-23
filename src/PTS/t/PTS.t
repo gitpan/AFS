@@ -2,6 +2,7 @@
 
 use strict;
 use lib qw(../../inc ../inc);
+use blib;
 
 use Test::More;
 

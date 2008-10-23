@@ -1,15 +1,23 @@
-name: AFS
-version: 2.4.0
-abstract: Perl interface to AFS programming APIs
-author: Norbert E Gruener <nog@MPA-Garching.MPG.de>
-license: perl
-distribution_type: module
+---
+abstract: 'Perl interface to AFS programming APIs'
+author:
+  - 'Norbert E Gruener <nog@MPA-Garching.MPG.de>'
 build_requires:
   Test::More: 0
-requires:
-  perl: 5.005
+distribution_type: module
+generated_by: 'Module::Install version 0.77'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: AFS
 no_index:
   directory:
     - src/inc
     - inc
-generated_by: Module::Install version 0.36
+    - examples
+requires:
+  perl: 5.005
+resources:
+  license: http://dev.perl.org/licenses/
+version: 2.4.1

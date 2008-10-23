@@ -11,4 +11,6 @@ my $setuid = shift;
 
 my $ok = setcellstatus($setuid, $cell);
 print "AFS::CODE = $AFS::CODE\n";
-printf("Setuid allowed: %s \n", $ok ? 'yes' : 'no');
+if (defined $ok) {
+    printf("Command successfull: %s \n", $ok ? 'yes' : 'no');
+}

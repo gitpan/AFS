@@ -11,5 +11,14 @@ $path = shift;
 
 $vol = lsmount($path);
 print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
-print "Vol = $vol \n";
+
+if (defined $vol) {
+    print "\'$path\' is a mount point for volume \'$vol\' \n";
+}
+elsif ($path =~ /\.$/) {
+    print "you may not use '.' or '..' as the last component of the path name \n";
+}
+else {
+    print "\'$path\' is not a mount point \n";
+}
 

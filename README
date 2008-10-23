@@ -1,6 +1,5 @@
 
-This is the README file for the Perl extension module AFS
-(Version 2.4.0) 
+This is the README file for the Perl extension module AFS (Version 2.4.1) 
 
 
 DESCRIPTION
@@ -33,8 +32,8 @@ RECOMMENDATIONS
 AVAILABILITY
     The latest version of the AFS module bundle is currently available at
 
-        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.4.0.tar.gz
-        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.4.0.tar.gz
+        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.4.1.tar.gz
+        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.4.1.tar.gz
 
 
 BUILDING & INSTALLING
@@ -42,12 +41,12 @@ BUILDING & INSTALLING
     should be straightforward. The AFS module bundle is distributed as a
     single gzipped tar archive file:
 
-            AFS-2.4.0.tar.gz
+            AFS-2.4.1.tar.gz
 
     Unpack the archive to create an AFS installation directory:
 
-        gunzip AFS-2.4.0.tar.gz
-        tar xvf AFS-2.4.0.tar
+        gunzip AFS-2.4.1.tar.gz
+        tar xvf AFS-2.4.1.tar
 
     'cd' into that directory, make, test and install the modules. You
     have to specify the location of the AFS system libraries. While
@@ -59,7 +58,7 @@ BUILDING & INSTALLING
 
     This is the sequence of commands to build the modules:
 
-        cd AFS-2.4.0
+        cd AFS-2.4.1
 
         [1] this step is optional
         setenv AFSPATH 'path_to_the_AFS_system_libraries' # tcsh-shell
@@ -126,11 +125,31 @@ COMPATIBILITY
     names or interfaces from version 2. You either stick with version
     1 or version 2.
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                                                                  !
+    ! This is the last release supporting features and interfaces from !
+    ! version 1.  The upcoming release 2.6.0 WILL NOT SUPPORT them     !
+    ! anymore.                                                         !
+    !                                                                  !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-FEEDBACK
-    I have tested/run the AFS module bundle on several configurations
-    and I have also got reports that it is running on configurations, not
-    available to me.
+
+PLATFORMS
+    In the meantime I have only access to Linux machines.  Therefore I
+    have tested this version of the AFS module bundle only on the
+    Linux platform with the following combinations
+
+        OS             @sys         compiler    OpenAFS    Perl
+        -------------------------------------------------------
+        Linux          i386_linux26   gcc       1.4.2      5.6.2
+                       i386_linux26   gcc       1.4.5      5.6.2
+                       i386_linux26   gcc       1.4.7      5.6.2
+                       i386_linux26   gcc       1.4.2      5.8.8
+                       i386_linux26   gcc       1.4.5      5.8.8
+                       i386_linux26   gcc       1.4.7      5.8.8
+
+    For former versions I have also got reports that it is running on
+    configurations, not available to me.
 
         OS             @sys         compiler 
         ------------------------------------
@@ -152,6 +171,8 @@ FEEDBACK
 
         Digital Unix   alpha_dux40  
 
+
+FEEDBACK
     If you are building the modules on another architecture I would
     appreciate a note to tell me how you got on. Although I am
     particularly interested to hear about any problems you encounter
@@ -175,48 +196,8 @@ CAVEATS
 
 
 KNOWN PROBLEMS
-SunOS
     Under SunOS, several people have encountered problems while compiling
-    and installing the AFS module bundle.  From my own experience I can
-    report that the module bundle did not compile with some AFS system
-    library packages (see below).  
-
-    If you're a SunOS user who knows a solution to an encountered problem
-    and would like to document the solution for others, please send the
-    docs to the AFS module maintainer to amend the installation directions.
-
-    Here is a collection of user reports about their "sun" problems.
-
-    From: Alf Wachsmann <alf@ifh.de>
-    Compiling with Sun's SUNWspro cc doesn't work for me, so I use the gcc
-    (version 2.8.1) which gives lots of warnings, but it compiles the module.
-    Note the changed flag -fpic instead of -Kpic!
-
-    From: Peter Scott <Peter@PSDT.com> 
-    Gotcha.  I am trying this on Solaris 2.6... success!  All tests
-    pass.  You might want to mention that the GNU ld loses on this, have
-    to use the Sun ld.  perl Makefile.PL LD=/usr/ccs/bin/ld
-
-    From: Norbert Gruener <nog@MPA-Garching.MPG.de>
-    In the meantime I traced the "sun-problem"
-        sun4x_57          compiles with AFS 3.6 Patch 2.0   gcc 2.95.2
-        sun4x_57 DOES NOT compile  with AFS 3.6 Patch 2.3   gcc 2.95.2
-        sun4x_57          compiles with AFS 3.6 Patch 2.6   gcc 2.95.2
-
-    From: Alf Wachsmann <alfw@SLAC.Stanford.EDU>
-    I checked on our site:
-        sun4x_56        compiles with AFS 3.6 Patch 2.0
-        sun4x_57        compiles with AFS 3.6 Patch 2.5
-
-    From: Peter Scott <Peter@PSDT.com>
-    FYI and FWIW, I have installed this with:
-    AFS 3.4.555 library on sun4x_55 with gcc 2.8.1.
-
-    On Solaris 2.6 I built it with AFS 3.5.345.  On Solaris 2.8 it was 3.6.226.
-    It built ok on Solaris 2.8 and 3.5 for me without changes, so the
-    problem child seems to be Solaris 2.6.
-    On Solaris 2.6 with AFS 3.5.345, I needed to define int32 and uint32.
-    $d_flag .= ' -Dint32=afs_int32 -Duint32=afs_uint32' if $alpha_sys eq 'sun4x_56';  # From Peter@PSDT.com
+    and installing the AFS module bundle.
 
 
 BUGS
@@ -240,7 +221,7 @@ CREDITS
 
 
 COPYRIGHT AND DISCLAIMER
-    © 2001-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+    © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
     All rights reserved.
 
     © 1994 Board of Trustees, Leland Stanford Jr. University.

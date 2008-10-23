@@ -2,7 +2,7 @@
 package AFS;
 
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: AFS.pm.inp 748 2005-12-15 12:24:22Z nog $"
+# RCS-Id: "@(#)$Id: AFS.pm 830 2008-10-04 07:34:00Z nog $"
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -35,8 +35,8 @@ use vars qw(@ISA $VERSION $REVISION);
 
 @ISA = qw(Exporter AutoLoader DynaLoader);
 
-$VERSION  = '2.4.0';
-$REVISION = do{my@r=q/Major Version 2.4 $Rev: 748 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
+$VERSION = '2.4.1';
+$REVISION = do{my@r=q/Major Version 2.4 $Rev: 830 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
 
 @CELL = qw (
             configdir

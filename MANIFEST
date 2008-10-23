@@ -377,6 +377,8 @@ src/VOS/VOS.pm
 src/VOS/t/VOS.t
 src/inc/Test/Builder.pm
 src/inc/Test/More.pm
+src/inc/version.pm
+src/inc/version/vpp.pm
 src/ppport.h
 src/t/AFS.t
 src/t/pod.t

@@ -1,3 +1,32 @@
+Version 2.4.1 (released 23 Oct 2008, revision 863)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.4.1.tar.gz
+
+ NOTICE:
+ * This release does not support AFS system libraries version 3.4 or
+   version 3.5
+ 
+ User-visible changes:
+ * improved several test drivers;
+ * updated example scripts for the modules AFS:VOS, AFS::VLDB,
+   AFS::Cell, AFS::CM, AFS::FS, AFS::BOS, and AFS::KTC_EKEY
+ * improved POD documentation for AFS::FS and AFS
+ * POD documentation gets installed automatically
+ * fixed method AFS::VOS->listaddrs: lists now all servers
+ * fixed method AFS::VOS->listvol: returns correct name and volid when
+   volume is busy
+ * fixed method AFS::VOS->listvldb: returns proper "release" strings
+ * improved error messages when OpenAFS configuration files are missing
+ * compiles now with OpenAFS system libraries newer than 1.4.4
+ * improved Makefile.PL script to avoid interactive queries
+
+
+ Developer-visible changes:
+ * modified initialization of the "cell" variable for "fs" functions
+ * cleaned up source code and error handling for "vos" functions, "vldb"
+   functions, and "bos" functions
+
+
+
 Version 2.4.0 (released 20 Feb 2006, revision 777)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.4.0.tar.gz
 
@@ -25,7 +54,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.4.0.tar.gz
 
 
 Version 2.2.3 (released 17 Feb 2005, revision 679)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.3.tar.gz
 
  NOTICE:
  * This release does not support AFS system libraries version 3.4 or
@@ -47,7 +75,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.3.tar.gz
 
 
 Version 2.2.2 (released 07 May 2004, revision 627)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.2.tar.gz
 
  NOTICE:
  * This release does not support AFS system libraries version 3.4 or
@@ -67,7 +94,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.2.tar.gz
 
 
 Version 2.2.1 (released 09 March 2004, revision 594)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.1.tar.gz
 
  NOTICE: This release does not support AFS system libraries
          version 3.4 or version 3.5
@@ -85,7 +111,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.1.tar.gz
 
 
 Version 2.2.0 (released 03 February 2004, revision 571)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.2.0.tar.gz
 
  NOTICE: This release does not support AFS system libraries
          version 3.4 or version 3.5
@@ -136,7 +161,6 @@ Version 2.04 (never released, revision 297)
 
 
 Version 2.03 (released 15 October 2002, revision 230)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.03.tar.gz
 
  User-visible changes:
  * Makefile.PL
@@ -158,7 +182,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.03.tar.gz
 
 
 Version 2.02 (released 12 July 2002, revision 221)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.02.tar.gz
 
  User-visible changes:
  * fixed bug in method AFS::KAS->setfields resp. AFS::KAS->KAM_SetFields 
@@ -171,7 +194,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.02.tar.gz
 
 
 Version 2.01 (released 8 July 2002, revision 211)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.01.tar.gz
 
  User-visible changes:
  * improved Makefile.PL script
@@ -185,7 +207,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.01.tar.gz
 
 
 Version 2.0 (released 2 July 2002, revision 184)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.0.tar.gz
 
  User-visible changes:
  * compiles now with IBM AFS 3.6 and OpenAFS system libraries.  This
@@ -225,7 +246,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.0.tar.gz
 
 
 Version 1.11 (released 6 December 2001, revision 80)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.11.tar.gz
 
  User-visible changes:
  * major rewrite of the Make.PL script
@@ -240,7 +260,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.11.tar.gz
 
 
 Version 1.10 (released 24 July 2001, revision 71)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.10.tar.gz
 
  User-visible changes:
  * updated and corrected README
@@ -252,7 +271,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.10.tar.gz
 
 
 Version 1.09 (released 27 October 2000, revision 60)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.09.tar.gz
 
  User-visible changes:
  * none
@@ -264,7 +282,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.09.tar.gz
 
 
 Version 1.08 beta (released 16 June 1999, revision 57)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08b.tar.gz
 
  User-visible changes:
  * added example for function ka_setfields
@@ -276,7 +293,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08b.tar.gz
 
 
 Version 1.08 alpha (released 3 May 1999, revision 55)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08a.tar.gz
 
  User-visible changes:
  * updated and corrected README
@@ -288,7 +304,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08a.tar.gz
 
 
 Version 1.08 (released 27 April 1999, revision 54)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08.tar.gz
 
  User-visible changes:
  * patched function fs_setquota
@@ -301,7 +316,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.08.tar.gz
 
 
 Version 1.07 (released 8 April 1999, revision 44)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.07.tar.gz
 
  User-visible changes:
  * added support for AIX machines
@@ -314,7 +328,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.07.tar.gz
 
 
 Version 1.06 (released 6 April 1999, revision 40)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-1.06.tar.gz
 
  User-visible changes:
  * renamed function 'access' to 'cm_access'

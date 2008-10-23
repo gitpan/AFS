@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 772 2006-02-16 13:13:16Z nog $
+ * RCS-Id: @(#)$Id: AFS.xs 816 2008-08-28 11:01:17Z nog $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -11,7 +11,7 @@
  * directory or online at http://www.openafs.org/dl/license10.html
  *
  * Contributors
- *    2004-2006: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ *    2004-2008: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  *         2003: Alf Wachsmann <alfw@slac.stanford.edu>
  *               Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
  *               Norbert E. Gruener <nog@MPA-Garching.MPG.de>
@@ -54,6 +54,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
+#undef INIT
 #include <afs/stds.h>
 #include <afs/afs.h>
 #include <afs/afsint.h>
@@ -87,6 +88,7 @@
 #include <afs/bosint.h>
 #include <afs/bnode.h>
 #include <afs/ktime.h>
+#include <afs/com_err.h>
 #include <des.h>
 
 #include <afs/volint.h>
@@ -97,7 +99,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Major Version 2.4 $Rev: 772 $)";
+const char *const xs_version = "AFS.xs (Major Version 2.4 $Rev: 816 $)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -122,7 +124,9 @@ typedef struct ubik_client *AFS__VLDB;
 typedef struct ubik_client *AFS__VOS;
 typedef struct rx_connection *AFS__BOS;
 
-extern char *error_message();
+#if defined(OpenAFS_1_0) || defined(OpenAFS_1_1) || defined(OpenAFS_1_2) || defined(OpenAFS_1_3) 
+extern const char *error_message();
+#endif
 extern struct ubik_client *cstruct;
 extern int UV_SetSecurity();
 #ifdef OpenAFS
@@ -167,6 +171,8 @@ struct clock clock_now;
 #define SETCODE(code) set_code(code)
 #define BSETCODE(code, msg) bv_set_code(code, msg)
 #define VSETCODE(code, msg) bv_set_code(code, msg)
+#define KSETCODE(code, msg) k_set_code(code, msg)
+#define PSETCODE(msg) p_set_code(msg)
 
 static int32 raise_exception = 0;
 
@@ -188,6 +194,52 @@ static void bv_set_code(code, msg)
         }
 /*      printf("BV_SET_CODE %s (%d)\n", msg, code); */
         sv_setpv(sv, (char *) msg);
+    }
+    SvIOK_on(sv);
+}
+
+static void p_set_code(msg)
+    const char *msg;
+{
+    int32 code = errno;
+    SV *sv = perl_get_sv("AFS::CODE", TRUE);
+    sv_setiv(sv, (IV) code);
+/*   printf("P_SET_CODE %s (%d)\n", msg, code); */
+    if (code == 0) {
+        sv_setpv(sv, "");
+    }
+    else {
+        char buffer[1024];
+        if (raise_exception) {
+            sprintf(buffer, "AFS exception: %s (%s) (%d)", msg, error_message(code), code);
+            croak(buffer);
+        }
+/*      printf("P_SET_CODE %s (%d)\n", msg, code); */
+        sprintf(buffer, "%s: %s (%d)", msg, error_message(code), code);
+        sv_setpv(sv, buffer);
+    }
+    SvIOK_on(sv);
+}
+
+static void k_set_code(code, msg)
+    int32 code;
+    const char *msg;
+{
+    SV *sv = perl_get_sv("AFS::CODE", TRUE);
+    sv_setiv(sv, (IV) code);
+/*   printf("K_SET_CODE %s (%d)\n", msg, code); */
+    if (code == 0) {
+        sv_setpv(sv, "");
+    }
+    else {
+        char buffer[1024];
+        if (raise_exception) {
+            sprintf(buffer, "AFS exception: %s (%s) (%d)", msg, error_message(code), code);
+            croak(buffer);
+        }
+/*      printf("K_SET_CODE %s (%d)\n", msg, code); */
+        sprintf(buffer, "%s: %s (%d)", msg, error_message(code), code);
+        sv_setpv(sv, buffer);
     }
     SvIOK_on(sv);
 }
@@ -473,6 +525,9 @@ static int32 internal_GetConfigDir()
 
         cdir = afsconf_Open(config_dir);
         if (!cdir) {
+            char buffer[80];
+            sprintf(buffer, "GetConfigDir: Can't open configuration directory (%s)", config_dir);
+            PSETCODE(buffer);
             return errno;
         }
     }
@@ -495,6 +550,9 @@ static int32 internal_GetServerConfigDir()
 
         cdir = afsconf_Open(config_dir);
         if (!cdir) {
+            char buffer[80];
+            sprintf(buffer, "GetServerConfigDir: Can't open configuration directory (%s)", config_dir);
+            PSETCODE(buffer);
             return errno;
         }
     }
@@ -509,8 +567,14 @@ static int32 internal_GetCellInfo(cell, service, info)
     int32 code;
 
     code = internal_GetConfigDir();
-    if (code == 0)
+    if (code == 0) {
         code = afsconf_GetCellInfo(cdir, cell, service, info);
+        if (code) {
+            char buffer[80];
+            sprintf(buffer, "GetCellInfo: ");
+            KSETCODE(code, buffer);
+        }
+    }
     return code;
 }
 
@@ -525,8 +589,15 @@ static char *internal_GetLocalCell(code)
     }
     else {
         *code = internal_GetConfigDir();
-        if (*code == 0)
-            *code = afsconf_GetLocalCell(cdir, localcell, sizeof(localcell));
+        if (*code)
+            return NULL;
+        *code = afsconf_GetLocalCell(cdir, localcell, sizeof(localcell));
+        if (*code) {
+            char buffer[80];
+            sprintf(buffer, "GetLocalCell: Can't determine local cell name");
+            PSETCODE(buffer);
+            return NULL;
+        }
     }
     return localcell;
 }
@@ -591,8 +662,12 @@ static struct ubik_client *internal_pts_new(code, sec, cell)
         return NULL;
 
     *code = rx_Init(0);
-    if (*code)
+    if (*code) {
+        char buffer[80];
+        sprintf(buffer, "AFS::PTS: could not initialize Rx (%d)\n", *code);
+        BSETCODE(code, buffer);
         return NULL;
+    }
 
     if (sec > 0) {
         strcpy(prin.cell, info.name);
@@ -600,8 +675,12 @@ static struct ubik_client *internal_pts_new(code, sec, cell)
         strcpy(prin.name, "afs");
         *code = ktc_GetToken(&prin, &token, sizeof(token), (char *) 0);
         if (*code) {
-            if (sec == 2)
+            if (sec == 2) {
+                char buffer[80];
+                sprintf(buffer, "AFS::PTS: failed to get token for service AFS (%d)\n", *code);
+                BSETCODE(code, buffer);
                 return NULL;    /* we want security or nothing */
+            }
             sec = 0;
         }
         else {
@@ -623,9 +702,12 @@ static struct ubik_client *internal_pts_new(code, sec, cell)
     }
 
     *code = ubik_ClientInit(serverconns, &client);
-    if (*code)
+    if (*code) {
+        char buffer[80];
+        sprintf(buffer, "AFS::PTS: Can't initialize ubik connection to Protection server (%d)\n", *code);
+        BSETCODE(code, buffer);
         return NULL;
-
+    }
     *code = rxs_Release(sc);
     return client;
 }
@@ -1348,7 +1430,6 @@ static void myDisplayFormat(vol, pntr, server, part, totalOK, totalNotOK, totalB
     char pname[10];
     char hostname[256];
 
-    hv_store(vol, "name", 4,  newSVpv(pntr->name, strlen((char *) pntr->name)), 0);
     if (fast) {
         hv_store(vol, "volid", 5, newSViv(pntr->volid), 0);
     }
@@ -1357,7 +1438,7 @@ static void myDisplayFormat(vol, pntr, server, part, totalOK, totalNotOK, totalB
         hv_store(vol, "volid", 5, newSViv(pntr->volid), 0);
 
         if (pntr->status == VOK) {
-
+            hv_store(vol, "name", 4,  newSVpv(pntr->name, strlen((char *) pntr->name)), 0);
             if (pntr->type == 0)
                 hv_store(vol, "type", 4, newSVpv("RW", 2), 0);
             if (pntr->type == 1)
@@ -1429,9 +1510,9 @@ static void myXDisplayFormat(stats, a_xInfoP, a_servID, a_partID, a_totalOKP,
 
     /* Fully-detailed listing. */
     hv_store(stats, "status", 6, newSViv(a_xInfoP->status), 0);
+    hv_store(stats, "volid", 5, newSViv(a_xInfoP->volid), 0);
     if (a_xInfoP->status == VOK) {
         /* Volume's status is OK - all the fields are valid. */
-        hv_store(stats, "volid", 5, newSViv(a_xInfoP->volid), 0);
 
         if (a_xInfoP->type == 0)
             hv_store(stats, "type", 4, newSVpv("RW", 2), 0);
@@ -1601,6 +1682,7 @@ static void DisplayVolumes(partition, server, part, pntr, count, fast)
 {
     int totalOK, totalNotOK, totalBusy, i;
     afs_int32 volid;
+    char buff[32];
 
     totalOK = 0;
     totalNotOK = 0;
@@ -1610,10 +1692,23 @@ static void DisplayVolumes(partition, server, part, pntr, count, fast)
     for (i = 0; i < count; i++) {
         HV *vol = (HV *) sv_2mortal((SV *) newHV());
         myDisplayFormat(vol, pntr, server, part, &totalOK, &totalNotOK, &totalBusy, fast);
-        hv_store(partition, pntr->name, strlen(pntr->name), newRV_inc((SV *) (vol)), 0);
+        if (pntr->status == VOK) {
+            hv_store(partition, pntr->name, strlen(pntr->name), newRV_inc((SV *) (vol)), 0);
+        }
+        else if (pntr->status == VBUSY) {
+            sprintf(buff, "volume_busy_%d", i);
+            hv_store(partition, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
+            /* fprintf(STDERR, "DEBUG-1: %s %d\n", buff, strlen(buff)); */
+        }
+        else {
+            sprintf(buff, "volume_notok_%d", i);
+            hv_store(partition, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
+            /* fprintf(STDERR, "DEBUG-2: %s %d\n", buff, strlen(buff)); */
+        }
         pntr++;
     }
     if (!fast) {
+        hv_store(partition, " totalOK", 8, newSViv(totalOK), 0);
         hv_store(partition, " totalBusy", 10, newSViv(totalBusy), 0);
         hv_store(partition, " totalNotOK", 11, newSViv(totalNotOK), 0);
     }
@@ -1700,6 +1795,7 @@ static void XDisplayVolumes(part, a_servID, a_partID, a_xInfoP, a_count)
     int totalBusy;              /*Total busy volumes */
     int i;                      /*Loop variable */
     afs_int32 volid;            /*Current volume ID */
+    char buff[32];
 
     /* Initialize counters and (global!!) queues.*/
     totalOK = 0;
@@ -1715,12 +1811,24 @@ static void XDisplayVolumes(part, a_servID, a_partID, a_xInfoP, a_count)
                          a_xInfoP,
                          a_servID,
                          a_partID, &totalOK, &totalNotOK, &totalBusy);
-        hv_store(part, a_xInfoP->name, strlen(a_xInfoP->name), newRV_inc((SV *) (vol)),
-                 0);
+        if (a_xInfoP->status == VOK) {
+            hv_store(part, a_xInfoP->name, strlen(a_xInfoP->name), newRV_inc((SV *) (vol)), 0);
+        }
+        else if (a_xInfoP->status == VBUSY) {
+            sprintf(buff, "volume_busy_%d", i);
+            hv_store(part, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
+            /* fprintf(STDERR, "DEBUG-1: %s %d\n", buff, strlen(buff)); */
+        }
+        else {
+            sprintf(buff, "volume_notok_%d", i);
+            hv_store(part, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
+            /* fprintf(STDERR, "DEBUG-2: %s %d\n", buff, strlen(buff)); */
+        }
         a_xInfoP++;
     }
 
     /* If any volumes were found to be busy or screwed, display them.*/
+    hv_store(part, " totalOK", 8, newSViv(totalOK), 0);
     hv_store(part, " totalBusy", 10, newSViv(totalBusy), 0);
     hv_store(part, " totalNotOK", 11, newSViv(totalNotOK), 0);
 }                               /*XDisplayVolumes */
@@ -1771,9 +1879,9 @@ void myEnumerateEntry(stats, entry)
 
         if (isMixed) {
             if (entry->serverFlags[i] & NEW_REPSITE)
-                hv_store(server, "release", 7, newSVpv("New release", 12), 0);
+                hv_store(server, "release", 7, newSVpv("New release", 11), 0);
             else
-                hv_store(server, "release", 7, newSVpv("Old release", 12), 0);
+                hv_store(server, "release", 7, newSVpv("Old release", 11), 0);
         }
         else {
             if (entry->serverFlags[i] & RO_DONTUSE)
@@ -1855,6 +1963,8 @@ static void myprint_addrs(addr, addrs, m_uuid, nentries, print, noresolve)
     /* print out the list of all the server */
     addrp = (afs_int32 *) addrs->bulkaddrs_val;
     for (i = 0; i < nentries; i++, addrp++) {
+        char key[7];
+        int j = i + 1;
         /* If it is a multihomed address, then we will need to 
          * get the addresses for this multihomed server from
          * the vlserver and print them.
@@ -1921,13 +2031,15 @@ static void myprint_addrs(addr, addrs, m_uuid, nentries, print, noresolve)
 #ifdef OpenAFS
         if (noresolve) {
             char hoststr[16];
+            sprintf(key, "IP-%d", j);
             sprintf(buf, "%s", afs_inet_ntoa_r(*addrp, hoststr));
-            hv_store(addr, "IP", 2, newSVpv(buf, strlen(buf)), 0);
+            hv_store(addr, key, 4, newSVpv(buf, strlen(buf)), 0);
         }
         else {
 #endif
+            sprintf(key, "name-%d", j);
             sprintf(buf, "%s", (char *) hostutil_GetNameByINet(*addrp));
-            hv_store(addr, "name", 4, newSVpv(buf, strlen(buf)), 0);
+            hv_store(addr, key, 6, newSVpv(buf, strlen(buf)), 0);
 #ifdef OpenAFS
         }
 #endif
@@ -2191,7 +2303,7 @@ static struct rx_connection *internal_bos_new(code, hostname, localauth, noauth,
             *code = ktc_GetToken(&sname, &ttoken, sizeof(ttoken), (char *) 0);
             if (*code == 0) {
                 /* have tickets, will travel */
-                if (ttoken.kvno >= 0 && ttoken.kvno <= 255);
+                if (ttoken.kvno >= 0 && ttoken.kvno <= 256);
                 else {
                     fprintf(stderr,
                             "AFS::BOS: funny kvno (%d) in ticket, proceeding\n",
@@ -3090,6 +3202,7 @@ static parse_ka_debugInfo(stats, ka)
 /* PROTOTYPES: DISABLE added by leg@andrew, 10/7/96 */
 
 MODULE = AFS    PACKAGE = AFS   PREFIX = fs_
+VERSIONCHECK: DISABLE
 PROTOTYPES: DISABLE
 
 void
@@ -3705,7 +3818,7 @@ fs_mkmount(mountp,volume,rw=0,cell=0)
         char parent[1024];
         int32 code = 0;
         
-        if (cell && !*cell)
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
         
         if (strlen(mountp) > (sizeof(parent) - 1))
@@ -3946,20 +4059,28 @@ fs_getcellstatus(cell=0)
         struct afsconf_cell info;
         int32 code, flags;
         
-        if (cell && !*cell)
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
+
         code = internal_GetCellInfo(cell, 0, &info);
-        if (code == 0) {
+        if (code != 0) {
+            XSRETURN_UNDEF;
+        }
+        else {
             vi.in_size = strlen(info.name) + 1;
             vi.in = info.name;
             vi.out_size = sizeof(flags);
             vi.out = (char *) &flags;
             code = pioctl(0, VIOC_GETCELLSTATUS, &vi, 0);
-        }
-        SETCODE(code);
-        if (code == 0) {
-            EXTEND(sp, 1);
-            PUSHs(sv_2mortal(newSViv((flags & 0x2) == 0)));
+            SETCODE(code);
+            if (code == 0) {
+                EXTEND(sp, 1);
+                PUSHs(sv_2mortal(newSViv((flags & 0x2) == 0)));
+                XSRETURN(1);
+            }
+            else {
+                XSRETURN_UNDEF;
+            }
         }
     }
 
@@ -3978,10 +4099,14 @@ fs_setcellstatus(setuid_allowed,cell=0)
             char cell[MAXCELLCHARS];
         } set;
         
-        if (cell && !*cell)
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
+
         code = internal_GetCellInfo(cell, 0, &info);
-        if (code == 0) {
+        if (code != 0) {
+            XSRETURN_UNDEF;
+        }
+        else {
             set.reserved = 0;
             strcpy(set.cell, info.name);
             if (setuid_allowed)
@@ -3993,10 +4118,10 @@ fs_setcellstatus(setuid_allowed,cell=0)
             vi.out_size = 0;
             vi.out = (char *) 0;
             code = pioctl(0, VIOC_SETCELLSTATUS, &vi, 0);
+            SETCODE(code);
+            EXTEND(sp, 1);
+            PUSHs(sv_2mortal(newSViv(code == 0)));
         }
-        SETCODE(code);
-        EXTEND(sp, 1);
-        PUSHs(sv_2mortal(newSViv(code == 0)));
     }
 
 void
@@ -4330,7 +4455,7 @@ ktcp_principal(p)
 
 MODULE = AFS            PACKAGE = AFS::KTC_TOKEN        PREFIX = ktct_
 
-int32 
+int32
 ktct_DESTROY(t)
         AFS::KTC_TOKEN  t
     CODE:
@@ -4413,7 +4538,7 @@ ktct_string(t)
 
 MODULE = AFS            PACKAGE = AFS::KTC_EKEY         PREFIX = ktck_
 
-int32 
+int32
 ktck_DESTROY(k)
         AFS::KTC_EKEY   k
     CODE:
@@ -4516,16 +4641,15 @@ vos_status(cstruct, aserver)
             sprintf(buffer, "AFS::VOS: host '%s' not found in host table\n", aserver);
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
         code = UV_VolserStatus(server, &pntr, &count);
         if (code) {
             PrintDiagnostics("status", code);
             SETCODE(1);
             XSRETURN_UNDEF;
-            goto done;
         }
         ST(0) = sv_newmortal();
+        SETCODE(0);
         if (count == 0) {
             sprintf(buffer, "No active transactions on %s\n", aserver);
             sv_setpv(ST(0), buffer);
@@ -4534,9 +4658,7 @@ vos_status(cstruct, aserver)
             sprintf(buffer, "Total transactions: %d\n", count);
             sv_setpv(ST(0), buffer);
         }
-        
-        done:
-        ;
+        XSRETURN(1);
     }
 
 int32
@@ -5491,7 +5613,6 @@ vos_partinfo(cstruct, server, partname=NULL)
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
         if (partname && (strlen(partname) != 0)) {
             apart = volutil_GetPartitionID(partname);
@@ -5500,7 +5621,6 @@ vos_partinfo(cstruct, server, partname=NULL)
                 sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", partname);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
             dummyPartList.partId[0] = apart;
             dummyPartList.partFlags[0] = PARTVALID;
@@ -5516,7 +5636,6 @@ vos_partinfo(cstruct, server, partname=NULL)
                             partname);
                 VSETCODE(code ? code : -1, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
         }
         else {
@@ -5525,7 +5644,6 @@ vos_partinfo(cstruct, server, partname=NULL)
                 PrintDiagnostics("listpart", code);
                 SETCODE(code);
                 XSRETURN_UNDEF;
-                goto done;
             }
         }
         
@@ -5539,7 +5657,6 @@ vos_partinfo(cstruct, server, partname=NULL)
                     sprintf(buffer, "Could not get information on partition %s\n", pname);
                     VSETCODE(code, buffer);
                     XSRETURN_UNDEF;
-                    goto done;
                 }
                 hv_store(part, "free", 4, newSViv(partition.free), 0);
                 hv_store(part, "minFree", 7, newSViv(partition.minFree), 0);
@@ -5551,9 +5668,6 @@ vos_partinfo(cstruct, server, partname=NULL)
         ST(0) = sv_2mortal(newRV_inc((SV *) partlist));
         SETCODE(0);
         XSRETURN(1);
-        
-        done:
-        ;
     }
 
 void
@@ -5565,11 +5679,10 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
         int extended
   PREINIT:
         afs_int32 apart = -1, aserver, code = 0;
-        volintInfo *pntr,*oldpntr;
+        volintInfo *pntr;
         afs_int32 count;
         int i;
-        char *base;
-        volintXInfo *xInfoP, *origxInfoP;   /*Ptr to current/orig extended vol info*/
+        volintXInfo *xInfoP;                /*Ptr to current/orig extended vol info*/
         int wantExtendedInfo;               /*Do we want extended vol info?*/
 
         char pname[10];
@@ -5590,7 +5703,6 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                     "AFS::VOS:  FAST and EXTENDED flags are mutually exclusive\n");
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
         
         if (extended)
@@ -5605,7 +5717,6 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                 sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", partname);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
             dummyPartList.partId[0] = apart;
             dummyPartList.partFlags[0] = PARTVALID;
@@ -5618,7 +5729,6 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
         
         if (apart != -1) {
@@ -5631,7 +5741,6 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                             partname);
                 VSETCODE(code ? code : -1, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
         }
         else {
@@ -5640,7 +5749,6 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                 PrintDiagnostics("listvol", code);
                 SETCODE(-1);
                 XSRETURN_UNDEF;
-                goto done;
             }
         }
         
@@ -5659,15 +5767,6 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                         Safefree(pntr);
                     SETCODE(-1);
                     XSRETURN_UNDEF;
-                    goto done;
-                }
-                if (wantExtendedInfo) {
-                    origxInfoP = xInfoP;
-                    base = (char *) xInfoP;
-                }
-                else {
-                    oldpntr = pntr;
-                    base = (char *) pntr;
                 }
         
                 MapPartIdIntoName(dummyPartList.partId[i], pname);
@@ -5675,7 +5774,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                     XDisplayVolumes(part,
                                     aserver,
                                     dummyPartList.partId[i],
-                                    origxInfoP, count);
+                                    xInfoP, count);
                     if (xInfoP)
                         Safefree(xInfoP);
                     xInfoP = (volintXInfo *) 0;
@@ -5684,7 +5783,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                     DisplayVolumes(part,
                                    aserver,
                                    dummyPartList.partId[i],
-                                   oldpntr, count, fast);
+                                   pntr, count, fast);
                     if (pntr)
                         Safefree(pntr);
                     pntr = (volintInfo *) 0;
@@ -5696,9 +5795,6 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
         ST(0) = sv_2mortal(newRV_inc((SV *) vollist));
         SETCODE(0);
         XSRETURN(1);
-        
-        done:
-        ;
     }
 
 int32
@@ -6096,7 +6192,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", servername);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
             attributes.server = ntohl(aserver);
             attributes.Mask |= VLLIST_SERVER;
@@ -6114,7 +6209,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", partition);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
             attributes.partition = apart;
             attributes.Mask |= VLLIST_PARTITION;
@@ -6131,7 +6225,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         if (seenprefix && (! (SvTYPE(SvRV(seenprefix)) == SVt_PVAV))) {
             VSETCODE(-1, "AFS::VOS: PREFIX not an array reference");
             XSRETURN_UNDEF;
-            goto done;
         }
 
         if (seenprefix) {
@@ -6151,7 +6244,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                                     ccode);
                             VSETCODE(ccode, buffer);
                             XSRETURN_UNDEF;
-                            goto done;
                         }
                     }
                 }                       /*for loop */
@@ -6166,7 +6258,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         if (seenxprefix && (! (SvTYPE(SvRV(seenxprefix)) == SVt_PVAV))) {
             VSETCODE(-1, "AFS::VOS: XPREFIX not an array reference");
             XSRETURN_UNDEF;
-            goto done;
         }
         if (seenxprefix) {
             #printf("DEBUG-8-1\n");
@@ -6185,7 +6276,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                                     ccode);
                             VSETCODE(ccode, buffer);
                             XSRETURN_UNDEF;
-                            goto done;
                         }
                     }
                 }                       /*for */
@@ -6198,7 +6288,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         if (vcode) {
             VSETCODE(vcode, "Could not access the VLDB for attributes");
             XSRETURN_UNDEF;
-            goto done;
         }
         
             /* a bunch of output generation code deleted. A.W. */
@@ -6220,7 +6309,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                                     itp, ccode);
                             VSETCODE(ccode, buffer);
                             XSRETURN_UNDEF;
-                            goto done;
                         }
                         match = (re_exec(vllist->name) == 1);
                     }
@@ -6254,7 +6342,6 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                                     itp, ccode);
                             VSETCODE(ccode, buffer);
                             XSRETURN_UNDEF;
-                            goto done;
                         }
                         if (re_exec(vllist->name) == 1) {
                             match = 0;
@@ -6342,11 +6429,8 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av1))));
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av2))));
-        XSRETURN(2);
         SETCODE(0);
-
-        done:
-        ;
+        XSRETURN(2);
     }
 
 void
@@ -6366,13 +6450,11 @@ vos_listpart(cstruct, server)
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
         code = UV_ListPartitions(aserver, &dummyPartList, &cnt);
         if (code) {
             PrintDiagnostics("listpart", code);
             XSRETURN_UNDEF;
-            goto done;
         }
         total = 0;
         for (i = 0; i < cnt; i++) {
@@ -6384,11 +6466,8 @@ vos_listpart(cstruct, server)
             }
         }
         
-        XSRETURN(total);
         SETCODE(0);
-        
-        done:
-        ;
+        XSRETURN(total);
     }
 
 void
@@ -6417,7 +6496,6 @@ vos_listvolume(cstruct, name)
                 sprintf(buffer, "Unknown volume ID or name '%s'\n", name);
             VSETCODE(err ? err : -1, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
         vcode = VLDB_GetEntryByID(volid, -1, &entry);
         if (vcode) {
@@ -6425,7 +6503,6 @@ vos_listvolume(cstruct, name)
             sprintf(buffer, "Could not fetch the entry for volume number %u from VLDB \n", volid);
             VSETCODE(vcode, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
         MapHostToNetwork(&entry);
         if (entry.volumeId[RWVOL] == volid)
@@ -6448,7 +6525,6 @@ vos_listvolume(cstruct, name)
                     sprintf(buffer, "Volume %s does not exist in VLDB\n\n", name);
                     VSETCODE(ENOENT, buffer);
                     XSRETURN_UNDEF;
-                    goto done;
                 }
                 break;
             }
@@ -6473,7 +6549,10 @@ vos_listvolume(cstruct, name)
                 else {
                     sprintf(buffer, "examine");
                 }
+                if (pntr)
+                    Safefree(pntr);
                 VSETCODE(code, buffer);
+                XSRETURN_UNDEF;
             }
             else {
                 foundserv = 1;
@@ -6486,7 +6565,10 @@ vos_listvolume(cstruct, name)
                     /* The VLDB says there is no backup volume yet we found one on disk */
                     char buffer[80];
                     sprintf(buffer, "Volume %s does not exist in VLDB\n", name);
+                    if (pntr)
+                        Safefree(pntr);
                     VSETCODE(ENOENT, buffer);
+                    XSRETURN_UNDEF;
                 }
             }
         
@@ -6497,9 +6579,6 @@ vos_listvolume(cstruct, name)
         ST(0) = sv_2mortal(newRV_inc((SV *) volinfo));
         SETCODE(0);
         XSRETURN(1);
-        
-        done:
-        ;
     }
 
 
@@ -6737,8 +6816,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 sprintf(buffer,
                         "AFS::VLDB: illegal use of '-locked' switch, need to specify server and/or partition\n");
                 VSETCODE(-1, buffer);
-                XSRETURN_UNDEF;
-                goto done;
+                goto clean;
             }
             /* printf("DEBUG-4 \n"); */
             stats = (HV *) sv_2mortal((SV *) newHV());
@@ -6747,8 +6825,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 char buffer[80];
                 set_errbuff(buffer, code);
                 VSETCODE(code, buffer);
-                XSRETURN_UNDEF;
-                goto done;
+                goto clean;
             }
             /* printf("DEBUG-5 \n"); */
             hv_store(status, name, strlen(name), newRV_inc((SV *) (stats)), 0);
@@ -6764,8 +6841,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 char buffer[80];
                 sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", servername);
                 VSETCODE(-1, buffer);
-                XSRETURN_UNDEF;
-                goto done;
+                goto clean;
             }
             attributes.server = ntohl(aserver);
             attributes.Mask |= VLLIST_SERVER;
@@ -6780,8 +6856,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 char buffer[80];
                 sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n", parti);
                 VSETCODE(-1, buffer);
-                XSRETURN_UNDEF;
-                goto done;
+                goto clean;
             }
             attributes.partition = apart;
             attributes.Mask |= VLLIST_PARTITION;
@@ -6817,8 +6892,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 char buffer[80];
                 sprintf(buffer, "Could not access the VLDB for attributes\n");
                 VSETCODE(vcode, buffer);
-                XSRETURN_UNDEF;
-                goto done;
+                goto clean;
             }
             nentries += centries;
         
@@ -6838,15 +6912,15 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
         finish:
         /* printf("DEBUG-19 \n"); */
         ST(0) = sv_2mortal(newRV_inc((SV *) status));
-        code = 0;
-        SETCODE(code);
+        SETCODE(0);
         XSRETURN(1);
         
-        done:
+        clean:
         if (vllist)
             Safefree(vllist);
         if (arrayEntries.nbulkentries_val)
             Safefree(arrayEntries.nbulkentries_val);
+        XSRETURN_UNDEF;
     }
 
 void
@@ -6889,10 +6963,9 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
             he = (struct hostent *) hostutil_GetHostByName(host);
             if (he == (struct hostent *) 0) {
                 char buffer[80];
-                sprintf(buffer, "Can't get host info for '%s'\n", host);
-                XSRETURN_UNDEF;
+                sprintf(buffer, "Can't get host info for '%s'\n", host); 
                 VSETCODE(-1, buffer);
-                goto done;
+                XSRETURN_UNDEF;
             }
             /*memcpy(&saddr, he->h_addr, 4); */
             /* Copy(he->h_addr, &saddr, sizeof(afs_int32), afs_int32); */
@@ -6912,7 +6985,6 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
             sprintf(buffer, "AFS::VLDB: could not list the server addresses\n");
             VSETCODE(vcode, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
         
         m_nentries = 0;
@@ -6932,12 +7004,16 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
                 continue;
             }
         
+            if (vcode == VL_INDEXERANGE) {
+                vcode = 0;
+                break;
+            }
+
             if (vcode) {
                 char buffer[80];
                 sprintf(buffer, "AFS::VLDB: could not list the server addresses\n");
                 VSETCODE(vcode, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
         
             myprint_addrs(addr, &m_addrs, &m_uuid, m_nentries, printuuid, noresolve);
@@ -6951,9 +7027,6 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
         
         SETCODE(vcode);
         XSRETURN(j);
-        
-        done:
-        ;
     }
 
 void
@@ -7187,21 +7260,18 @@ vldb_lock(cstruct, id)
             else
                 sprintf(buffer, "AFS::VLDB: can't find volume '%s'\n", id);
             VSETCODE(err ? err : -1, buffer);
-            goto done;
+            XSRETURN_UNDEF;
         }
         vcode = ubik_Call(VL_SetLock, cstruct, 0, avolid, -1, VLOP_DELETE);
         if (vcode) {
             char buffer[80];
             sprintf(buffer, "Could not lock VLDB entry for volume %s\n", id);
             VSETCODE(vcode, buffer);
-            goto done;
+            XSRETURN_UNDEF;
         }
             /*     fprintf(STDOUT, "Locked VLDB entry for volume %s\n", id); */
         SETCODE(0);
         RETVAL = 1;
-        
-        done:
-        ;
     }
     OUTPUT:
         RETVAL
@@ -7770,7 +7840,7 @@ vldb_syncserv(cstruct, servername, parti=NULL)
 
 MODULE = AFS            PACKAGE = AFS::BOS      PREFIX = bos_
 
-AFS::BOS 
+AFS::BOS
 bos_new(class=0, servname, noauth=0, localauth=0, cell=0, aencrypt=1)
         char *  class
         char *servname
@@ -8534,7 +8604,6 @@ bos_getrestart(self)
         int32 code = 0;
         struct ktime generalTime, newBinaryTime;
         char messageBuffer[256];
-        int error = 0;
     PPCODE:
     {
         code = BOZO_GetRestartTime(self, 1, &generalTime);
@@ -8543,7 +8612,6 @@ bos_getrestart(self)
             sprintf(buffer, "AFS::BOS: failed to retrieve restart information (%s)\n", em(code));
             BSETCODE(code, buffer);
             XSRETURN_UNDEF;
-            error = 1;
         }
         code = BOZO_GetRestartTime(self, 2, &newBinaryTime);
         if (code) {
@@ -8551,32 +8619,27 @@ bos_getrestart(self)
             sprintf(buffer, "AFS::BOS: failed to retrieve restart information (%s)\n", em(code));
             BSETCODE(code, buffer);
             XSRETURN_UNDEF;
-            error = 1;
         }
         
-        if (!error) {
-            code = ktime_DisplayString(&generalTime, messageBuffer);
-            if (code) {
-                char buffer[240];
-                sprintf(buffer, "AFS::BOS: failed to decode restart time (%s)\n", em(code));
-                BSETCODE(code, buffer);
-                error = 1;
-                strcpy(messageBuffer, "");
-            }
-            XPUSHs(sv_2mortal(newSVpv(messageBuffer, strlen(messageBuffer))));
-        
-            code = ktime_DisplayString(&newBinaryTime, messageBuffer);
-            if (code) {
-                char buffer[240];
-                sprintf(buffer, "AFS::BOS: failed to decode restart time (%s)\n", em(code));
-                BSETCODE(code, buffer);
-                error = 1;
-                strcpy(messageBuffer, "");
-            }
-            XPUSHs(sv_2mortal(newSVpv(messageBuffer, strlen(messageBuffer))));
-        
-            XSRETURN(2);
+        code = ktime_DisplayString(&generalTime, messageBuffer);
+        if (code) {
+            char buffer[240];
+            sprintf(buffer, "AFS::BOS: failed to decode restart time (%s)\n", em(code));
+            BSETCODE(code, buffer);
+            strcpy(messageBuffer, "");
         }
+        XPUSHs(sv_2mortal(newSVpv(messageBuffer, strlen(messageBuffer))));
+        
+        code = ktime_DisplayString(&newBinaryTime, messageBuffer);
+        if (code) {
+            char buffer[240];
+            sprintf(buffer, "AFS::BOS: failed to decode restart time (%s)\n", em(code));
+            BSETCODE(code, buffer);
+            strcpy(messageBuffer, "");
+        }
+        XPUSHs(sv_2mortal(newSVpv(messageBuffer, strlen(messageBuffer))));
+        
+        XSRETURN(2);
     }
 
 void
@@ -8605,8 +8668,8 @@ bos_listusers(self)
             XSRETURN_UNDEF;
         }
         else {
-            XSRETURN(i);
             SETCODE(0);
+            XSRETURN(i);
         }
     }
 
@@ -8627,7 +8690,6 @@ bos_listhosts(self)
             sprintf(buffer, "AFS::BOS: failed to get cell name (%s)\n", em(code));
             BSETCODE(code, buffer);
             XSRETURN_UNDEF;
-            goto done;
         }
             /* printf("Cell name is %s\n", tbuffer); */
         XPUSHs(sv_2mortal(newSVpv(tbuffer, strlen(tbuffer))));
@@ -8641,7 +8703,6 @@ bos_listhosts(self)
                 sprintf(buffer, "AFS::BOS: failed to get cell host %d (%s)\n", i, em(code));
                 BSETCODE(code, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
             /* printf("    Host %d is %s\n", i+1, tbuffer); */
             av_push(av, newSVpv(tbuffer, strlen(tbuffer)));
@@ -8649,11 +8710,8 @@ bos_listhosts(self)
         
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av))));
         
-        XSRETURN(2);
         SETCODE(code);
-        
-        done:
-        ;
+        XSRETURN(2);
     }
 
 int32
@@ -8741,8 +8799,11 @@ bos_getlog(self, file)
         tcall = rx_NewCall(self);
         code = StartBOZO_GetLog(tcall, file);
         if (code) {
+            char buffer[80];
             rx_EndCall(tcall, code);
-            goto done;
+            sprintf(buffer, "AFS::BOS error %d (while reading log)\n", code);
+            BSETCODE(code, buffer);
+            XSRETURN_UNDEF;
         }
         
             /* copy data */
@@ -8769,14 +8830,6 @@ bos_getlog(self, file)
         #    Safefree(tcall);
             /* fall through into cleanup code */
         XSRETURN(num);
-        
-        done:
-        if (code) {
-            char buffer[80];
-            sprintf(buffer, "AFS::BOS error %d (while reading log)\n", code);
-            BSETCODE(code, buffer);
-            XSRETURN_UNDEF;
-        }
     }
 
 int32
@@ -9476,24 +9529,29 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
 
 MODULE = AFS            PACKAGE = AFS::PTS      PREFIX = pts_
 
-AFS::PTS 
+AFS::PTS
 pts__new(class=0, sec=1, cell=0)
         char *  class
         int32   sec
         char *  cell
-    PPCODE:
-    {
+    PREINIT:
         int32 code = -1;
         AFS__PTS server;
-        
+    PPCODE:
+    {
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
+            cell = NULL;
+
         server = internal_pts_new(&code, sec, cell);
-        SETCODE(code);
+        # SETCODE(code);  wird tiefer gesetzt...
         
-        ST(0) = sv_newmortal();
         if (code == 0) {
+            ST(0) = sv_newmortal();
             sv_setref_pv(ST(0), "AFS::PTS", (void *) server);
+            XSRETURN(1);
         }
-        XSRETURN(1);
+        else
+            XSRETURN_UNDEF;
     }
 
 int32
@@ -10930,22 +10988,28 @@ kas_ka_GetToken(server,name,instance,start,end,auth_token,auth_domain="")
 #if defined(AFS_3_4)
         code = ka_GetToken(name, instance, server, start, end, auth_token, auth_domain, t);
 #else
-        if (cell == 0)
+        if (cell == 0) {
             cell = internal_GetLocalCell(&code);
-        if (code == 0)
-            code = ka_GetToken(name, instance, cell, cname, cinst, server,
-                               start, end, auth_token, auth_domain, t);
+            if (code)
+                XSRETURN_UNDEF;
+        }
+        code = ka_GetToken(name, instance, cell, cname, cinst, server,
+                           start, end, auth_token, auth_domain, t);
 #endif
-        SETCODE(code);
         if (code == 0) {
             SV *st;
             EXTEND(sp, 1);
             st = sv_newmortal();
             sv_setref_pv(st, "AFS::KTC_TOKEN", (void *) t);
             PUSHs(st);
+            XSRETURN(1);
         }
         else {
+            char buffer[80];
+            sprintf(buffer, "AFS::KTC_TOKEN: ");
+            KSETCODE(code, buffer);
             safefree(t);
+            XSRETURN_UNDEF;
         }
     }
 
@@ -10973,14 +11037,13 @@ kas_ka_Authenticate(server,name,instance,service,key,start,end,pwexpires=-1)
 #if defined(AFS_3_4)
         code = ka_Authenticate(name, instance, server, service, key, start, end, t, &pw);
 #else
-        if (cell == 0)
+        if (cell == 0) {
             cell = internal_GetLocalCell(&code);
-        if (code == 0)
-            code =
-                ka_Authenticate(name, instance, cell, server, service, key, start, end, t, &pw);
+            if (code)
+                XSRETURN_UNDEF;
+        }
+        code = ka_Authenticate(name, instance, cell, server, service, key, start, end, t, &pw);
 #endif
-        
-        SETCODE(code);
         if (code == 0) {
             SV *st;
             EXTEND(sp, 1);
@@ -10989,9 +11052,14 @@ kas_ka_Authenticate(server,name,instance,service,key,start,end,pwexpires=-1)
             PUSHs(st);
             if (pwexpires != -1)
                 sv_setiv(ST(7), (IV) pw);
+            XSRETURN(1);
         }
         else {
+            char buffer[80];
+            sprintf(buffer, "AFS::KTC_TOKEN: ");
+            KSETCODE(code, buffer);
             safefree(t);
+            XSRETURN_UNDEF;
         }
     }
 
@@ -11113,22 +11181,31 @@ afs_ka_ReadPassword(prompt,verify=0,cell=0)
         int32 code = 0;
         struct ktc_encryptionKey *key;
         SV *st;
+
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
+            cell = NULL;
         
-        key = (struct ktc_encryptionKey *) safemalloc(sizeof(*key));
-        
-        if (cell == 0)
+        if (cell == 0) {
             cell = internal_GetLocalCell(&code);
-        if (code == 0)
-            code = ka_ReadPassword(prompt, verify, cell, key);
-        SETCODE(code);
+            if (code)
+                XSRETURN_UNDEF;
+        }
+
+        key = (struct ktc_encryptionKey *) safemalloc(sizeof(*key));
+        code = ka_ReadPassword(prompt, verify, cell, key);
         if (code == 0) {
             EXTEND(sp, 1);
             st = sv_newmortal();
             sv_setref_pv(st, "AFS::KTC_EKEY", (void *) key);
             PUSHs(st);
+            XSRETURN(1);
         }
         else {
+            char buffer[80];
+            sprintf(buffer, "AFS::KTC_EKEY: ");
+            KSETCODE(code, buffer);
             safefree(key);
+            XSRETURN_UNDEF;
         }
     }
 
@@ -11274,7 +11351,7 @@ afs_ka_AuthServerConn(token,service,cell=0)
         if (token == &the_null_token)
             token = NULL;
         
-        if (cell && cell[0] == '\0')
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
         
         code = ka_AuthServerConn(cell, service, token, &server);
@@ -11345,18 +11422,23 @@ afs_setpag()
 void
 afs_expandcell(cell)
         char *  cell
-    CODE:
+    PPCODE:
     {
         int32 code;
         struct afsconf_cell info;
         
-        if (cell && !*cell)
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
+
         code = internal_GetCellInfo(cell, 0, &info);
-        SETCODE(code);
-        ST(0) = sv_newmortal();
-        if (code == 0) {
+        if (code != 0) {
+            XSRETURN_UNDEF;
+        }
+        else {
+            SETCODE(code);  /* fuer Fehler wird tiefer gesetzt... */
+            ST(0) = sv_newmortal();
             sv_setpv(ST(0), info.name);
+            XSRETURN(1);
         }
     }
 
@@ -11365,15 +11447,13 @@ afs_localcell()
     PPCODE:
     {
         int32 code;
-        char *c;
+        char *cell;
         
-        c = internal_GetLocalCell(&code);
+        cell = internal_GetLocalCell(&code);
         
-        SETCODE(code);
+        if (! code) SETCODE(code);  /* fuer Fehler wird tiefer gesetzt... */
         ST(0) = sv_newmortal();
-        if (code == 0) {
-            sv_setpv(ST(0), c);
-        }
+        sv_setpv(ST(0), cell);
         XSRETURN(1);
     }
 
@@ -11386,15 +11466,17 @@ afs_getcellinfo(cell=0,ip=0)
         int32 code;
         struct afsconf_cell info;
         
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
+            cell = NULL;
+        
         code = internal_GetCellInfo(cell, 0, &info);
-        SETCODE(code);
-        
-        if (cell && cell[0] == 0)
-            cell = 0;
-        
-        if (code == 0) {
+        if (code != 0) {
+            XSRETURN_UNDEF;
+        }
+        else {
             int i;
             char *h;
+            SETCODE(code);  /* fuer Fehler wird tiefer gesetzt... */
             XPUSHs(sv_2mortal(newSVpv(info.name, strlen(info.name))));
             for (i = 0; i < info.numServers; i++) {
                 if (ip == 1) {
@@ -11405,6 +11487,7 @@ afs_getcellinfo(cell=0,ip=0)
                 }
                 XPUSHs(sv_2mortal(newSVpv(h, strlen(h))));
             }
+            XSRETURN(i+1);
         }
     }
 
@@ -11464,19 +11547,21 @@ afs_configdir(...)
             config_dir = (char *) safemalloc(len + 1);
             strcpy(config_dir, value);
             code = internal_GetConfigDir();
-            SETCODE(code);
+            # SETCODE(code);  wird tiefer gesetzt...
             ST(0) = sv_newmortal();
             sv_setiv(ST(0), (code == 0));
             XSRETURN(1);
         }
         else {
             code = internal_GetConfigDir();
-            SETCODE(code);
-            ST(0) = sv_newmortal();
+            # SETCODE(code);  wird tiefer gesetzt...
             if (code == 0) {
+                ST(0) = sv_newmortal();
                 sv_setpv(ST(0), config_dir);
+                XSRETURN(1);
             }
-            XSRETURN(1);
+            else 
+                XSRETURN_UNDEF;
         }
     }
 

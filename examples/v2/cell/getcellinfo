@@ -9,8 +9,10 @@ my $c = shift;
 my $ip = shift;
 
 my ($cell, @hosts) = getcellinfo($c, $ip);
-print "AFS::CODE = $AFS::CODE (",$AFS::CODE+0,")\n";
-print "Cell: $cell\n";
+print "AFS::CODE = $AFS::CODE \n";
+if (defined $cell) {
+    print "Cell: $cell\n";
+}
 foreach my $host (@hosts) {
     print(" $host\n");
 }

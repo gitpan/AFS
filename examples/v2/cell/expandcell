@@ -8,4 +8,6 @@ my $c = shift;
 
 my $cell = expandcell($c);
 print "AFS::CODE = $AFS::CODE\n";
-print "cell = $cell\n";
+if (defined $cell) {
+    print "cell = $cell\n";
+}

@@ -1,7 +1,7 @@
 #
 sub set_version {
 
-    my $head_url = '$HeadURL: svn+ssh://Sams/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.4.0/version $';
+    my $head_url = '$HeadURL: svn+ssh://Lati/afs/mpa/home/nog/SVN-Repositories/afsperl/tags/release-2.4.1/version $';
 
     if ($head_url =~ /rc\d/) {
         # release candidate

@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlktck.pod 687 2005-02-21 13:58:41Z nog $"
+# RCS-Id: "@(#)$Id: afsperlktck.pod 857 2008-10-14 09:00:47Z nog $"
 #
-# Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -59,6 +59,12 @@ or interfaces from version 2. You either stick with version 1 or version
      ka_UserReadPassword   AFS::KTC_EKEY->UserReadPassword
      ka_StringToKey        AFS::KTC_EKEY->StringToKey
      ka_des_string_to_key  AFS::KTC_EKEY->des_string_to_key
+
+B<NOTE>:
+
+B<This is the last release supporting features and interfaces
+from version 1.  The upcoming release 2.6.0 will not support them
+anymore.>
 
 =head1 METHODS
 
@@ -136,7 +142,7 @@ Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
@@ -180,4 +186,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 687 $
+Revision $Rev: 857 $

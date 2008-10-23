@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperl.pod 773 2006-02-16 13:39:13Z nog $"
+# RCS-Id: "@(#)$Id: afsperl.pod 857 2008-10-14 09:00:47Z nog $"
 #
-# Copyright © 2001-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -14,8 +14,7 @@ B<AFS> - Perl interface to AFS programming APIs
 
 =head1 VERSION
 
-This document describes the AFS module bundle
-(Version 2.4.0)
+This document describes the AFS module bundle (Version 2.4.1)
 
 
 =head1 COMPATIBILITY
@@ -32,6 +31,12 @@ POD documentations.
 You B<must not> intermix names or interfaces from version 1 with names
 or interfaces from version 2. You either stick with version 1 or version
 2.
+
+B<NOTE>:
+
+B<This is the last release supporting features and interfaces
+from version 1.  The upcoming release 2.6.0 will not support them
+anymore.>
 
 =head1 DESCRIPTION
 
@@ -52,73 +57,72 @@ The AFS module bundle includes the following features:
 =item * Access to Basic Overseer Server routines
 
 Methods that deal with the Basic Overseer Server (i.e, the I<bos>
-command suite).  See L<afsperlbos>.
+command suite).  See L<AFS::BOS>.
 
 =item * Access to Volume Server routines
 
 Methods that deal with the Volume Server (i.e, part of the I<vos>
-command suite).  See L<afsperlvos>.
+command suite).  See L<AFS::VOS>.
 
 =item * Access to Volume Location Server routines
 
 Methods that deal with the Volume Location Server (i.e, part of the
-I<vos> command suite).  See L<afsperlvos>.
+I<vos> command suite).  See L<AFS::VLDB>.
 
 =item * Access to File Server routines
 
 Functions that deal with the File Server (i.e, part of the I<fs>
-command suite).  See L<afsperlfs>.
+command suite).  See L<AFS::FS>.
 
 =item * Access to Cache Manager routines
 
 Functions that deal with the Cache Manager (i.e, part of the I<fs>
-command suite).  See L<afsperlcm>.
+command suite).  See L<AFS::CM>.
 
 =item * Managing Access Control Lists
 
 Methods to control access to directories and all of their files. (i.e,
-part of the I<fs> command suite). See L<afsperlacl>.
+part of the I<fs> command suite). See L<AFS::ACL>.
 
 =item * Manipulations of the Cell Configuration
 
 Functions that deal with Cell Configurations (i.e, part of the I<fs>
-command suite).  See L<afsperlcell>.
+command suite).  See L<AFS::CELL>.
 
 =item * Access to Protection Server routines
 
 Methods that deal with the Protection Server (i.e, the I<pts> command
-suite).  See L<afsperlpts>.
+suite).  See L<AFS::PTS>.
 
 =item * Access to the Authentication Server routines
 
 Methods that deal with the Authentication Server (i.e, the I<kas>
-command suite).  See L<afsperlkas>.
+command suite).  See L<AFS::KAS>.
 
 =item * Access to the AFS structure ktc_token
 
 Methods that deal with token management in the I<Kernel Token Cache>
-(KTC) (i.e, the tokens command).  See L<afsperlktct>.
+(KTC) (i.e, the tokens command).  See L<AFS::KTC_TOKEN>.
 
 =item * Access to the AFS structure ktc_principal
 
-Methods that deal with principals related to tokens.  See
-L<afsperlktcp>.
+Methods that deal with principals related to tokens.  See L<AFS::KTC_PRINCIPAL>.
 
 =item * Access to the AFS structure ktc_encryptionkey
 
 Methods that deal with encryption keys related to tokens.  See
-L<afsperlktck>.
+L<AFS::KTC_EKEY>.
 
 =item * Access to shared utility routines
 
 Utility functions for the AFS module bundle which are not part of any
-AFS command suite (i.e, the setpag command).  See L<afsperlutils>.
+AFS command suite (i.e, the setpag command).  See L<AFS::Utils>.
 
 =item * Access to basic AFS functions and to AFS error codes
 
 Basic functions like raising a Perl exception when any AFS function call
 fails (useful for debugging) or retrieving the status value of the last
-AFS function call. See L<afsperlbase>.
+AFS function call. See L<AFS::BASE>.
 
 =back
 
@@ -193,25 +197,25 @@ his "Sun" patches for the Makefile.PL
 
 B<Nathan Neulinger> - for his improvements of the Makefile.PL
 
-B<Bernard Antoine> - for his bug report about a memory leak in the method
+B<Bernard Antoine> - for his bug report on a memory leak in the method
 "AFS::ACL->retrieve".
 
-B<Peter Scott> - for his bug report about a memory leak in the function
+B<Peter Scott> - for his bug report on a memory leak in the function
 "getvolstats"
 
-B<Peter Scott> - for his bug report about the function AFS::constant
+B<Peter Scott> - for his bug report on the function AFS::constant
 
 B<Venkata Phani Achanta> - for his improved test drivers for several modules
 
-B<David R. Boldt> - for his bug report about an undefined "typemap" entry
+B<David R. Boldt> - for his bug report on an undefined "typemap" entry
 
 B<Alf Wachsmann> and B<Venkata Phani Achanta> - for their implementation
 of the BOS, VOS, and VLDB modules
 
 B<Phil Moore> - for his bug report on Itanium ia64 platform
 
-B<Frank Burkhardt> and B<David Miller> - for their problem reports connected
-to Perl "unthreaded" version with the Debian "unstable" distribution
+B<Frank Burkhardt> and B<David Miller> - for their problem reports on
+Perl "unthreaded" version within the Debian "unstable" distribution
 
 B<Pierre-Yves Fontaniere> - for his configuration report for rs_aix51
 
@@ -224,11 +228,32 @@ B<Yannick Bergeron> - for his corrections for the AFS::KTC_TOKEN documentation
 
 B<Mike Polek> - for his patch for the AFS::FS::getquota function
 
-B<Peter Scott> - for his problem report about AFS::VOS->listvolume
+B<Peter Scott> - for his problem report on AFS::VOS->listvolume and
+for his improvements of the AFS::FS POD documentation
+
+B<Wolfgang Friebel> - for his improvements of the AFS POD documentation
+
+B<Joe Buehler> - for his problem report on the installation step and
+his patch for the AFS::BOS test driver
+
+B<Craig Huckabee> - for his problem report on the compile step with
+OpenAFS 1.4.2 and for his patch for the internal BOS constructor
+
+B<Wolfgang Friebel> - for his patch for the Makefile.PL
+
+B<Alessio Rocchi> - for his bug reports on AFS::VOS->listvldb, on
+AFS::VLDB->listaddr, and on AFS::VOS->listvol
+
+B<Ken Dreyer> - for his problem report on the compile step with
+OpenAFS newer than 1.4.4
+
+B<Frank Burkhardt> - for his problem report on using Perl 5.10.0
+
+B<Alessio Rocchi> - for his bug report on AFS::VLDB->listaddr
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
@@ -259,4 +284,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 773 $
+Revision $Rev: 857 $

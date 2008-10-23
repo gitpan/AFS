@@ -1,8 +1,9 @@
 package AFS::VOS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: VOS.pm 688 2005-02-21 14:01:23Z nog $"
+# RCS-Id: "@(#)$Id: VOS.pm 834 2008-10-04 21:18:29Z nog $"
 #
-# Copyright © 2003-2005 Alf Wachsmann <alfw@slac.stanford.edu> and
+# Copyright © 2005-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+#           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
@@ -15,7 +16,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = do{my@r=q/Major Version 2.4 $Rev: 688 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
+$VERSION = '2.4.1';
 
 sub DESTROY {
     my (undef, undef, undef, $subroutine) = caller(1);

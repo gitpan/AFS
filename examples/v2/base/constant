@@ -12,6 +12,11 @@ print "Value constant = $value \n";
 $value = &AFS::PRIDEXIST;       # value = 267265, preferred method
 print "Value function = $value \n";
 
+$value = constant('VBUSY'); # value = 110
+print "Value constant = $value \n";
+
+$value = &AFS::VBUSY;       # value = 110, preferred method
+print "Value function = $value \n";
 
 # print "AFS::PRSUCCESS  = ",&AFS::PRSUCCESS ,"\n";
 # print "AFS::PR_MAXNAMELEN  = ",&AFS::PR_MAXNAMELEN ,"\n";

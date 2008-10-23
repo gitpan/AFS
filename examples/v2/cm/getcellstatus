@@ -10,4 +10,6 @@ my $cell = shift;
 
 my $setuid = getcellstatus($cell);
 print "AFS::CODE = $AFS::CODE\n";
-printf("Setuid allowed: %s \n", $setuid ? 'yes' : 'no');
+if (defined $setuid) {
+    printf("Setuid allowed: %s \n", $setuid ? 'yes' : 'no');
+}
