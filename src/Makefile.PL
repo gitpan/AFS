@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL 795 2008-03-06 14:00:16Z nog $"
+# RCS-Id: "@(#)$Id: Makefile.PL 851 2008-10-05 20:58:14Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -14,11 +14,6 @@ use lib qw(./inc);
 use ExtUtils::MakeMaker;
 use Config;
 use version;
-
-BEGIN {
-    require '../version';
-}
-my $API_VERSION = set_version();
 
 my $archname = $Config{'archname'};
 my $libs;
@@ -84,6 +79,10 @@ my $msg = "\nPath to the AFS installation (libraries, binaries, \n"
         . "header files) to be used for this installation? \t ";
 $AFSPath = prompt($msg, $AFSPath);
 $AFSPath =~ s\/$\\;
+if ($AFSPath eq 'unknown') {
+    warn "Most probabley you have not installed the AFS system libraries...\n";
+    if ($ENV{AUTOMATED_TESTING}) { exit 0; }
+}
 
 # determine the alpha_sys value
 #my $alpha_sys = 'i386_linux24';
@@ -147,7 +146,7 @@ elsif ($v_numb =~ /1.4/)   { $m_version = 'OpenAFS 1.4'; }
 elsif ($v_numb =~ /devel/) { $m_version = 'OpenAFS devel'; }
 
 # set the different compiler flags according to the AFS version
-my ($d_flag, $a_flag, $e_flag) = ('', '', '');
+my ($d_flag, $a_flag, $e_flag, $i_flag) = ('', '', '', '');
 if ($v_string =~ /openafs/)  { $a_flag = '-DOpenAFS'; }
 
 $d_flag = $m_version;
@@ -156,6 +155,7 @@ $d_flag = '-D' . $d_flag;
 
 if ($v_numb gt "1.4.4") {
     $e_flag = '-DAFS_OLD_COM_ERR';
+    $i_flag = '-I ./ ';
 }
 
 # print out a summary of determined data
@@ -168,9 +168,9 @@ print "Your AFS system type seems to be:          $alpha_sys \n\n";
 # set the Makefile values
 my %MakefileArgs = (
     'NAME'         => 'AFS',
-    'VERSION'      => "$API_VERSION",
+    'VERSION_FROM' => 'AFS.pm',
     'DEFINE'	   => "$d_flag $p_flag $a_flag $e_flag",
-    'INC'          => "-I$AFSPath/include",
+    'INC'          => $i_flag . "-I$AFSPath/include",
     'LIBS'         => [
                        "-L$AFSPath/lib -L$AFSPath/lib/afs "
                        . $libs

@@ -1,6 +1,6 @@
 package AFS::KTC_TOKEN;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: KTC_TOKEN.pm 824 2008-10-03 14:39:04Z nog $"
+# RCS-Id: "@(#)$Id: KTC_TOKEN.pm 853 2008-10-11 08:55:12Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = '2.4.1';
+$VERSION = '2.6.0';
 
 sub nulltoken {
     my $class  = shift;

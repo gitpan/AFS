@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlktck.pod 857 2008-10-14 09:00:47Z nog $"
+# RCS-Id: "@(#)$Id: afsperlktck.pod 859 2008-10-14 09:23:34Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -29,13 +29,6 @@ B<AFS::KTC_EKEY> - Class to handle the B<AFS structure ktc_encryptionkey>
 
   undef $key;
 
-B<NOTE: The following lines are 'version 1' style: all names are
-exported by default. This style is deprecated !!!>
-
-  use AFS;              # import all AFS names
-  use AFS @AFS::KA;     # import just the ka names
-  use AFS @AFS::KTC;    # import just the ktc names
-
 =head1 DESCRIPTION
 
 This class provides methods to handle the B<AFS structure ktc_encryptionkey>.
@@ -45,26 +38,8 @@ create B<ktc_encryptionkey> instances.
 
 =head1 COMPATIBILITY
 
-In version 2, some of the methods have been renamed.  All old names and
-interfaces from version 1 are still available for compatibility, but
-are deprecated.  These cases have been marked in the documentation.
-
-You B<must not> intermix names or interfaces from version 1 with names
-or interfaces from version 2. You either stick with version 1 or version
-2.
-
-     Version 1             Version 2
-     -----------------------------------------------------
-     ka_ReadPassword       AFS::KTC_EKEY->ReadPassword
-     ka_UserReadPassword   AFS::KTC_EKEY->UserReadPassword
-     ka_StringToKey        AFS::KTC_EKEY->StringToKey
-     ka_des_string_to_key  AFS::KTC_EKEY->des_string_to_key
-
-B<NOTE>:
-
-B<This is the last release supporting features and interfaces
-from version 1.  The upcoming release 2.6.0 will not support them
-anymore.>
+B<This release does NOT support any features and interfaces
+from version 1.>
 
 =head1 METHODS
 
@@ -80,10 +55,6 @@ The STRING string is converted to a DES encryption key and this key is
 returned as an AFS::KTC_EKEY object.  It calls the AFS system library
 function 'des_string_to_key'.
 
-B<NOTE: this form is deprecated !!!>
-
- $key = ka_des_string_to_key(STRING);
-
 =item B<$key = AFS::KTC_EKEY-E<gt>ReadPassword(PROMPT [, VERIFY [, CELL]]);>
 
 Prints out a PROMPT and reads a string from the terminal, turning off
@@ -93,19 +64,11 @@ NULL. The string is then converted to a DES encryption key and the
 encryption key is returned as an AFS::KTC_EKEY object.  It calls the AFS
 system library function 'ka_ReadPassword'.
 
-B<NOTE: this form is deprecated !!!>
-
- $key = ka_ReadPassword(PROMPT, VERIFY, CELL);
-
 =item B<$key = AFS::KTC_EKEY-E<gt>StringToKey(PASSWD, CELL);>
 
 The PASSWD string is converted to a DES encryption key and this key is
 returned as an AFS::KTC_EKEY object.  It calls the AFS system library
 function 'ka_StringToKey'.
-
-B<NOTE: this form is deprecated !!!>
-
- $key = ka_StringToKey(PASSWD, CELL);
 
 =item B<CLASS METHODS>
 
@@ -117,10 +80,6 @@ Prints out a PROMPT and reads a string from the terminal, turning off
 echoing.  This string is returned.  On error the error message is
 returned in REASON.  It calls the AFS system library function
 'ka_UserReadPassword'.
-
-B<NOTE: this form is deprecated !!!>
-
- $string = ka_UserReadPassword(PROMPT, REASON);
 
 =item B<ATTRIBUTES ACCESS>
 
@@ -186,4 +145,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 857 $
+Revision $Rev: 859 $

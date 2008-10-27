@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 816 2008-08-28 11:01:17Z nog $
+ * RCS-Id: @(#)$Id: AFS.xs 883 2008-10-27 08:31:44Z nog $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -88,7 +88,11 @@
 #include <afs/bosint.h>
 #include <afs/bnode.h>
 #include <afs/ktime.h>
+#if defined(AFS_OLD_COM_ERR)
+#include <com_err.h>
+#else
 #include <afs/com_err.h>
+#endif
 #include <des.h>
 
 #include <afs/volint.h>
@@ -99,7 +103,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Major Version 2.4 $Rev: 816 $)";
+const char *const xs_version = "AFS.xs (Version 2.6.0)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {

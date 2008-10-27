@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlkas.pod 857 2008-10-14 09:00:47Z nog $"
+# RCS-Id: "@(#)$Id: afsperlkas.pod 859 2008-10-14 09:23:34Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -53,12 +53,6 @@ B<AFS::KAS> - Class to communicate with the B<AFS Authentication Server>
 
   $kas->DESTROY;           # destroy server connection
 
-B<NOTE: these forms are deprecated !!!>
-
-  use AFS;              # import all AFS names
-  use AFS @AFS::KA;     # import just the ka names
-  use AFS @AFS::KTC;    # import just the ktc names
-
 =head1 DESCRIPTION
 
 This class is used to communicate with the B<AFS Authentication
@@ -80,30 +74,8 @@ other KAS instance methods can be called.
 
 =head1 COMPATIBILITY
 
-In version 2, some of the methods have been renamed.  All old names and
-interfaces from version 1 are still available for compatibility, but
-are deprecated.  These cases have been marked in the documentation.
-
-You B<must not> intermix names or interfaces from version 1 with names
-or interfaces from version 2. You either stick with version 1 or version
-2.
-
-     Version 1                Version 2
-     -----------------------------------------------------
-     ka_AuthServerConn        AFS::KAS->AuthServerConn
-     ka_SingleServerConn      AFS::KAS->SingleServerConn
-     ka_Authenticate          AFS::KAS->Authenticate
-     ka_ChangePassword        AFS::KAS->ChangePassword
-     ka_GetToken              AFS::KAS->GetToken
-     ka_LocalCell             not implemented; use AFS::Cell->LocalCell
-     ka_ExpandCell            not implemented; use AFS::Cell->ExpandCell
-     ka_CellToRealm           not implemented; use AFS::Cell->CellToRealm
-
-B<NOTE>:
-
-B<This is the last release supporting features and interfaces
-from version 1.  The upcoming release 2.6.0 will not support them
-anymore.>
+B<This release does NOT support any features and interfaces
+from version 1.>
 
 =head1 METHODS
 
@@ -130,10 +102,6 @@ Possible values for SERVICE are
 
 It calls the AFS system library function 'ka_AuthServerConn'.
 
-B<NOTE: this form is deprecated !!!>
-
- $kas = ka_AuthServerConn(TOKEN...);
-
 =item B<$kas = AFS::KAS-E<gt>SingleServerConn(HOST, TOKEN, SERVICE [, CELL]);>
 
 Creates a new object of the class AFS::KAS and establishes a connection
@@ -148,10 +116,6 @@ of AFS::KTC_TOKEN.  Possible values for SERVICE are
    &AFS::KA_MAINTENANCE_SERVICE
 
 It calls the AFS system library function 'ka_SingleServerConn'.
-
-B<NOTE: this form is deprecated !!!>
-
- $kas = ka_SingleServerConn(HOST...);
 
 =item B<DESTRUCTOR>
 
@@ -186,10 +150,6 @@ are
 
 It calls the AFS system library function 'ka_Authenticate'
 
-B<NOTE: this form is deprecated !!!>
-
- $token = $kas->ka_Authenticate(UNAME...);
-
 =item B<$ok = $kas-E<gt>ChangePassword(UNAME, UINST, OKEY, NKEY);>
 
 Changes the password for the user entry UNAME.UINST in the
@@ -197,10 +157,6 @@ Authentication Database to NKEY. OKEY and NKEY must be instances of
 AFS::KTC_EKEY.  OEKY is never used, so you can put in any key
 (randomkey).  It calls the AFS system library function
 'ka_ChangePassword'.
-
-B<NOTE: this form is deprecated !!!>
-
- $ok = ka_ChangePassword(UNAME...);
 
 =item B<$ok = $kas-E<gt>create(UNAME, UINST, NKEY);>
 
@@ -271,10 +227,6 @@ intervals). AUTH_TOKEN must be a ticket for the ticket­granting
 service (an instance of AFS::KTC_TOKEN) in the cell AUTH_CELL (default
 null). It assumes that a connection to the AuthServer has already been
 established.  It calls the AFS system library function 'ka_GetToken'.
-
-B<NOTE: this form is deprecated !!!>
-
- $token = ka_GetToken(SNAME...);
 
 =item B<($name, $inst) = $kas-E<gt>listentry(PREV, INDX, COUNT);>
 
@@ -392,4 +344,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 857 $
+Revision $Rev: 859 $

@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlacl.pod 857 2008-10-14 09:00:47Z nog $"
+# RCS-Id: "@(#)$Id: afsperlacl.pod 859 2008-10-14 09:23:34Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -38,12 +38,6 @@ B<AFS::ACL> - Class to handle the B<AFS Access Control Lists>
   my $new_acl = AFS::ACL->retrieve('/afs/mpa/home/nog');
   $ok = $new_acl->modifyacl('/afs/mpa/home/guest');
 
-B<NOTE: The following lines are 'version 1' style: all names are
-exported by default. This style is deprecated !!!>
-
-  use AFS;              # import all AFS names
-  use AFS @AFS::ACL;    # import just the ACL names
-
 =head1 DESCRIPTION
 
 This class provides methods to handle the B<AFS Access Control Lists>
@@ -59,39 +53,8 @@ not specified FOLLOW defaults to 1.
 
 =head1 COMPATIBILITY
 
-In version 2, some of the methods have been renamed.  All old names and
-interfaces from version 1 are still available for compatibility, but
-are deprecated.  These cases have been marked in the documentation.
-
-You B<must not> intermix names or interfaces from version 1 with names
-or interfaces from version 2. You either stick with version 1 or version
-2.
-
-     Version 1             Version 2
-     -----------------------------------------------------
-     AFS::ACL::new         AFS::ACL->new, new AFS::ACL
-     newacl                AFS::ACL->new, new AFS::ACL
-     getacl                AFS::ACL->retrieve
-     copyacl               AFS::ACL->copyacl
-     cleanacl              AFS::ACL->cleanacl
-     crights               AFS::ACL->crights
-     ascii2rights          AFS::ACL->ascii2rights
-     rights2ascii          AFS::ACL->rights2ascii
-     $acl->del             $acl->remove
-     $acl->ndel            $acl->nremove
-     $acl->get             $acl->get_rights
-     $acl->nget            $acl->nget_rights
-     $acl->keys            $acl->get_users
-     $acl->nkeys           $acl->nget_users
-     $acl->addacl          $acl->add
-     setacl                $acl->apply
-     modifyacl             $acl->modifyacl
-
-B<NOTE>:
-
-B<This is the last release supporting features and interfaces
-from version 1.  The upcoming release 2.6.0 will not support them
-anymore.>
+B<This release does NOT support any features and interfaces
+from version 1.>
 
 =head1 METHODS
 
@@ -107,11 +70,6 @@ Creates a new object of the class AFS::ACL.  The constructor takes two
 optional arguments.  C<%POS> and C<%NEG> are lists of positive and
 negative ACL entries given in the form of user-rights pairs, just like a
 hash table.
-
-B<NOTE: these forms are deprecated !!!>
-
- $acl = AFS::ACL::new([\%pos [, \%neg]]);
- $acl = newacl([\%pos [, \%neg]]);
 
 =item B<COPY CONSTRUCTOR>
 
@@ -129,27 +87,15 @@ Returns a copy of an existing ACL object.
 
 Retrieves the ACL list for the given PATH and stores it in the object $acl.
 
-B<NOTE: this form is deprecated !!!>
-
- $acl = getacl($path [,$follow=1]);
-
 =item B<$ok = AFS::ACL-E<gt>copyacl(FROMDIR, TODIR [, FOLLOW]);>
 
 Copies the ACL list from a source directory FROMDIR to the specified destination
 directory TODIR. The source directory''s ACL is unchanged.
 
-B<NOTE: this form is deprecated !!!>
-
- $ok = copyacl($from_path, $to_path [,$follow=1]);
-
 =item B<$ok = AFS::ACL-E<gt>cleanacl(PATH [, FOLLOW]);>
 
 Removes from the ACL list of the specified PATH any entry that
 refers to a user or group that no longer has a Protection Database entry.
-
-B<NOTE: this form is deprecated !!!>
-
- $ok = cleanacl($path [,$follow=1]);
 
 =item B<$crights = AFS::ACL-E<gt>crights(RIGHTS);>
 
@@ -160,10 +106,6 @@ the following special strings:
   all   => rlidwka
   mail  => lik
 
-B<NOTE: this form is deprecated !!!>
-
- $crights = crights($rights);
-
 =item B<$flags = AFS::ACL-E<gt>ascii2rights(RIGHTS);>
 
 Converts RIGHTS as expressed in a character string to its internal value
@@ -171,17 +113,9 @@ Converts RIGHTS as expressed in a character string to its internal value
 not valid (rlidwka, read, write, all, none) or returns the internal
 value (int32 with bits set).
 
-B<NOTE: this form is deprecated !!!>
-
- $flags = ascii2rights($rights);
-
 =item B<$rights = AFS::ACL-E<gt>rights2ascii(FLAGS);>
 
 Converts the internal value FLAGS to its corresponding character string.
-
-B<NOTE: this form is deprecated !!!>
-
- $print = rights2ascii($flags);
 
 =item B<ATTRIBUTES ACCESS>
 
@@ -193,11 +127,6 @@ B<NOTE: this form is deprecated !!!>
 
 Returns the access rights for the given USER in the positive(-E<gt>get_rights) or
 negative(-E<gt>nget_rights) ACL list.
-
-B<NOTE: these forms are deprecated !!!>
-
- $acl->get($key)
- $acl->nget($key)
 
 =item B<$acl-E<gt>set(USER, RIGHTS);>
 
@@ -212,11 +141,6 @@ negative(-E<gt>nset) ACL list.
 
 Removes the given USER and its access rights from the positive(-E<gt>remove) or
 negative(-E<gt>nremove) ACL list.
-
-B<NOTE: these forms are deprecated !!!>
-
- $acl->del($user)
- $acl->ndel($user)
 
 =item B<$acl-E<gt>empty;>
 
@@ -235,11 +159,6 @@ negative(-E<gt>nclear) ACL list.
 
 Returns users from the positive(-E<gt>get_users) or negative(-E<gt>nget_users)
 ACL list.
-
-B<NOTE: these forms are deprecated !!!>
-
- $acl->keys
- $acl->nkeys
 
 =item B<$pos = $acl-E<gt>length;>
 
@@ -263,28 +182,16 @@ or negative(-E<gt>nexists) ACL list.
 
 Adds all entries of the ACL list NEWACL to the ACL list $acl.
 
-B<NOTE: this form is deprecated !!!>
-
- $acl->addacl(NEWACL)
-
 =item B<$ok = $acl-E<gt>apply(PATH [, FOLLOW]);>
 
 Sets the ACL list for the given PATH. This call replaces the existing ACL
 list with the new ACL list $acl.
-
-B<NOTE: this form is deprecated !!!>
-
- $ok = setacl($path, $acl [,$follow=1]);
 
 =item B<$ok = $acl-E<gt>modifyacl(PATH, [, FOLLOW]);>
 
 Sets the ACL to the union of the given $acl list and the current ACL
 of the PATH.  An access right of I<none> or an empty string will cause
 an entry to be removed from the ACL.
-
-B<NOTE: this form is deprecated !!!>
-
- $ok = modifyacl($path, $acl [,$follow=1])
 
 =back
 
@@ -342,4 +249,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 857 $
+Revision $Rev: 859 $

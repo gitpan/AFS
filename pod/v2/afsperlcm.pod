@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlcm.pod 857 2008-10-14 09:00:47Z nog $"
+# RCS-Id: "@(#)$Id: afsperlcm.pod 859 2008-10-14 09:23:34Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -37,12 +37,6 @@ B<AFS::CM> - Module to administer the B<AFS Cache Manager>
   my $crypt_flg = getcrypt;
   $ok = setcrypt('on');
 
-B<NOTE: The following lines are 'version 1' style: all names are
-exported by default. This style is deprecated !!!>
-
-  use AFS;              # import all AFS names
-  use AFS @AFS::CM;     # import just the cache manager names
-
 =head1 DESCRIPTION
 
 This module provides several functions to administer the B<AFS Cache
@@ -59,15 +53,8 @@ itself.  If not specified FOLLOW defaults to 1.
 
 =head1 COMPATIBILITY
 
-In version 2 all functions are exported only on request.  The old
-behavior from version 1 (export by default) is still available for
-compatibility, but is deprecated.
-
-B<NOTE>:
-
-B<This is the last release supporting features and interfaces
-from version 1.  The upcoming release 2.6.0 will not support them
-anymore.>
+B<This release does NOT support any features and interfaces
+from version 1.>
 
 =head1 EXPORTS
 
@@ -226,4 +213,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 857 $
+Revision $Rev: 859 $

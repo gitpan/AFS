@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlpts.pod 857 2008-10-14 09:00:47Z nog $"
+# RCS-Id: "@(#)$Id: afsperlpts.pod 859 2008-10-14 09:23:34Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -53,12 +53,6 @@ B<AFS::PTS> - Class to communicate with the B<AFS Protection Server>
 
   print "Convert(nog): ", $pts->id('nog'), "\n";
 
-B<NOTE: The following lines are 'version 1' style: all names are
-exported by default. This style is deprecated !!!>
-
-  use AFS;              # import all AFS names
-  use AFS @AFS::PTS;    # import just the PTS names
-
 =head1 DESCRIPTION
 
 This class is used to communicate with the B<AFS Protection Server> in
@@ -91,27 +85,8 @@ names.
 
 =head1 COMPATIBILITY
 
-In version 2, some of the methods have been renamed.  All old names and
-interfaces from version 1 are still available for compatibility, but
-are deprecated.  These cases have been marked in the documentation.
-
-You B<must not> intermix names or interfaces from version 1 with names
-or interfaces from version 2. You either stick with version 1 or version
-2.
-
-     Version 1                    Version 2
-     -----------------------------------------------------
-     AFS::PTS::new                AFS::PTS->new, new AFS::PTS
-     newpts                       AFS::PTS->new, new AFS::PTS
-     ascii2ptsaccess              AFS::PTS->ascii2ptsaccess
-     ptsaccess2ascii              AFS::PTS->ptsaccess2ascii
-     AFS::convert_numeric_names   AFS::PTS->convert_numeric_names
-
-B<NOTE>:
-
-B<This is the last release supporting features and interfaces
-from version 1.  The upcoming release 2.6.0 will not support them
-anymore.>
+B<This release does NOT support any features and interfaces
+from version 1.>
 
 =head1 METHODS
 
@@ -136,11 +111,6 @@ from 0 to 2:
    1    try authenticated first, fall back to un-authenticated
    2    fail if an authenticated connection can't be made
 
-B<NOTE: these forms are deprecated !!!>
-
- $pts = AFS::PTS::new(SEC...);
- $pts = newpts(SEC...);
-
 =item B<DESTRUCTOR>
 
 =item S< >
@@ -160,19 +130,11 @@ Converts the privacy flags FLAGS (a string of five characters) into
 its corresponding five privacy bits. The privacy flags indicate who
 can display or administer certain aspects of a PTS entry.
 
-B<NOTE: this form is deprecated !!!>
-
- $bits = ascii2ptsaccess($flags);
-
 =item B<$flags = AFS::PTS-E<gt>ptsaccess2ascii(BITS);>
 
 Converts the five PTS privacy bits BITS into its corresponding privacy
 flags (a string of five characters).  The privacy flags indicate who
 can display or administer certain aspects of a PTS entry.
-
-B<NOTE: this form is deprecated !!!>
-
- $flags = ptsaccess2ascii($bits);
 
 =item B<$value = AFS::PTS-E<gt>convert_numeric_names;>
 
@@ -184,10 +146,6 @@ value are converted into its AFS id. If you set NEWVAL to 0 (conversion
 is 'off'), B<NO> conversion is done.  You'll probably want to leave
 conversion 'on' unless you create PTS names that look exactly like
 numbers. (not a good idea to begin with :-)
-
-B<NOTE: this form is deprecated !!!>
-
- $value = AFS::convert_numeric_names([$newvalue]);
 
 =item S< >
 
@@ -545,4 +503,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 857 $
+Revision $Rev: 859 $

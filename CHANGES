@@ -1,4 +1,24 @@
-Version 2.4.1 (released 23 Oct 2008, revision 863)
+Version 2.6.0 (released 27 Oct 2008, revision 888)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.6.0.tar.gz
+
+ NOTICE:
+ * This release does not support AFS system libraries version 3.4 or
+   version 3.5
+ * This release does not support any features and interfaces from
+   AFSPerl "version 1"  
+
+ User-visible changes:
+ * compiles now with Perl 5.10.0
+ * HTML documentation updated in order to include cross-references
+
+
+ Developer-visible changes:
+ * runs some tests only for module author
+ * recognizes "automated tests" from CPAN testers
+
+
+
+Version 2.4.1 (released 23 Oct 2008, revision 836/863)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.4.1.tar.gz
 
  NOTICE:
@@ -28,7 +48,6 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.4.1.tar.gz
 
 
 Version 2.4.0 (released 20 Feb 2006, revision 777)
-http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.4.0.tar.gz
 
  NOTICE:
  * This release does not support AFS system libraries version 3.4 or

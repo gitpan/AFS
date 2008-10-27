@@ -1,8 +1,0 @@
-#!/usr/local/bin/perl
-
-use AFS;
-
-AFS::raise_exception(1);
-
-ktc_ForgetAllTokens;
-

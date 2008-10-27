@@ -1,9 +1,0 @@
-#!/usr/local/bin/perl
-
-use AFS getcacheparms;
-
-($max, $inuse ) = getcacheparms;
-
-print "AFS::CODE = $AFS::CODE\n";
-print "max = $max, in use = $inuse\n";
-

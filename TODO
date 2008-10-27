@@ -14,10 +14,11 @@
 
  SHORT TERM
  ----------
- * verify whether all OpenAFS constants are included in the 'constant'
-   function
+ * make the module compiling and working on 64-bit machines
 
 
  LONG TERM
  ---------
+ * verify whether all OpenAFS constants are included in the 'constant'
+   function
  * develop sufficient test suits;

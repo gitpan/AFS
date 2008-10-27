@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperl.pod 857 2008-10-14 09:00:47Z nog $"
+# RCS-Id: "@(#)$Id: afsperl.pod 867 2008-10-25 07:20:57Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -14,29 +14,13 @@ B<AFS> - Perl interface to AFS programming APIs
 
 =head1 VERSION
 
-This document describes the AFS module bundle (Version 2.4.1)
+This document describes the AFS module bundle (Version 2.6.0)
 
 
 =head1 COMPATIBILITY
 
-In version 2, all functions and special variables have been resorted
-into separate submodules according to their affiliations to different
-AFS command suites.  These resorted functions and variables are not
-exported by default anymore but they are exported only on request.
-
-All old features and interfaces from version 1 are still available for
-compatibility, but are deprecated.  These cases have been marked in the
-POD documentations.
-
-You B<must not> intermix names or interfaces from version 1 with names
-or interfaces from version 2. You either stick with version 1 or version
-2.
-
-B<NOTE>:
-
-B<This is the last release supporting features and interfaces
-from version 1.  The upcoming release 2.6.0 will not support them
-anymore.>
+B<This release does NOT support any features and interfaces from
+version 1.>
 
 =head1 DESCRIPTION
 
@@ -122,7 +106,7 @@ AFS command suite (i.e, the setpag command).  See L<AFS::Utils>.
 
 Basic functions like raising a Perl exception when any AFS function call
 fails (useful for debugging) or retrieving the status value of the last
-AFS function call. See L<AFS::BASE>.
+AFS function call. See L<AFS::Base>.
 
 =back
 
@@ -284,4 +268,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 857 $
+Revision $Rev: 867 $

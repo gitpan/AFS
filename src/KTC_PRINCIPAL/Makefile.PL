@@ -8,4 +8,4 @@ WriteMakefile(
               ($] >= 5.005 ?
                (AUTHOR   => 'Norbert E Gruener <nog@MPA-Garching.MPG.de>',
                 ABSTRACT => 'handle the AFS structure ktc_principal') : () ),
-);
+             );
