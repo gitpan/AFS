@@ -1,3 +1,24 @@
+Version 2.6.1 (released 17 Nov 2008, revision 906)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.6.1.tar.gz
+
+ NOTICE:
+ * This release does not support AFS system libraries version 3.4 or
+   version 3.5
+ * This release does not support any features and interfaces from
+   AFSPerl "version 1"  
+
+ User-visible changes:
+ * fixed method AFS::KAS->getentry: fixed return value for passwd_reuse
+ * fixed method AFS::VLDB->listvldb: fixed segmentation error
+ * updated example scripts for the modules AFS:KAS
+ * fixed Makefile.PL to recognize Transarc/IBM system libraries
+
+
+ Developer-visible changes:
+ * cleaned up Makefile.PL
+
+
+
 Version 2.6.0 (released 27 Oct 2008, revision 888)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.6.0.tar.gz
 

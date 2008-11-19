@@ -1,6 +1,6 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlkas.pod 859 2008-10-14 09:23:34Z nog $"
+# RCS-Id: "@(#)$Id: afsperlkas.pod 899 2008-11-06 11:03:41Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -47,9 +47,10 @@ B<AFS::KAS> - Class to communicate with the B<AFS Authentication Server>
   my $entry = $kas->getentry($user->name, $user->instance);
   $packed   = $$entry{'misc_auth_bytes'};
   $pwexpire = (($packed >> 24) & 0xff);
-  $pw_reuse = (($packed >> 16) & 0xff);
+  $is_lockd = (($packed >> 16) & 0xff);
   $nfail    = (($packed >>  8) & 0xff);
   $locktime = (($packed >>  0) & 0xff);
+  $pw_reuse = $$entry{'passwd_reuse'} - 0x12340000;
 
   $kas->DESTROY;           # destroy server connection
 
@@ -344,4 +345,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 859 $
+Revision $Rev: 899 $

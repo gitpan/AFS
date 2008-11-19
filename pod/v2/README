@@ -1,6 +1,6 @@
 
 This is the README file for the POD documentation of the Perl
-extension module AFS (Version 2.6.0) 
+extension module AFS (Version 2.6.1) 
 
 
 POD DOCUMENTATION
@@ -19,13 +19,13 @@ GENERATING HTML DOCUMENTATION
     the HTML documentation.  This is the sequence of commands to build
     the docs:
 
-        cd AFS-2.6.0
+        cd AFS-2.6.1
         perl Makefile.PL  ;#(if you have not submitted already)
         make html
 
     After this you can start your browser with the file 
 
-            AFS-2.6.0/lib/AFS.html
+            AFS-2.6.1/lib/AFS.html
 
     and go ahead with reading docs.
 

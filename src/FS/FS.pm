@@ -1,6 +1,6 @@
 package AFS::FS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: FS.pm 853 2008-10-11 08:55:12Z nog $"
+# RCS-Id: "@(#)$Id: FS.pm 881 2008-10-26 18:58:51Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -24,6 +24,6 @@ require Exporter;
                 whereis
                );
 @ISA     = qw(Exporter AFS);
-$VERSION = '2.6.0';
+$VERSION = '2.6.1';
 
 1;

@@ -85,6 +85,7 @@ examples/v2/kas/constructor
 examples/v2/kas/create
 examples/v2/kas/debug
 examples/v2/kas/delete
+examples/v2/kas/examine
 examples/v2/kas/getentry
 examples/v2/kas/getstats
 examples/v2/kas/listentry

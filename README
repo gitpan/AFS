@@ -1,5 +1,5 @@
 
-This is the README file for the Perl extension module AFS (Version 2.6.0) 
+This is the README file for the Perl extension module AFS (Version 2.6.1) 
 
 
 DESCRIPTION
@@ -33,8 +33,8 @@ RECOMMENDATIONS
 AVAILABILITY
     The latest version of the AFS module bundle is currently available at
 
-        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.6.0.tar.gz
-        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.6.0.tar.gz
+        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.6.1.tar.gz
+        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.6.1.tar.gz
 
 
 BUILDING & INSTALLING
@@ -42,12 +42,12 @@ BUILDING & INSTALLING
     should be straightforward. The AFS module bundle is distributed as a
     single gzipped tar archive file:
 
-            AFS-2.6.0.tar.gz
+            AFS-2.6.1.tar.gz
 
     Unpack the archive to create an AFS installation directory:
 
-        gunzip AFS-2.6.0.tar.gz
-        tar xvf AFS-2.6.0.tar
+        gunzip AFS-2.6.1.tar.gz
+        tar xvf AFS-2.6.1.tar
 
     'cd' into that directory, make, test and install the modules. You
     have to specify the location of the AFS system libraries. While
@@ -59,7 +59,7 @@ BUILDING & INSTALLING
 
     This is the sequence of commands to build the modules:
 
-        cd AFS-2.6.0
+        cd AFS-2.6.1
 
         [1] this step is optional
         setenv AFSPATH 'path_to_the_AFS_system_libraries' # tcsh-shell
@@ -131,6 +131,9 @@ PLATFORMS
                        i386_linux26   gcc       1.4.2      5.8.8
                        i386_linux26   gcc       1.4.5      5.8.8
                        i386_linux26   gcc       1.4.7      5.8.8
+                       i386_linux26   gcc       1.4.2      5.10.0
+                       i386_linux26   gcc       1.4.5      5.10.0
+                       i386_linux26   gcc       1.4.7      5.10.0
 
     For former versions I have also got reports that it is running on
     configurations, not available to me.

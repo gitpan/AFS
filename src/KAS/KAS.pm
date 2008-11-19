@@ -1,6 +1,6 @@
 package AFS::KAS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: KAS.pm 853 2008-10-11 08:55:12Z nog $"
+# RCS-Id: "@(#)$Id: KAS.pm 881 2008-10-26 18:58:51Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = '2.6.0';
+$VERSION = '2.6.1';
 
 # not suported anymore
 # please use the functions from AFS::Cell !!!

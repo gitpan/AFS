@@ -1,7 +1,6 @@
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
-use POSIX qw(R_OK access);
 
 # provide the POD documentation
 mkdir('./lib');
@@ -21,8 +20,6 @@ system("cp ./pod/v2/afsperlpts.pod lib/AFS/PTS.pod");
 system("cp ./pod/v2/afsperlutils.pod lib/AFS/Utils.pod");
 system("cp ./pod/v2/afsperlvldb.pod lib/AFS/VLDB.pod");
 system("cp ./pod/v2/afsperlvos.pod lib/AFS/VOS.pod");
-system("cp ./pod/v2/Makefile.inp lib/Makefile");
-system("cp ./pod/v2/zpod2html lib/");
 
 WriteMakefile(
               'NAME'         => 'AFS',
@@ -36,25 +33,11 @@ WriteMakefile(
 
 sub MY::postamble {
         '
-html: Makefile
+html:
+	cp ./pod/v2/Makefile.inp lib/Makefile
+	cp ./pod/v2/zpod2html lib/
 	cd lib && $(MAKE) html
 
-pod: blib
-	cp pod/v2/afsperl.pod blib/lib/AFS.pod
-	cp pod/v2/afsperlacl.pod blib/lib/AFS/ACL.pod
-	cp pod/v2/afsperlbase.pod blib/lib/AFS/BASE.pod
-	cp pod/v2/afsperlbos.pod blib/lib/AFS/BOS.pod
-	cp pod/v2/afsperlcell.pod blib/lib/AFS/CELL.pod
-	cp pod/v2/afsperlcm.pod blib/lib/AFS/CM.pod
-	cp pod/v2/afsperlfs.pod blib/lib/AFS/FS.pod
-	cp pod/v2/afsperlkas.pod blib/lib/AFS/KAS.pod
-	cp pod/v2/afsperlktck.pod blib/lib/AFS/KTC_EKEY.pod
-	cp pod/v2/afsperlktcp.pod blib/lib/AFS/KTC_PRINCIPAL.pod
-	cp pod/v2/afsperlktct.pod blib/lib/AFS/KTC_TOKEN.pod
-	cp pod/v2/afsperlpts.pod blib/lib/AFS/PTS.pod
-	cp pod/v2/afsperlutils.pod blib/lib/AFS/Utils.pod
-	cp pod/v2/afsperlvldb.pod blib/lib/AFS/VLDB.pod
-	cp pod/v2/afsperlvos.pod blib/lib/AFS/VOS.pod
 ';
 }
 

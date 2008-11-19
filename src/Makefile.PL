@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL 851 2008-10-05 20:58:14Z nog $"
+# RCS-Id: "@(#)$Id: Makefile.PL 902 2008-11-13 11:07:39Z nog $"
 #
 # Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -118,9 +118,13 @@ my $version = `./a.out` || die "\nCould not run test code to retrieve the versio
 unlink 'a.out', 'fotav.c';
 
 my ($v_string, $v_numb) = ('', '');
-if ($version =~ />(\S+)\s*(\S+)</) {
-  $v_string = $1;
-  $v_numb   = version->new($2);
+if ($version =~ />(\S+?)\s+(\S+)</) {
+    $v_string = $1;
+    $v_numb   = version->new($2);
+}
+elsif ($version =~ />(\S+?)</) {
+    $v_string = 'Transarc/IBM AFS';
+    $v_numb   = version->new($1);
 }
 
 if ($v_numb =~ /3.[4,5]/) { warn "This release does not support AFS 3.4/3.5 system libraries ...\n"; exit 1; }
@@ -153,7 +157,7 @@ $d_flag = $m_version;
 $d_flag =~ tr/\. /__/;
 $d_flag = '-D' . $d_flag;
 
-if ($v_numb gt "1.4.4") {
+if ($v_numb gt "1.4.4" and $v_string =~ /openafs/) {
     $e_flag = '-DAFS_OLD_COM_ERR';
     $i_flag = '-I ./ ';
 }

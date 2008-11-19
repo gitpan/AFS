@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 883 2008-10-27 08:31:44Z nog $
+ * RCS-Id: @(#)$Id: AFS.xs 901 2008-11-06 11:15:21Z nog $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -103,7 +103,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Version 2.6.0)";
+const char *const xs_version = "AFS.xs (Version 2.6.1)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -3050,6 +3050,7 @@ static parse_kaentryinfo(stats, ka)
     hv_store(stats, "key_version", 11, newSViv(ka->key_version), 0);
     hv_store(stats, "keyCheckSum", 11, newSVuv(ka->keyCheckSum), 0);
     hv_store(stats, "misc_auth_bytes", 15, newSVuv(ka->misc_auth_bytes), 0);
+    hv_store(stats, "passwd_reuse", 12, newSViv(ka->reserved3), 0);
     /*               1234567890123456789012345 */
     return 1;
 }
@@ -6920,8 +6921,6 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
         XSRETURN(1);
         
         clean:
-        if (vllist)
-            Safefree(vllist);
         if (arrayEntries.nbulkentries_val)
             Safefree(arrayEntries.nbulkentries_val);
         XSRETURN_UNDEF;

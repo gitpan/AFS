@@ -14,6 +14,11 @@
 
  SHORT TERM
  ----------
+ * make the module compiling and working with OpenAFS 1.4.8
+
+
+ MID TERM
+ --------
  * make the module compiling and working on 64-bit machines
 
 
