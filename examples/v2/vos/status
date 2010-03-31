@@ -15,6 +15,6 @@ $vos = AFS::VOS->new;
 print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
 
 my $stat = $vos->status($server);
-print "AFS::CODE: $AFS::CODE \n";
+print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
 
 if (defined $stat) { print "$stat"; }

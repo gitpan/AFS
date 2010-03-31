@@ -14,7 +14,13 @@ $partition = shift;
 
 $vldb = AFS::VLDB->new;
 
-if (defined $partition and defined $server)
-     { $ok = $vldb->syncvldb($server, $partition); }
-else { $ok = $vldb->syncvldb($server); }
-print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+if (defined $partition and defined $server) {
+     $ok = $vldb->syncvldb($server, $partition);
+     print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+     print "VLDB synchronized with state of server $server partition $partition \n" if $ok;
+}
+else {
+     $ok = $vldb->syncvldb($server);
+     print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+     print "VLDB synchronized with state of server $server \n" if $ok;
+}

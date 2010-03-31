@@ -1,8 +1,8 @@
 package AFS::BOS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: BOS.pm 881 2008-10-26 18:58:51Z nog $"
+# RCS-Id: "@(#)$Id: BOS.pm 919 2009-10-16 10:34:03Z nog $"
 #
-# Copyright © 2005-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2005-2009 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -16,7 +16,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = '2.6.1';
+$VERSION = 'v2.6.2';
 
 sub DESTROY {
     my (undef, undef, undef, $subroutine) = caller(1);

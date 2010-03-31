@@ -18,8 +18,10 @@ print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
 if (defined $partition) {
     $ok = $vldb->syncserv($server, $partition);
     print "Error: $AFS::CODE \n" if ($AFS::CODE);
+    print "Server $server partition $partition synchronized with VLDB \n" if $ok;
 }
 else {
     $ok = $vldb->syncserv($server);
     print "Error: $AFS::CODE \n" if ($AFS::CODE);
+    print "Server $server synchronized with VLDB \n" if $ok;
 }

@@ -1,8 +1,8 @@
 package AFS::VLDB;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: VLDB.pm 881 2008-10-26 18:58:51Z nog $"
+# RCS-Id: "@(#)$Id: VLDB.pm 937 2010-03-18 12:42:12Z nog $"
 #
-# Copyright © 2005-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2005-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -16,7 +16,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = '2.6.1';
+$VERSION = 'v2.6.2';
 
 sub DESTROY {
     my (undef, undef, undef, $subroutine) = caller(1);
@@ -78,7 +78,7 @@ sub removeaddr {
     my $self    = shift;
     my $ip_addr = shift;
 
-    $self->_changeaddr($ip_addr, 0, 1);
+    $self->_changeaddr($ip_addr, '', 1);
 }
 sub syncvldb {
     my $self = shift;

@@ -1,8 +1,9 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlvldb.pod 560 2004-02-01 13:05:30Z nog $"
+# RCS-Id: "@(#)$Id: afsperlvldb.pod 945 2010-03-24 11:56:27Z nog $"
 #
-# Copyright © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+# Copyright © 2005-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+#           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
@@ -175,6 +176,11 @@ internal host representation) for each server is also returned.
 It calls the AFS system library function I<VL_GetAddrs> or
 I<VL_GetAddrsU>.
 
+B<Important Hint>
+
+In version 2.4.1 the hash key names for "NAME" and "IP" have changed.
+The new names are now "NAME-x" and "IP-x" where "x" is {1,2,3,...}.
+
 You can find an example how to print the entire content of
 returned array of hashes in the C<examples/v2/vldb> directory.
 
@@ -231,7 +237,7 @@ AFS system library function I<VL_SetLock>.
 =item B<$ok = $vldb-E<gt>removeaddr(IP);>
 
 Removes from the VLDB the server entry that includes the address
-specified by the ID argument.  It calls the AFS system library
+specified by the IP argument.  It calls the AFS system library
 function I<VL_ChangeAddr>.
 
 =item B<$ok = $vldb-E<gt>remsite(SERVER, PARTITION, VOLUME);>
@@ -316,7 +322,8 @@ documentation were written by
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>,
+ © 2005-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
              Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  All rights reserved.
 
@@ -338,4 +345,4 @@ under the same terms as Perl itself.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 560 $
+Revision $Rev: 945 $

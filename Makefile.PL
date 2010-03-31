@@ -2,6 +2,8 @@ use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 
+use lib qw(./src/inc);
+
 # provide the POD documentation
 mkdir('./lib');
 mkdir('./lib/AFS');
@@ -21,9 +23,10 @@ system("cp ./pod/v2/afsperlutils.pod lib/AFS/Utils.pod");
 system("cp ./pod/v2/afsperlvldb.pod lib/AFS/VLDB.pod");
 system("cp ./pod/v2/afsperlvos.pod lib/AFS/VOS.pod");
 
+my $VERSION = '2.6.2';
 WriteMakefile(
               'NAME'         => 'AFS',
-              'VERSION_FROM' => 'src/AFS.pm', # finds $VERSION
+              'VERSION'      => $VERSION,
               ($] >= 5.005 ?
                    ('AUTHOR'   => 'Norbert E Gruener <nog@MPA-Garching.MPG.de>',
                     'ABSTRACT' => 'Perl interface to AFS programming APIs',

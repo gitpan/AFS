@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 901 2008-11-06 11:15:21Z nog $
+ * RCS-Id: @(#)$Id: AFS.xs 956 2010-03-29 12:53:52Z nog $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -11,7 +11,7 @@
  * directory or online at http://www.openafs.org/dl/license10.html
  *
  * Contributors
- *    2004-2008: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ *    2004-2010: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  *         2003: Alf Wachsmann <alfw@slac.stanford.edu>
  *               Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
  *               Norbert E. Gruener <nog@MPA-Garching.MPG.de>
@@ -25,9 +25,9 @@
  * the Stanford-LICENCE file.
  *
  * The code for the original library were mainly taken from the AFS
- * source distribution, which comes with this message: 
+ * source distribution, which comes with this message:
  *
- *    Copyright (C) 1989-1994 Transarc Corporation - All rights reserved 
+ *    Copyright (C) 1989-1994 Transarc Corporation - All rights reserved
  *    P_R_P_Q_# (C) COPYRIGHT IBM CORPORATION 1987, 1988, 1989
  *
  ***********************************************************************/
@@ -103,7 +103,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Version 2.6.1)";
+const char *const xs_version = "AFS.xs (Version 2.6.2)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -5605,7 +5605,11 @@ vos_partinfo(cstruct, server, partname=NULL)
         afs_int32 apart;
         afs_int32 aserver, code;
         char pname[10];
+#ifdef OpenAFS_1_4_64
+        struct diskPartition64 partition;
+#else
         struct diskPartition partition;
+#endif
         struct partList dummyPartList;
         int i, cnt;
         HV *partlist = (HV*)sv_2mortal((SV*)newHV());
@@ -5651,12 +5655,16 @@ vos_partinfo(cstruct, server, partname=NULL)
                 XSRETURN_UNDEF;
             }
         }
-        
+
         for (i = 0; i < cnt; i++) {
             if (dummyPartList.partFlags[i] & PARTVALID) {
                 HV *part = (HV *) sv_2mortal((SV *) newHV());
                 MapPartIdIntoName(dummyPartList.partId[i], pname);
+#ifdef OpenAFS_1_4_64
+                code = UV_PartitionInfo64(aserver, pname, &partition);
+#else
                 code = UV_PartitionInfo(aserver, pname, &partition);
+#endif
                 if (code) {
                     char buffer[80];
                     sprintf(buffer, "Could not get information on partition %s\n", pname);
@@ -5665,13 +5673,13 @@ vos_partinfo(cstruct, server, partname=NULL)
                 }
                 hv_store(part, "free", 4, newSViv(partition.free), 0);
                 hv_store(part, "minFree", 7, newSViv(partition.minFree), 0);
-        
+
                 hv_store(partlist, pname, strlen(pname), newRV_inc((SV *) (part)), 0);
             }
         }
-        
-        ST(0) = sv_2mortal(newRV_inc((SV *) partlist));
+
         SETCODE(0);
+        ST(0) = sv_2mortal(newRV_inc((SV *) partlist));
         XSRETURN(1);
     }
 
@@ -5684,11 +5692,11 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
         int extended
   PREINIT:
         afs_int32 apart = -1, aserver, code = 0;
-        volintInfo *pntr;
+        volintInfo *pntr = (volintInfo *)0;
         afs_int32 count;
         int i;
-        volintXInfo *xInfoP;                /*Ptr to current/orig extended vol info*/
-        int wantExtendedInfo;               /*Do we want extended vol info?*/
+        volintXInfo *xInfoP = (volintXInfo *)0; /*Ptr to current/orig extended vol info*/
+        int wantExtendedInfo;                   /*Do we want extended vol info?*/
 
         char pname[10];
         struct partList dummyPartList;
@@ -5701,7 +5709,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
             all = 0;
         else
             all = 1;
-        
+
         if (fast && extended) {
             char buffer[80];
             sprintf(buffer,
@@ -5709,12 +5717,12 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
         }
-        
+
         if (extended)
             wantExtendedInfo = 1;
         else
             wantExtendedInfo = 0;
-        
+
         if (partname && (strlen(partname) != 0)) {
             apart = volutil_GetPartitionID(partname);
             if (apart < 0) {
@@ -5727,7 +5735,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
             dummyPartList.partFlags[0] = PARTVALID;
             cnt = 1;
         }
-        
+
         aserver = GetServer(server);
         if (aserver == 0) {
             char buffer[80];
@@ -5735,7 +5743,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
         }
-        
+
         if (apart != -1) {
             if (!IsPartValid(apart, aserver, &code)) {  /*check for validity of the partition */
                 char buffer[80];
@@ -5756,7 +5764,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                 XSRETURN_UNDEF;
             }
         }
-        
+
         for (i = 0; i < cnt; i++) {
             if (dummyPartList.partFlags[i] & PARTVALID) {
                 /*HV *part = (HV*)sv_2mortal((SV*)newHV()); */
@@ -5773,7 +5781,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                     SETCODE(-1);
                     XSRETURN_UNDEF;
                 }
-        
+
                 MapPartIdIntoName(dummyPartList.partId[i], pname);
                 if (wantExtendedInfo) {
                     XDisplayVolumes(part,
@@ -5796,9 +5804,9 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                 hv_store(vollist, pname, strlen(pname), newRV_inc((SV *) (part)), 0);
             }
         }
-        
-        ST(0) = sv_2mortal(newRV_inc((SV *) vollist));
+
         SETCODE(0);
+        ST(0) = sv_2mortal(newRV_inc((SV *) vollist));
         XSRETURN(1);
     }
 
@@ -5813,7 +5821,11 @@ vos_move(cstruct, id, froms, fromp, tos, top)
     PREINIT:
         afs_int32 volid, fromserver, toserver, frompart, topart,code, err;
         char fromPartName[10], toPartName[10];
+#ifdef OpenAFS_1_4_64
+        struct diskPartition64 partition;   /* for space check */
+#else
         struct diskPartition partition;         /* for space check */
+#endif
         volintInfo *p;
     CODE:
     {
@@ -5885,8 +5897,11 @@ vos_move(cstruct, id, froms, fromp, tos, top)
                 /*
                    check target partition for space to move volume
                  */
-        
+#ifdef OpenAFS_1_4_64
+        code = UV_PartitionInfo64(toserver, toPartName, &partition);
+#else
         code = UV_PartitionInfo(toserver, toPartName, &partition);
+#endif
         if (code) {
             char buffer[80];
             sprintf(buffer, "AFS::VOS: cannot access partition %s\n", toPartName);
@@ -6188,7 +6203,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         Zero(&attributes, 1, VldbListByAttributes);
         attributes.Mask = 0;
         #printf("DEBUG-1\n");
-        
+
         if (servername && (strlen(servername) != 0)) {  /* -server */
         #printf("DEBUG-2\n");
             aserver = GetServer(servername);
@@ -6204,7 +6219,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         else {
             servername = NULL;
         }
-        
+
         #printf("DEBUG-3\n");
         if (partition && (strlen(partition) != 0)) {    /* -partition */
         #printf("DEBUG-4\n");
@@ -6221,7 +6236,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         else {
             partition = NULL;
         }
-        
+
         #printf("DEBUG-5\n");
             /* Check to make sure the prefix and xprefix expressions compile ok */
         if (seenprefix && (prfxlength = sv_len(seenprefix)) == 0)
@@ -6254,7 +6269,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 }                       /*for loop */
             }
         }
-        
+
         #printf("DEBUG-7\n");
         if (seenxprefix && (prfxlength = sv_len(seenxprefix)) == 0)
             seenxprefix = NULL;
@@ -6286,7 +6301,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 }                       /*for */
             }
         }
-        
+
         #printf("DEBUG-9\n");
         Zero(&arrayEntries, 1, nbulkentries);   /* initialize to hint the stub to alloc space */
         vcode = VLDB_ListAttributes(&attributes, &nentries, &arrayEntries);
@@ -6294,12 +6309,12 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             VSETCODE(vcode, "Could not access the VLDB for attributes");
             XSRETURN_UNDEF;
         }
-        
+
             /* a bunch of output generation code deleted. A.W. */
-        
+
         for (j = 0; j < nentries; j++) {        /* process each vldb entry */
             vllist = &arrayEntries.nbulkentries_val[j];
-        
+
             if (seenprefix) {
                 av = (AV *) SvRV(seenprefix);
                 len = av_len(av);
@@ -6327,7 +6342,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             else {
                 match = 1;
             }
-        
+
             /* Without the -exclude flag: If it matches the prefix, then
              *    check if we want to exclude any from xprefix.
              * With the -exclude flag: If it matches the prefix, then
@@ -6366,13 +6381,13 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 match = !match;         /* -exclude will reverse the match */
             if (!match)
                 continue;               /* Skip if no match */
-        
+
             /* Print list of volumes to backup */
             if (noaction) {
                 av_push(av1, newSVpv(vllist->name, strlen(vllist->name)));
                 continue;
             }
-        
+
             if (!(vllist->flags & RW_EXISTS)) {
                 if (verbose) {
                     fprintf(STDOUT, "Omitting to backup %s since RW volume does not exist \n",
@@ -6382,7 +6397,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 fflush(STDOUT);
                 continue;
             }
-        
+
             avolid = vllist->volumeId[RWVOL];
             MapHostToNetwork(vllist);
             GetServerAndPart(vllist, RWVOL, &aserver1, &apart1, &previdx);
@@ -6416,7 +6431,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 fprintf(STDOUT, "Creating backup volume for %s on %s", vllist->name, ctime(&now));
                 fflush(STDOUT);
             }
-        
+
             code = UV_BackupVolume(aserver1, apart1, avolid);
             if (code) {
                 av_push(av2, newSVpv(vllist->name, strlen(vllist->name)));
@@ -6428,13 +6443,13 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 totalBack++;
             }
         }                               /* process each vldb entry */
-        
+
         if (arrayEntries.nbulkentries_val)
             free(arrayEntries.nbulkentries_val);
-        
+
+        SETCODE(0);
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av1))));
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av2))));
-        SETCODE(0);
         XSRETURN(2);
     }
 
@@ -6470,7 +6485,7 @@ vos_listpart(cstruct, server)
                 total++;
             }
         }
-        
+
         SETCODE(0);
         XSRETURN(total);
     }
@@ -6487,7 +6502,7 @@ vos_listvolume(cstruct, name)
         afs_int32 code, err;
         int voltype, foundserv = 0, foundentry = 0;
         afs_int32 aserver, apart;
-        char apartName[10];                                                                                                                           
+        char apartName[10];
         int previdx = -1;
         HV *volinfo = (HV*)sv_2mortal((SV*)newHV());
     PPCODE:
@@ -6516,7 +6531,7 @@ vos_listvolume(cstruct, name)
             voltype = BACKVOL;
         else                            /* (entry.volumeId[ROVOL] == volid) */
             voltype = ROVOL;
-        
+
         do {                            /* do {...} while (voltype == ROVOL) */
             /* Get the entry for the volume. If its a RW vol, get the RW entry.
              * It its a BK vol, get the RW entry (even if VLDB may say the BK doen't exist).
@@ -6534,10 +6549,10 @@ vos_listvolume(cstruct, name)
                 break;
             }
             foundentry = 1;
-        
+
             /* Get information about the volume from the server */
             code = UV_ListOneVolume(aserver, apart, volid, &pntr);
-        
+
             if (code) {
                 char buffer[80];
                 if (code == ENODEV) {
@@ -6565,7 +6580,7 @@ vos_listvolume(cstruct, name)
                 /* hv_store(volinfo, "name", 4, newSVpv(name, strlen((char *) name)), 0); */
                 hv_store(volinfo, "partition", 9, newSVpv(apartName, strlen((char *) apartName)), 0);
                 VolumeStats(volinfo, pntr, &entry, aserver, apart, voltype);
-        
+
                 if ((voltype == BACKVOL) && !(entry.flags & BACK_EXISTS)) {
                     /* The VLDB says there is no backup volume yet we found one on disk */
                     char buffer[80];
@@ -6576,13 +6591,13 @@ vos_listvolume(cstruct, name)
                     XSRETURN_UNDEF;
                 }
             }
-        
+
             if (pntr)
                 Safefree(pntr);
         } while (voltype == ROVOL);
-        
-        ST(0) = sv_2mortal(newRV_inc((SV *) volinfo));
+
         SETCODE(0);
+        ST(0) = sv_2mortal(newRV_inc((SV *) volinfo));
         XSRETURN(1);
     }
 
@@ -6616,9 +6631,9 @@ vldb_new(class=0, verb=0, timeout=90, noauth=0, localauth=0, tcell=NULL, crypt=0
             sprintf(buffer, "could not initialize VLDB library (code=%d) \n", code);
             VSETCODE(code, buffer);
         }
-        
-        ST(0) = sv_newmortal();
+
         if (code == 0) {
+            ST(0) = sv_newmortal();
             sv_setref_pv(ST(0), "AFS::VLDB", (void *) cstruct);
             XSRETURN(1);
         }
@@ -6652,7 +6667,7 @@ vldb_addsite(cstruct, server, partition, id)
        char *id
     PREINIT:
        int32 avolid, aserver, apart, code = 1, err;
-       char apartName[10];                                                                                                                           
+       char apartName[10];
     CODE:
     {
         RETVAL = 0;
@@ -6700,11 +6715,11 @@ vldb_addsite(cstruct, server, partition, id)
         #MapPartIdIntoName(apart, apartName);
         #fprintf(STDOUT, "Added replication site %s %s for volume %s\n", server, partition, id);
         RETVAL = 1;
-        
+
         done:
         ;
     }
-    OUTPUT: 
+    OUTPUT:
         RETVAL
 
 int32
@@ -6721,6 +6736,7 @@ vldb_changeloc(cstruct, id, server, partition)
     CODE:
     {
 #ifdef OpenAFS
+        /* printf("DEBUG-1\n"); */
         RETVAL = 0;
         avolid = vsu_GetVolumeID(id, cstruct, &err);
         if (avolid == 0) {
@@ -6732,6 +6748,7 @@ vldb_changeloc(cstruct, id, server, partition)
             VSETCODE(err ? err : -1, buffer);
             goto done;
         }
+        /* printf("DEBUG-2\n"); */
         aserver = GetServer(server);
         if (aserver == 0) {
             char buffer[80];
@@ -6739,13 +6756,16 @@ vldb_changeloc(cstruct, id, server, partition)
             VSETCODE(-1, buffer);
             goto done;
         }
+        /* printf("DEBUG-3\n"); */
         apart = volutil_GetPartitionID(partition);
         if (apart < 0) {
             char buffer[80];
             sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n", partition);
-            VSETCODE(code, buffer);
+            VSETCODE(-1, buffer);
+            /* printf("DEBUG-3.1\n"); */
             goto done;
         }
+        /* printf("DEBUG-4\n"); */
         if (!IsPartValid(apart, aserver, &code)) {      /*check for validity of the partition */
             char buffer[80];
             if (code)
@@ -6755,16 +6775,17 @@ vldb_changeloc(cstruct, id, server, partition)
             VSETCODE(code ? code : -1, buffer);
             goto done;
         }
+        /* printf("DEBUG-5\n"); */
         code = UV_ChangeLocation(aserver, apart, avolid);
         if (code) {
-            VSETCODE(code, "addsite");
+            VSETCODE(code, "changeloc");
             goto done;
         }
         #MapPartIdIntoName(apart, apartName);
         #fprintf(STDOUT, "Changed location to %s %s for volume %s\n", server, apartName, id);
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
 #else
@@ -6801,15 +6822,15 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
             servername = NULL;
         if (parti && strlen(parti) == 0)
             parti = NULL;
-        
-        /* printf("name %s, server %s, part %s lock %d \n", name, servername, parti, lock); */
-        
+
+        /* printf("DEBUG-0 name %s, server %s, part %s lock %d \n", name, servername, parti,  */
+
         aserver = 0;
         apart = 0;
-        
+
         attributes.Mask = 0;
         /* printf("DEBUG-1 \n"); */
-        
+
             /* If the volume name is given, Use VolumeInfoCmd to look it up
              * and not ListAttributes.
              */
@@ -6821,7 +6842,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 sprintf(buffer,
                         "AFS::VLDB: illegal use of '-locked' switch, need to specify server and/or partition\n");
                 VSETCODE(-1, buffer);
-                goto clean;
+                XSRETURN_UNDEF;
             }
             /* printf("DEBUG-4 \n"); */
             stats = (HV *) sv_2mortal((SV *) newHV());
@@ -6830,13 +6851,13 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 char buffer[80];
                 set_errbuff(buffer, code);
                 VSETCODE(code, buffer);
-                goto clean;
+                XSRETURN_UNDEF;
             }
             /* printf("DEBUG-5 \n"); */
             hv_store(status, name, strlen(name), newRV_inc((SV *) (stats)), 0);
             goto finish;
         }
-        
+
             /* Server specified */
         /* printf("DEBUG-6 \n"); */
         if (servername) {
@@ -6846,12 +6867,12 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 char buffer[80];
                 sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", servername);
                 VSETCODE(-1, buffer);
-                goto clean;
+                XSRETURN_UNDEF;
             }
             attributes.server = ntohl(aserver);
             attributes.Mask |= VLLIST_SERVER;
         }
-        
+
             /* Partition specified */
         /* printf("DEBUG-8 \n"); */
         if (parti) {
@@ -6861,19 +6882,19 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 char buffer[80];
                 sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n", parti);
                 VSETCODE(-1, buffer);
-                goto clean;
+                XSRETURN_UNDEF;
             }
             attributes.partition = apart;
             attributes.Mask |= VLLIST_PARTITION;
         }
-        
+
         /* printf("DEBUG-10 \n"); */
         if (lock) {
             /* printf("DEBUG-11 \n"); */
             attributes.Mask |= VLLIST_FLAG;
             attributes.flag = VLOP_ALLOPERS;
         }
-        
+
         /* printf("DEBUG-12 \n"); */
         for (thisindex = 0; (thisindex != -1); thisindex = nextindex) {
              /* printf("DEBUG-13 \n"); */
@@ -6883,7 +6904,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
             /* printf("DEBUG-14 \n"); */
             centries = 0;
             nextindex = -1;
-        
+
             vcode = VLDB_ListAttributesN2(&attributes, 0, thisindex,
                                           &centries, &arrayEntries, &nextindex);
             /* printf("DEBUG-15 \n"); */
@@ -6897,10 +6918,10 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 char buffer[80];
                 sprintf(buffer, "Could not access the VLDB for attributes\n");
                 VSETCODE(vcode, buffer);
-                goto clean;
+                XSRETURN_UNDEF;
             }
             nentries += centries;
-        
+
             /* We don't sort, so just print the entries now */
             /* printf("DEBUG-17 \n"); */
             for (j = 0; j < centries; j++) {    /* process each entry */
@@ -6912,18 +6933,15 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 hv_store(status, vllist->name, strlen(vllist->name), newRV_inc((SV *) (stats)),
                          0);
             }
+            if (arrayEntries.nbulkentries_val)
+                Safefree(arrayEntries.nbulkentries_val);
         }
-        
+
         finish:
         /* printf("DEBUG-19 \n"); */
-        ST(0) = sv_2mortal(newRV_inc((SV *) status));
         SETCODE(0);
+        ST(0) = sv_2mortal(newRV_inc((SV *) status));
         XSRETURN(1);
-        
-        clean:
-        if (arrayEntries.nbulkentries_val)
-            Safefree(arrayEntries.nbulkentries_val);
-        XSRETURN_UNDEF;
     }
 
 void
@@ -6945,7 +6963,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
     {
         Zero(&m_attrs, 1, ListAddrByAttributes);
         m_attrs.Mask = VLADDR_INDEX;
-        
+
         Zero(&m_addrs, 1, bulkaddrs);
         Zero(&askuuid, 1, afsUUID);
 #ifdef OpenAFS
@@ -6958,7 +6976,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
         else
 #endif
             uuid = NULL;
-        
+
         if (host && strlen(host) != 0) {
             /* -host */
             struct hostent *he;
@@ -6966,7 +6984,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
             he = (struct hostent *) hostutil_GetHostByName(host);
             if (he == (struct hostent *) 0) {
                 char buffer[80];
-                sprintf(buffer, "Can't get host info for '%s'\n", host); 
+                sprintf(buffer, "Can't get host info for '%s'\n", host);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
             }
@@ -6978,10 +6996,10 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
         }
         else
             host = NULL;
-        
+
         m_addrs.bulkaddrs_val = 0;
         m_addrs.bulkaddrs_len = 0;
-        
+
         vcode = ubik_Call_New(VL_GetAddrs, cstruct, 0, 0, 0, &m_unique, &nentries, &m_addrs);
         if (vcode) {
             char buffer[80];
@@ -6989,7 +7007,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
             VSETCODE(vcode, buffer);
             XSRETURN_UNDEF;
         }
-        
+
         m_nentries = 0;
         m_addrs.bulkaddrs_val = 0;
         m_addrs.bulkaddrs_len = 0;
@@ -6998,7 +7016,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
         while (1) {
             HV *addr = (HV *) sv_2mortal((SV *) newHV());
             m_attrs.index = i;
-        
+
             vcode = ubik_Call_New(VL_GetAddrsU, cstruct, 0, &m_attrs, &m_uuid,
                                   &m_unique, &m_nentries, &m_addrs);
             if (vcode == VL_NOENT) {
@@ -7006,7 +7024,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
                 nentries++;
                 continue;
             }
-        
+
             if (vcode == VL_INDEXERANGE) {
                 vcode = 0;
                 break;
@@ -7018,16 +7036,16 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
                 VSETCODE(vcode, buffer);
                 XSRETURN_UNDEF;
             }
-        
+
             myprint_addrs(addr, &m_addrs, &m_uuid, m_nentries, printuuid, noresolve);
             XPUSHs(sv_2mortal(newRV_inc((SV *) (addr))));
             i++;
             j++;
-        
+
             if (host || uuid || (i > nentries))
                 break;
         }
-        
+
         SETCODE(vcode);
         XSRETURN(j);
     }
@@ -7064,22 +7082,20 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
             partition = NULL;
         if (server && strlen(server) == 0)
             server = NULL;
-            
+
         if (volume && (volumelength = sv_len(volume)) == 0)
             volume = NULL;
-        
+
         if (volume && (! (SvTYPE(SvRV(volume)) == SVt_PVAV))) {
             VSETCODE(-1, "AFS::VLDB: VOLUME not array reference");
             XSRETURN_UNDEF;
-            goto done;
         }
-        
+
         if (volume) {                       /* -id */
             int len;
             if (prfx || server || partition) {
                 VSETCODE(-1, "You cannot use SERVER, PARTITION, or PREFIX with the VOLUME argument");
                 XSRETURN_UNDEF;
-                goto done;
             }
             av = (AV *) SvRV(volume);
             len = av_len(av);
@@ -7120,29 +7136,26 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
             EXTEND(sp, 2);
             PUSHs(sv_2mortal(newSViv(totalBack)));
             PUSHs(sv_2mortal(newSViv(totalFail)));
-            vcode = 0;
             goto done;
         }                               /* id */
-        
+
         if (!prfx && !server && !partition) {
             VSETCODE(-1, "You must specify an argument");
             XSRETURN_UNDEF;
-            goto done;
         }
-        
+
             /* Zero out search attributes */
         Zero(&attributes, 1, VldbListByAttributes);
-        
+
         if (prfx) {                     /* -prefix */
             strncpy(prefix, prfx, VOLSER_MAXVOLNAME);
             seenprefix = 1;
             if (!server && !partition) {        /* a single entry only */
                 VSETCODE(-1, "You must provide SERVER with the PREFIX argument");
                 XSRETURN_UNDEF;
-                goto done;
             }
         }
-        
+
         if (server) {                   /* -server */
             afs_int32 aserver;
             aserver = GetServer(server);
@@ -7151,17 +7164,15 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
                 sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", server);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
             attributes.server = ntohl(aserver);
             attributes.Mask |= VLLIST_SERVER;
         }
-        
+
         if (partition) {                /* -partition */
             if (!server) {
                 VSETCODE(-1, "You must provide SERVER with the PARTITION argument");
                 XSRETURN_UNDEF;
-                goto done;
             }
             apart = volutil_GetPartitionID(partition);
             if (apart < 0) {
@@ -7170,12 +7181,11 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
                         partition);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
-                goto done;
             }
             attributes.partition = apart;
             attributes.Mask |= VLLIST_PARTITION;
         }
-        
+
             /* Print status line of what we are doing */
         #fprintf(STDOUT, "Deleting VLDB entries for ");
         #if (server) {
@@ -7191,16 +7201,15 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
         #}
         #fprintf(STDOUT, "\n");
         #fflush(STDOUT);
-        
+
             /* Get all the VLDB entries on a server and/or partition */
         Zero(&arrayEntries, 1, nbulkentries);
         vcode = VLDB_ListAttributes(&attributes, &nentries, &arrayEntries);
         if (vcode) {
             VSETCODE(vcode, "Could not access the VLDB for attributes");
             XSRETURN_UNDEF;
-            goto done;
         }
-        
+
             /* Process each entry */
         for (j = 0; j < nentries; j++) {
             vllist = &arrayEntries.nbulkentries_val[j];
@@ -7211,13 +7220,13 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
                     continue;
                 }
             }
-        
+
             if (noexecute) {            /* -noexecute */
                 fprintf(STDOUT, "Would have deleted VLDB entry for %s \n", vllist->name);
                 fflush(STDOUT);
                 continue;
             }
-        
+
             /* Only matches the RW volume name */
             avolid = vllist->volumeId[RWVOL];
             vcode = ubik_Call(VL_DeleteEntry, cstruct, 0, avolid, RWVOL);
@@ -7232,16 +7241,14 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
             }
             fflush(STDOUT);
         }                               /*for */
-        
+
         EXTEND(sp, 2);
         PUSHs(sv_2mortal(newSViv(totalBack)));
         PUSHs(sv_2mortal(newSViv(totalFail)));
-        
+
         if (arrayEntries.nbulkentries_val)
             Safefree(arrayEntries.nbulkentries_val);
-        
-        vcode = 0;
-        
+
         done:
         ;
     }
@@ -7263,18 +7270,21 @@ vldb_lock(cstruct, id)
             else
                 sprintf(buffer, "AFS::VLDB: can't find volume '%s'\n", id);
             VSETCODE(err ? err : -1, buffer);
-            XSRETURN_UNDEF;
+            goto done;
         }
         vcode = ubik_Call(VL_SetLock, cstruct, 0, avolid, -1, VLOP_DELETE);
         if (vcode) {
             char buffer[80];
             sprintf(buffer, "Could not lock VLDB entry for volume %s\n", id);
             VSETCODE(vcode, buffer);
-            XSRETURN_UNDEF;
+            goto done;
         }
             /*     fprintf(STDOUT, "Locked VLDB entry for volume %s\n", id); */
         SETCODE(0);
         RETVAL = 1;
+
+        done:
+        ;
     }
     OUTPUT:
         RETVAL
@@ -7298,7 +7308,7 @@ vldb_unlock(cstruct, id)
             VSETCODE(err ? err : -1, buffer);
             goto done;
         }
-        
+
         code = UV_LockRelease(avolid);
         if (code) {
             VSETCODE(code, "unlock");
@@ -7307,7 +7317,7 @@ vldb_unlock(cstruct, id)
                 /* fprintf(STDOUT,"Released lock on vldb entry for volume %s\n",id); */
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -7335,7 +7345,7 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
     {
         RETVAL = 0;
         attributes.Mask = 0;
-        
+
         if (server && (strlen(server) != 0)) {  /* server specified */
             aserver = GetServer(server);
             if (aserver == 0) {
@@ -7347,7 +7357,7 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
             attributes.server = ntohl(aserver);
             attributes.Mask |= VLLIST_SERVER;
         }
-        
+
         if (partition && (strlen(partition) != 0)) {    /* partition specified */
             apart = volutil_GetPartitionID(partition);
             if (apart < 0) {
@@ -7392,9 +7402,9 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
                 VSETCODE(vcode, buffer);
                 totalE++;
             }
-        
+
         }
-        
+
             /*     MapPartIdIntoName(apart,pname); */
         if (totalE)
             fprintf(STDOUT, "Could not unlock %u VLDB entries of %u locked entries\n", totalE,
@@ -7407,20 +7417,20 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
             /*                 fprintf(STDOUT,"partition %s\n",pname); */
             /*             } */
             /*             else  fprintf(STDOUT,"\n"); */
-        
+            /*   */
             /*         } */
             /*         else if(partition && (strlen(partition) != 0)){ */
             /*             MapPartIdIntoName(apart,pname); */
             /*             fprintf(STDOUT,"Unlocked all the VLDB entries for volumes on partition %s on all servers\n",pname); */
             /*         } */
             /*     } */
-        
+
         if (arrayEntries.nbulkentries_val)
             Safefree(arrayEntries.nbulkentries_val);
-        
+
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -7466,7 +7476,7 @@ vldb__syncvldb(cstruct, server=NULL, partition=NULL, volname=NULL)
                 VSETCODE(-1, buffer);
                 goto done;
             }
-        
+
             if (!IsPartValid(pname, tserver, &code)) {  /*check for validity of the partition */
                 char buffer[80];
                 if (code)
@@ -7504,9 +7514,9 @@ vldb__syncvldb(cstruct, server=NULL, partition=NULL, volname=NULL)
         }
         else
             SETCODE(0);
-        
+
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -7524,7 +7534,7 @@ vldb__changeaddr(cstruct, oldip, newip, remove=0)
     CODE:
     {
         RETVAL = 0;
-        
+
         ip1 = GetServer(oldip);
         if (!ip1) {
             char buffer[80];
@@ -7532,15 +7542,15 @@ vldb__changeaddr(cstruct, oldip, newip, remove=0)
             VSETCODE(EINVAL, buffer);
             goto done;
         }
-        
-        if ((newip && remove) || (!newip && !remove)) {
+
+        if ((newip && (strlen(newip)) && remove) || (!newip && !remove)) {
             char buffer[80];
             sprintf(buffer, "AFS::VLDB: Must specify either 'NEWADDR <addr>' or 'REMOVE' flag\n");
             VSETCODE(EINVAL, buffer);
             goto done;
         }
-        
-        if (newip) {
+
+        if (newip && (strlen(newip)) != 0) {
             ip2 = GetServer(newip);
             if (!ip2) {
                 char buffer[80];
@@ -7558,14 +7568,18 @@ vldb__changeaddr(cstruct, oldip, newip, remove=0)
             ip2 = ip1;
             ip1 = 0xffffffff;
         }
-        
+
         vcode = ubik_Call_New(VL_ChangeAddr, cstruct, 0, ntohl(ip1), ntohl(ip2));
         if (vcode) {
-            char buffer[80];
+            char buffer[160];
             if (remove) {
-                sprintf(buffer, "Could not remove server %s from the VLDB\n", oldip);
+                char buff[80];
+                sprintf(buff, "Could not remove server %s from the VLDB", oldip);
                 if (vcode == VL_NOENT) {
-                    sprintf(buffer, "%s vlserver does not support the REMOVE flag or ", buffer);
+                    sprintf(buffer, "%s\nvlserver does not support the REMOVE flag or VLDB: no such entry", buff);
+                }
+                else {
+                    sprintf(buffer, "%s\n", buff);
                 }
             }
             else {
@@ -7574,17 +7588,17 @@ vldb__changeaddr(cstruct, oldip, newip, remove=0)
             VSETCODE(vcode, buffer);
             goto done;
         }
-        
+
         if (remove) {
             fprintf(STDOUT, "Removed server %s from the VLDB\n", oldip);
         }
         else {
             fprintf(STDOUT, "Changed server %s to server %s\n", oldip, newip);
         }
-        
+
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -7735,7 +7749,7 @@ vldb_remsite(cstruct,server,partition,name)
         afs_int32 avolid, aserver, apart, code = 1, err;
         char apartName[10];
     CODE:
-    {                                                                                                             
+    {
         RETVAL = 0;
         avolid = vsu_GetVolumeID(name, cstruct, &err);
         if (avolid == 0) {
@@ -7777,7 +7791,7 @@ vldb_remsite(cstruct,server,partition,name)
     OUTPUT:
         RETVAL
 
-int32                                                                           
+int32
 vldb_syncserv(cstruct, servername, parti=NULL)
         AFS::VLDB cstruct
         char *servername
@@ -7787,7 +7801,7 @@ vldb_syncserv(cstruct, servername, parti=NULL)
         char part[10];
         afs_int32 tserver;
         int flags = 0;
-    CODE: 
+    CODE:
     {
         RETVAL = 0;
         tserver = GetServer(servername);
@@ -7817,7 +7831,7 @@ vldb_syncserv(cstruct, servername, parti=NULL)
             }
             flags = 1;
         }
-        
+
         code = UV_SyncServer(tserver, pname, flags, 0 /*unused */ );
         if (code) {
             PrintDiagnostics("syncserv", code);
@@ -7830,10 +7844,10 @@ vldb_syncserv(cstruct, servername, parti=NULL)
         #}
         #else
         #    fprintf(STDOUT, "Server %s synchronized with VLDB\n", servername);
-        
+
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }

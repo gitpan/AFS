@@ -1,16 +1,43 @@
+Version 2.6.2 (released 31 Mar 2010, revision 961)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.6.2.tar.gz
+
+ NOTICE:
+ * This release does not support AFS system libraries version 3.4 or
+   version 3.5
+ * Two of the hash key names returned by the VLDB method "listaddrs" have
+   changed in version 2.4.1 (see POD doku AFS::VLDB)
+ * This release does not support any features and interfaces from
+   AFSPerl "version 1"
+
+ User-visible changes:
+ * compiles with OpenAFS system libraries version 1.4.12
+ * fixed method AFS::VLDB->listvldb: fixed segmentation error
+ * improved Makefile.PL script for Perl 5.10.0 and "threaded PIC" libraries
+ * updated example scripts for the modules AFS::VLDB and AFS::VOS
+ * improved test drivers for the modules AFS::VLDB and AFS::VOS;
+
+
+ Developer-visible changes:
+ * convertet all VERSION variables to "dotted decimal version" with leading "v"
+ * changed argument type from "int" to "string" for method AFS::VLDB->removeaddr
+
+
+
 Version 2.6.1 (released 17 Nov 2008, revision 906)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.6.1.tar.gz
 
  NOTICE:
  * This release does not support AFS system libraries version 3.4 or
    version 3.5
+ * Two of the hash key names returned by the VLDB method "listaddrs" have
+   changed in version 2.4.1 (see POD doku AFS::VLDB)
  * This release does not support any features and interfaces from
-   AFSPerl "version 1"  
+   AFSPerl "version 1"
 
  User-visible changes:
  * fixed method AFS::KAS->getentry: fixed return value for passwd_reuse
  * fixed method AFS::VLDB->listvldb: fixed segmentation error
- * updated example scripts for the modules AFS:KAS
+ * updated example scripts for the modules AFS::KAS
  * fixed Makefile.PL to recognize Transarc/IBM system libraries
 
 
@@ -25,8 +52,10 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.6.0.tar.gz
  NOTICE:
  * This release does not support AFS system libraries version 3.4 or
    version 3.5
+ * Two of the hash key names returned by the VLDB method "listaddrs" have
+   changed in version 2.4.1 (see POD doku AFS::VLDB)
  * This release does not support any features and interfaces from
-   AFSPerl "version 1"  
+   AFSPerl "version 1"
 
  User-visible changes:
  * compiles now with Perl 5.10.0
@@ -45,14 +74,16 @@ http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.4.1.tar.gz
  NOTICE:
  * This release does not support AFS system libraries version 3.4 or
    version 3.5
- 
+ * Two of the hash key names returned by the VLDB method "listaddrs" have
+   changed (see POD doku AFS::VLDB)
+
  User-visible changes:
  * improved several test drivers;
  * updated example scripts for the modules AFS:VOS, AFS::VLDB,
    AFS::Cell, AFS::CM, AFS::FS, AFS::BOS, and AFS::KTC_EKEY
  * improved POD documentation for AFS::FS and AFS
  * POD documentation gets installed automatically
- * fixed method AFS::VOS->listaddrs: lists now all servers
+ * fixed method AFS::VLDB->listaddrs: lists now all servers
  * fixed method AFS::VOS->listvol: returns correct name and volid when
    volume is busy
  * fixed method AFS::VOS->listvldb: returns proper "release" strings
@@ -73,7 +104,7 @@ Version 2.4.0 (released 20 Feb 2006, revision 777)
  NOTICE:
  * This release does not support AFS system libraries version 3.4 or
    version 3.5
- 
+
  User-visible changes:
  * implementation of most commands of the BOS command suite
  * POD documentation for the module AFS::BOS
@@ -98,12 +129,12 @@ Version 2.2.3 (released 17 Feb 2005, revision 679)
  NOTICE:
  * This release does not support AFS system libraries version 3.4 or
    version 3.5
- 
+
  User-visible changes:
  * now supports Perl "threaded" version on several platforms
  * fixed method AFS::VOS->backupsys: fixed segmentation error and
-   added some error handling 
- * fixed method AFS::VLDB->delentry: added some error handling 
+   added some error handling
+ * fixed method AFS::VLDB->delentry: added some error handling
 
 
  Developer-visible changes:
@@ -121,7 +152,7 @@ Version 2.2.2 (released 07 May 2004, revision 627)
    version 3.5
  * This release does ONLY work with Perl "unthreaded" versions (this
    is true for all versions 2.2.X)
- 
+
  User-visible changes:
  * improved most test drivers;
  * included checks for Perl "unthreaded" version;
@@ -137,11 +168,11 @@ Version 2.2.1 (released 09 March 2004, revision 594)
 
  NOTICE: This release does not support AFS system libraries
          version 3.4 or version 3.5
- 
+
  User-visible changes:
  * fixed method DESTROY for the modules AFS::KAS, AFS::PTS,
    AFS::VLDB, and AFS::VOS; under certain circumstances they caused
-   segmentation faults; 
+   segmentation faults;
 
 
  Developer-visible changes:
@@ -154,7 +185,7 @@ Version 2.2.0 (released 03 February 2004, revision 571)
 
  NOTICE: This release does not support AFS system libraries
          version 3.4 or version 3.5
- 
+
  User-visible changes:
  * implementation of the VOS command suite
  * POD documentation for the modules AFS::VLDB and AFS::VOS
@@ -171,7 +202,7 @@ Version 2.2.0 (released 03 February 2004, revision 571)
    names for the C structure "VolumeStatus".
  * support for the CM function 'getvolstats'
  * fixed kas->getentry method because the returned values for the
-   packed variable were wrong 
+   packed variable were wrong
 
 
  Developer-visible changes:
@@ -224,8 +255,8 @@ Version 2.03 (released 15 October 2002, revision 230)
 Version 2.02 (released 12 July 2002, revision 221)
 
  User-visible changes:
- * fixed bug in method AFS::KAS->setfields resp. AFS::KAS->KAM_SetFields 
-   introduced in version 2.01   
+ * fixed bug in method AFS::KAS->setfields resp. AFS::KAS->KAM_SetFields
+   introduced in version 2.01
 
 
  Developer-visible changes:
@@ -242,7 +273,7 @@ Version 2.01 (released 8 July 2002, revision 211)
 
  Developer-visible changes:
  * removed perl-5.6 features from several modules for backward
-   compatibility 
+   compatibility
 
 
 

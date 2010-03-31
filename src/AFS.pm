@@ -2,12 +2,12 @@
 package AFS;
 
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: AFS.pm 881 2008-10-26 18:58:51Z nog $"
+# RCS-Id: "@(#)$Id: AFS.pm 919 2009-10-16 10:34:03Z nog $"
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# Copyright © 2001-2005 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2009 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 # Copyright © 1994 Board of Trustees, Leland Stanford Jr. University.
 #
 #  The original library is covered by the following copyright:
@@ -31,12 +31,11 @@ require Exporter;
 require AutoLoader;
 require DynaLoader;
 
-use vars qw(@ISA $VERSION $REVISION);
+use vars qw(@ISA $VERSION);
 
 @ISA = qw(Exporter AutoLoader DynaLoader);
 
-$VERSION = '2.6.1';
-$REVISION = do{my@r=q/Major Version 2.4 $Rev: 881 $/=~/\d+/g;$r[1]-=0;sprintf'%d.'.'%d'.'.%02d'x($#r-1),@r;};
+$VERSION = 'v2.6.2';
 
 @CELL = qw (
             configdir

@@ -16,3 +16,5 @@ print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
 
 $ok = $vldb->lock($volume);
 print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+print "Locked VLDB entry for volume $volume \n" if $ok;

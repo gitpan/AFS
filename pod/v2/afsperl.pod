@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperl.pod 904 2008-11-17 13:05:17Z nog $"
+# RCS-Id: "@(#)$Id: afsperl.pod 946 2010-03-25 14:00:02Z nog $"
 #
-# Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -14,7 +14,7 @@ B<AFS> - Perl interface to AFS programming APIs
 
 =head1 VERSION
 
-This document describes the AFS module bundle (Version 2.6.1)
+This document describes the AFS module bundle (Version 2.6.2)
 
 
 =head1 COMPATIBILITY
@@ -240,9 +240,11 @@ and on the src/Makefile.PL
 
 B<Sergio Gelato> - for his problem report on AFS::VLDB->listvldb
 
+B<Roman Mainer> - for his problem report on AFS::VLDB->listvldbentry
+
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
  © 1994 Board of Trustees, Leland Stanford Jr. University.
@@ -273,4 +275,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 904 $
+Revision $Rev: 946 $

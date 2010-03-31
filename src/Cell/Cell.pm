@@ -1,8 +1,8 @@
 package AFS::Cell;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Cell.pm 881 2008-10-26 18:58:51Z nog $"
+# RCS-Id: "@(#)$Id: Cell.pm 919 2009-10-16 10:34:03Z nog $"
 #
-# Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Copyright © 2001-2009 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -23,6 +23,6 @@ require Exporter;
                 wscell
                );
 @ISA     = qw(Exporter AFS);
-$VERSION = '2.6.1';
+$VERSION = 'v2.6.2';
 
 1;

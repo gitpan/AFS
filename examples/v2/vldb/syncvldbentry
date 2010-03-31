@@ -15,3 +15,5 @@ $vldb = AFS::VLDB->new;
 
 $ok = $vldb->syncvldbentry($volume);
 print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+
+print "VLDB volume $volume synchronized \n" if $ok;
