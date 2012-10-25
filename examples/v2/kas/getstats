@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
 use blib;
 use AFS::KAS;
@@ -21,12 +21,12 @@ my ($num_admins, $stats, $dstats) = $kas->getstats;
 print "\n\ngetstats:\n";
 print "num_admins = $num_admins\n";
 print"stats-----\n";
-foreach $tp_key (sort keys %$stats) {
+foreach my $tp_key (sort keys %$stats) {
     printf("%20s  %s\n",$tp_key, $$stats{$tp_key});
 }
 
 print"dynamic stats-----\n";
-foreach $tp_key (sort keys %$dstats) {
+foreach my $tp_key (sort keys %$dstats) {
     printf("%20s  %s\n",$tp_key, $$dstats{$tp_key});
 }
 
@@ -34,11 +34,11 @@ foreach $tp_key (sort keys %$dstats) {
 print "\n\nKAM_GetStats:\n";
 print "num_admins = $num_admins\n";
 print"stats-----\n";
-foreach $tp_key (sort keys %$stats) {
+foreach my $tp_key (sort keys %$stats) {
     printf("%20s  %s\n",$tp_key, $$stats{$tp_key});
 }
 
 print"dynamic stats-----\n";
-foreach $tp_key (sort keys %$dstats) {
+foreach my $tp_key (sort keys %$dstats) {
     printf("%20s  %s\n",$tp_key, $$dstats{$tp_key});
 }

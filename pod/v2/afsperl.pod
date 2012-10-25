@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperl.pod 946 2010-03-25 14:00:02Z nog $"
+# RCS-Id: "@(#)$Id: afsperl.pod 1134 2012-10-18 12:54:04Z nog $"
 #
-# Copyright © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2001-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -14,7 +14,7 @@ B<AFS> - Perl interface to AFS programming APIs
 
 =head1 VERSION
 
-This document describes the AFS module bundle (Version 2.6.2)
+This document describes the AFS module bundle (Version 2.6.3)
 
 
 =head1 COMPATIBILITY
@@ -114,11 +114,11 @@ AFS function call. See L<AFS::Base>.
 
 =over 4
 
-=item Perl 5.005_02 or newer
+=item Perl v5.10.0 or newer
 
-=item AFS system libraries (either B<IBM/Transarc AFS V 3.6> or B<OpenAFS>)
+=item OpenAFS system libraries
 
-=item AFS header files
+=item OpenAFS header files
 
 =back
 
@@ -145,11 +145,11 @@ modules are not very well documented.
 
 =head1 CURRENT AUTHOR
 
-Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+Norbert E. Gruener E<lt>nog@MPA-Garching.MPG.deE<gt>
 
 =head1 AUTHOR EMERITUS
 
-Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
+Roland Schemers E<lt>schemers@slapshot.stanford.eduE<gt>
 
 =head1 CREDITS
 
@@ -242,12 +242,37 @@ B<Sergio Gelato> - for his problem report on AFS::VLDB->listvldb
 
 B<Roman Mainer> - for his problem report on AFS::VLDB->listvldbentry
 
+B<Stephen Quinney> - for his patches for several AFS::BOS methods
+
+B<Rainer Laatsch> - for his problem reports on the script SetToken
+and on the src/Makefile.PL
+
+B<Michael Meffie> - for his problem report on the AFS::VOS->create
+
+B<Russ Allbery> - for his collected patches for the src/Makefile.PL
+and for several AFS::BOS methods
+
+B<Christof Hanke> - for his collected patches to remove lots of
+compiler warnings
+
+B<Bob Harold> - for his problem report about finding out the AFS sysname
+
+B<Michael Meffie> - for his problem report on leaks in the AFS::PTS, AFS::VOS,
+AFS::VLDB, and AFS::BOS modules and for his patches
+
+B<Andrew Deason> - for his problem report and his improvements on
+AFS::ACL::cleanacl
+
+B<Hans-Werner Paulsen> - for his improvement request on AFS::VOS->listvolume
+
+B<Wolfgang Friebel> - for his improvement request on AFS::VOS->dump
+
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ Copyright (c) 2001-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
- © 1994 Board of Trustees, Leland Stanford Jr. University.
+ Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -275,4 +300,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 946 $
+Revision $Rev: 1134 $

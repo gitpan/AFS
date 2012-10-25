@@ -1,7 +1,8 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
-use strict;
 use blib;
+use strict;
+use warnings;
 
 use AFS::ACL;
 
@@ -11,17 +12,18 @@ my $dir = shift;
 system "fs la $dir";
 
 my $new_acl = AFS::ACL->new({ 'guest', AFS::ACL->crights('all')});
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n";
 
 my $ok = $new_acl->modifyacl($dir);
-print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
-print "OK = $ok \n";
-   
+if ($AFS::CODE) { print "AFS::CODE = $AFS::CODE\n"; }
+else            { print "OK = $ok \n"; }
+
 system "fs la $dir";
 
 $new_acl->set('guest', 'none');
 
 $ok = $new_acl->modifyacl($dir);
-print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
-print "OK = $ok \n";
+if ($AFS::CODE) { print "AFS::CODE = $AFS::CODE\n"; }
+else            { print "OK = $ok \n"; }
 
 system "fs la $dir";

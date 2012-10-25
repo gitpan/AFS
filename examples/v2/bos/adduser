@@ -1,32 +1,26 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
+use v5.10.0;
 use blib;
-
 use strict;
+use warnings;
+
 use AFS::BOS;
 
-my ($server, $cellname, $bos);
+my (@users, $user, $server, $cellname, $bos);
 
-die "Usage: $0 server [cell]\n" if $#ARGV < 0;
+die "Usage: $0 user server [cell]\n" if $#ARGV < 1;
 
+$user     = shift;
 $server   = shift;
-$cellname = shift;
+$cellname = shift // '';
 
 if ($cellname) { $bos = AFS::BOS->new($server, 0, 0, $cellname); }
 else           { $bos = AFS::BOS->new($server); }
-print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n" and die;
 
-die "not yet tested ... \n";
-
-print "bos->adduser()...\n";
-
-my $ok = $bos->adduser('nog');
-print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
-
-$ok = $bos->adduser(['shadow']);
-print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
-
-$ok = $bos->adduser(['venkata','alfw']);
+@users = split (/ /, $user);
+my $ok = $bos->adduser(\@users);
 print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 
 $bos->DESTROY;

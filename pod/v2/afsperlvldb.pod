@@ -1,10 +1,10 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlvldb.pod 945 2010-03-24 11:56:27Z nog $"
+# RCS-Id: "@(#)$Id: afsperlvldb.pod 1078 2011-12-09 13:41:19Z nog $"
 #
-# Copyright © 2005-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
-#           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
-#                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2005-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+#             Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -78,7 +78,7 @@ conflicts :-)
 
 =item S< >
 
-=item B<$vldb = AFS::VLDB-E<gt>new([VERBOSE [TIMEOUT [, NOAUTH [, LOCALAUTH [, CELL [, ENCRYPT]]]]]);>
+=item B<$vldb = AFS::VLDB-E<gt>new([VERBOSE [, TIMEOUT [, NOAUTH [, LOCALAUTH [, CELL [, ENCRYPT]]]]]);>
 
 Creates a new object of the class AFS::VLDB.  An AFS::VLDB object is
 essentially a handle to talk to the Volume Location Server.
@@ -111,17 +111,40 @@ ubik_client structure.
 
 =item S< >
 
-=item B<$ok = $vldb-E<gt>addsite(SERVER, PARTITION, VOLUME);>
+=item B<$ok = $vldb-E<gt>addsite(SERVER, PARTITION, VOLUME [, ROVOL, VALID]);>
 
 Defines a new read-only site specified by the SERVER and PARTITION
 arguments, in the Volume Location Database (VLDB) entry of the
-read/write VOLUME.  It calls the AFS system library function I<UV_AddSite>.
+read/write VOLUME (volume name or volume ID number).
+ROVOL specifies either the complete name or volume ID number of the readonly
+volume. This will only be honored if the source read/write volume does not
+already have a readonly volume ID associated with it. If the source
+read/write volume already has a readonly volume ID, the specified ID will
+be ignored, and a warning will be printed.
+If this is not specified and the source read/write volume does not already
+have a readonly volume ID, a volume ID for the readonly volume will be
+allocated for it when the B<vos->release> method is run.
+The automatically allocated readonly volume IDs should be fine for almost
+all cases, so you should almost never need to specify this argument. This
+argument is supported when the AFS Perl modules are linked with the
+OpenAFS system libraries v1.4.12 or later.
+The VALID flag marks the site as up-to-date in the VLDB. You should only
+do this if the new site already has a current readonly replica of the
+volume, but for some reason it is not in the VLDB as a replica site.
+This is useful when an existing read-only volume is dumped and restored
+with the B<-readonly> flag at the new site. This argument is supported
+when the AFS Perl modules are linked with the OpenAFS system libraries
+v1.4.7 or later.
+
+It calls the AFS system library function I<UV_AddSite> or
+I<UV_AddSite2> (OpenAFS v.1.4.12 or later).
 
 =item B<$ok = $vldb-E<gt>changeloc(VOLUME, SERVER, PARTITION);>
 
-Changes the location of the read/write VOLUME in the VLDB to SERVER
-and PARTITION.  This method is only available with OpenAFS.  It calls
-the AFS system library function I<UV_ChangeLocation>.
+Changes the location of the read/write VOLUME (volume name or volume
+ID number) in the VLDB to SERVER and PARTITION.  This method is only
+available with OpenAFS.  It calls the AFS system library function
+I<UV_ChangeLocation>.
 
 =item B<($succ, $fail) = $vldb-E<gt>delentry(VOLUME [, NOEXECUTE]);>
 
@@ -218,9 +241,9 @@ returned hash reference in the C<examples/v2/vldb> directory.
 =item B<$vldblist = $vldb-E<gt>listvldbentry(VOLUME);>
 
 Returns information from the Volume Location Database (VLDB) entry for
-the specified VOLUME.  Specify a volume name or ID number with the
-VOLUME argument.  The return value is a reference to a hash table
-containing the values from the C structure C<nvldbentry>.
+the specified VOLUME (volume name or volume ID number).  The return
+value is a reference to a hash table containing the values from the C
+structure C<nvldbentry>.
 
 It calls the AFS system library function I<VolumeInfoCmd>.
 
@@ -229,10 +252,11 @@ returned hash reference in the C<examples/v2/vldb> directory.
 
 =item B<$ok = $vldb-E<gt>lock(VOLUME);>
 
-Locks the VLDB entry for VOLUME, blocking any operation that requires
-a write to that entry. The lock applies to all of the volume versions
-associated with the entry, not just the one specified.  It calls the
-AFS system library function I<VL_SetLock>.
+Locks the VLDB entry for VOLUME (volume name or volume ID number),
+blocking any operation that requires a write to that entry. The lock
+applies to all of the volume versions associated with the entry, not
+just the one specified.  It calls the AFS system library function
+I<VL_SetLock>.
 
 =item B<$ok = $vldb-E<gt>removeaddr(IP);>
 
@@ -279,8 +303,9 @@ VLDB.  It calls the AFS system library function I<UV_SyncVolume>.
 
 =item B<$ok = $vldb-E<gt>unlock(VOLUME);>
 
-Releases the lock on the VLDB entry for the specified VOLUME.  It
-calls the AFS system library function I<UV_LockRelease>.
+Releases the lock on the VLDB entry for the specified VOLUME (volume
+name or volume ID number).  It calls the AFS system library function
+I<UV_LockRelease>.
 
 =item B<$ok = $vldb-E<gt>unlockvldb([SERVER [, PARTITION]]);>
 
@@ -322,22 +347,22 @@ documentation were written by
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2005-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
- © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
-             Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ Copyright (c) 2005-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ Copyright (c) 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+                         Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  All rights reserved.
 
- Most of the explanations in this document are taken from the original
- AFS documentation.
+Most of the explanations in this document are taken from the original
+AFS documentation.
 
  AFS-3 Programmer's Reference:
  Volume Server/Volume Location Server Interface
  Edward R. Zayas
- © 1991 Transarc Corporation.
+ Copyright (c) 1991 Transarc Corporation.
  All rights reserved.
 
  IBM AFS Administration Reference
- © IBM Corporation 2000.
+ Copyright (c) IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -345,4 +370,4 @@ under the same terms as Perl itself.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 945 $
+Revision $Rev: 1078 $

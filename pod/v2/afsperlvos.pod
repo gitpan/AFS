@@ -1,11 +1,11 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlvos.pod 772 2006-02-16 13:13:16Z nog $"
+# RCS-Id: "@(#)$Id: afsperlvos.pod 1082 2011-12-12 12:53:52Z nog $"
 #
-# Copyright © 2005-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
-#           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>
-#                       Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
-#                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2005-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>
+#             Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
+#             Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -26,8 +26,8 @@ B<AFS::VOS> - Class to communicate with the B<AFS Volume Server>
 
   $vos = AFS::VOS->new;
 
-  $ok = $vos->dump('volume') > dump.vol;
-  $ok = $vos->restore('serv1', '/vicepa', 'volume') < dump.vol;
+  $ok = $vos->dump('volume', 0, 'dump.vol', '', '', 1, 1);
+  $ok = $vos->dump('volume', 0, 'dump.vol');
   $ok = $vos->restore('serv1', '/vicepa', 'volume', 'dump.vol', 0, 1);
 
   my $volid = $vos->create('serv1', '/vicepa', 'volume');
@@ -43,7 +43,7 @@ B<AFS::VOS> - Class to communicate with the B<AFS Volume Server>
 
   $ok = $vos->rename('oldvol', 'newvol');
 
-  $ok = $vos->setquota('volume', 6500);
+  $ok = $vos->setquota('volume', 6500, 1);
 
   $volid = $vos->zap('serv1', '/vicepa', 'volume');
 
@@ -85,7 +85,7 @@ conflicts :-)
 
 =item S< >
 
-=item B<$vos = AFS::VOS-E<gt>new([VERBOSE [TIMEOUT [, NOAUTH [, LOCALAUTH [, CELL [, ENCRYPT]]]]]);>
+=item B<$vos = AFS::VOS-E<gt>new([VERBOSE [, TIMEOUT [, NOAUTH [, LOCALAUTH [, CELL [, ENCRYPT]]]]]);>
 
 Creates a new object of the class AFS::VOS.  An AFS::VOS object is
 essentially a handle to talk to the Volume Server.  Internally an
@@ -161,15 +161,42 @@ actually cloning them.
 
 It calls the AFS system library function I<UV_BackupVolume>.
 
-=item B<$volid = $vos-E<gt>create(SERVER, PARTITION, VOLUME [, MAXQUOTA]);>
+=item B<$volid = $vos-E<gt>create(SERVER, PARTITION, VOLUME [, MAXQUOTA [, VOLID, ROVOLID]]);>
 
 Creates a read/write VOLUME at the site specified by the SERVER and
 PARTITION arguments.  The volume's space quota is set to 5000 kilobyte
 blocks by default. Use the MAXQUOTA argument to specify a different
-quota.  It returns the volume id number of the new volume.
-It calls the AFS system library function I<UV_CreateVolume2>.
+quota.
 
-=item B<$ok = $vos-E<gt>dump(VOLUME [, TIME [, FILE [, SERVER, PARTITION]]]);>
+VOLID specifies the volume ID for the read/write volume. If this
+argument is not specified, or the given volume ID is 0, a volume ID
+will be allocated for the volume automatically. The volume IDs
+allocated should be fine for almost all cases, so you should almost
+never need to specify this argument.
+
+ROVOLID specifies the volume ID for the readonly volume corresponding
+to the read/write volume that is being created. The readonly volume
+will not be created; this merely specifies what volume ID the readonly
+volume will use when it is created. If a volume ID of 0 is specified
+here, no readonly volume ID will be assigned to the created volume
+immediately. A readonly volume ID can still be assigned later when
+B<vldb->addsite> is run; if a volume does not have a readonly volume
+ID associated with it by the time B<vos->:release> is run, a volume ID
+will be allocated for it.  If this argument is not specified, the
+default readonly volume ID is one number higher than the read-write
+volume ID, whether or not that ID was manually specified.  As with the
+B<VOLID> argument, the default allocated volume IDs should be sufficient
+for almost all cases, so you should almost never need to specify this
+argument.
+
+These two arguments (VOLID, ROVOLID) are supported when the AFS Perl
+modules are linked with the OpenAFS system libraries v1.4.12 or later.
+
+It returns the volume id number of the new volume.  It calls the AFS
+system library function I<UV_CreateVolume2> or I<UV_CreateVolume3>
+(OpenAFS v.1.4.12 or later).
+
+=item B<$ok = $vos-E<gt>dump(VOLUME [, TIME [, FILE [, SERVER, PARTITION, CLONE_FLG, OMIT_FLG]]]);>
 
 Converts the contents of the indicated volume, which can be
 read/write, read-only or backup, into ASCII format.  VOLUME specifies
@@ -184,6 +211,22 @@ default, the VL server consults the Volume Location Database (VLDB) to
 learn the volume's location.  To dump the read-only volume from a
 particular site, use the SERVER and PARTITION arguments to specify the
 site.
+
+If CLONE_FLG is set to 1 (default 0), it will clone the volume first
+and then dumps the clone.  This can significantly decrease the amount
+of time the volume is kept locked for dumps of large volumes.  By
+default, it includes all directory objects in an incremental dump
+whether theyâ€™ve been changed or not.
+
+If the OMIT_FLG is set to 1 (default 0), unchanged directories will be
+omitted.  This will reduce the size of the dump and not cause problems
+if the incremental is restored, as expected, on top of a volume
+containing the correct directory structure (such as one created by
+restoring previous full and incremental dumps).
+
+B<These two flags are supported with OpenAFS system libraries 1.4.5 or
+later.>
+
 It calls the AFS system library function I<UV_DumpVolume>.
 
 =item B<@part = $vos-E<gt>listpart(SERVER);>
@@ -217,6 +260,7 @@ keys
        dayUse      inUse       maxquota
        parentID    server      size
        status      type        updateDate
+       copyDate    backupDate  accessDate
        volid
 
 It calls the AFS system library function I<UV_ListPartitions>.
@@ -320,11 +364,14 @@ command).
 
 It calls the AFS system library function I<UV_RestoreVolume>.
 
-=item B<$ok = $vos-E<gt>setquota(VOLUME, QUOTA);>
+=item B<$ok = $vos-E<gt>setquota(VOLUME, QUOTA [, CLEAR]);>
 
-Sets the QUOTA for the specified volume.  VOLUME specifies either the
-complete name or volume ID number of the volume. It calls the AFS
-system library function I<UV_SetVolumeInfo>.
+Sets the QUOTA for the specified volume.  Specify the number of
+one-kilobyte blocks as a positive integer (1024 is one megabyte).
+VOLUME specifies either the complete name or volume ID number of the
+volume.  Set CLEAR (default 0) to 1 to clear the access counter on the
+VOLUME, shown on the B<examine> method.  It calls the AFS system
+library function I<UV_SetVolumeInfo>.
 
 =item B<$stat = $vos-E<gt>status(SERVER);>
 
@@ -366,23 +413,23 @@ documentation were written by
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2005-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
- © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>,
-             Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
-             Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ Copyright (c) 2005-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ Copyright (c) 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>,
+                         Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
+                         Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  All rights reserved.
 
- Most of the explanations in this document are taken from the original
- AFS documentation.
+Most of the explanations in this document are taken from the original
+AFS documentation.
 
  AFS-3 Programmer's Reference:
  Volume Server/Volume Location Server Interface
  Edward R. Zayas
- © 1991 Transarc Corporation.
+ Copyright (c) 1991 Transarc Corporation.
  All rights reserved.
 
  IBM AFS Administration Reference
- © IBM Corporation 2000.
+ Copyright (c) IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -390,4 +437,4 @@ under the same terms as Perl itself.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 772 $
+Revision $Rev: 1082 $

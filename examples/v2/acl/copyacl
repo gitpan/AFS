@@ -1,7 +1,8 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
-use strict;
 use blib;
+use strict;
+use warnings;
 
 use AFS::ACL;
 
@@ -11,7 +12,7 @@ my $from = shift;
 my $to = shift;
 
 my $ok = AFS::ACL->copyacl($from, $to);
-print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
-print "OK = $ok \n";
+if ($AFS::CODE) { print "AFS::CODE = $AFS::CODE\n"; }
+else            { print "OK = $ok \n"; }
 
 exit;

@@ -1,80 +1,47 @@
 
-This is the README file for the Perl extension module AFS (Version 2.6.2)
+This is the README file for the Perl extension module bundle AFS (Version v2.6.3)
 
 
 DESCRIPTION
-    The AFS module bundle is a dynamically loadable extension to
-    Perl. It gives the AFS user and administrator access to many of the
-    AFS programming APIs, allowing you to make these calls directly from
+    The AFS module bundle is a dynamically loadable extension to Perl.
+    It gives the AFS user and AFS administrator access to many of the
+    AFS programming APIs, allowing them to make these calls directly from
     Perl, rather than processing the output of a command.
 
 
-REQUIREMENTS
-    Before you can build the AFS module bundle you need to have the
-    following installed on your system:
+WHAT'S NEW?
+    Version v2.6.3 is mostly a bug fixing release.
+    For the AFS::BOS module the following methods have been released
+        addhost
+        adduser
+        removehost
+        removeuser
+        setrestart
 
-        * Perl 5.005_02 or newer
-        * system libraries for OpenAFS or IBM AFS (version 3.6)
-        * GNU gcc (on solaris-2.[5-9])
+    For more details, please see the file named 'CHANGES' which should
+    have been included in the AFS module distribution.
 
 
 RESTRICTIONS
     This release
-        * does not support AFS system libraries version 3.4 or version 3.5 !!!
-        * does not support AFS module "version 1" features and styles anymore
+        * does not support Transarc/IBM AFS system libraries version
+          3.4 or version 3.5 !!!
+        * does not support features and styles from Perl AFS module
+          "major version 1"
 
 
-RECOMMENDATIONS
-    It is highly recommended to place the installation directory in
-    the AFS file system.  Otherwise most of the test cases
-    ('make test') are skipped.
+DEPRECATION
+    The module AFS::KAS is deprecated and will be removed in version v2.8.0
 
 
-AVAILABILITY
-    The latest version of the AFS module bundle is currently available at
-
-        http://www.MPA-Garching.MPG.de/~nog/perl/AFS-2.6.2.tar.gz
-        http://www.cpan.org/authors/id/N/NO/NOG/AFS-2.6.2.tar.gz
-
-
-BUILDING & INSTALLING
-    Assuming you have met all the prerequisites, building the modules
-    should be straightforward. The AFS module bundle is distributed as a
-    single gzipped tar archive file:
-
-            AFS-2.6.2.tar.gz
-
-    Unpack the archive to create an AFS installation directory:
-
-        gunzip AFS-2.6.2.tar.gz
-        tar xvf AFS-2.6.2.tar
-
-    'cd' into that directory, make, test and install the modules. You
-    have to specify the location of the AFS system libraries. While
-    running the 'perl Makefile.PL' step you will be prompted for the
-    location of the AFS system libraries.  If you want to avoid that
-    query, you should specify the environment variable 'AFSPATH'
-    before you start[1].  If your AFS system type is not yet known by
-    the make file, please follow the printed message.
-
-    This is the sequence of commands to build the modules:
-
-        cd AFS-2.6.2
-
-        [1] this step is optional
-        setenv AFSPATH 'path_to_the_AFS_system_libraries' # tcsh-shell
-        export AFSPATH='path_to_the_AFS_system_libraries' # sh-shell
-
-        perl Makefile.PL
-             ---->  Which AFS system libraries should be used? [/usr/afsws]
-        make
-        make test
-        make install
-        make html   ;#(if you want to get the HTML documentation, see also next section)
+INSTALLATION
+    If you want to install the AFS module bundle on a 32-bit platform
+    read the 'INSTALL' file or if to install it on a 64-bit platform
+    read the 'INSTALL_64' file.
 
 
 DOCUMENTATION
-    The POD documentation automatically installed to the system wide
+    The POD documentation is automatically installed to the system wide
     Perl documentation.  It is readable with the 'perldoc' utility.
 
     For information about HTML documentation, please check the file
@@ -87,128 +54,26 @@ EXAMPLES
     work.
 
 
-MAJOR CHANGES (from major release 1 to major release 2)
-    This module bundle compiles with the AFS system libraries for IBM
-    AFS version 3.6.x and with the AFS system libraries for all
-    OpenAFS versions.
-
-    Since OpenAFS is running on an increasingly number of platforms so
-    does the AFS Perl module.  Whereever you can compile OpenAFS and
-    Perl you should be able to install the ASF Perl module.
-
-    The constructor methods for all AFS classes have been corrected to
-    conform with the Perl OO conventions.
-
-    In order to have clean Perl interfaces the AFS Perl code has been
-    separated into several logical modules.  Where suited the modules
-    have been implemented as OO classes.
-
-    For more details, please see the file named 'CHANGES which should
-    have been included in the AFS module distribution.
-
-
 COMPATIBILITY
-    In major release 2 (version 2), all functions and special
-    variables have been resorted into separate modules according to
-    their affiliations to different AFS command suits.  These resorted
-    functions and variables are not exported by default anymore but
-    they are exported only on request.
-
-    This release does NOT support any features and interfaces from
-    version 1.
-
-
-PLATFORMS
-    In the meantime I have only access to Linux machines.  Therefore I
-    have tested this version of the AFS module bundle only on the
-    Linux platform with the following combinations
-
-        OS             @sys         compiler    OpenAFS    Perl   (threaded/non-threaded)
-        ---------------------------------------------------------------------------------
-        Linux 32-bit   i386_linux26   gcc       1.4.2      5.6.2  non-threaded
-                       i386_linux26   gcc       1.4.5      5.6.2  non-threaded
-                       i386_linux26   gcc       1.4.7      5.6.2  non-threaded
-                       i386_linux26   gcc       1.4.12     5.6.2  non-threaded
-
-                       i386_linux26   gcc       1.4.2      5.8.8  non-threaded
-                       i386_linux26   gcc       1.4.5      5.8.8  non-threaded
-                       i386_linux26   gcc       1.4.7      5.8.8  non-threaded
-                       i386_linux26   gcc       1.4.12     5.8.8  non-threaded
-
-                       i386_linux26   gcc       1.4.8      5.8.8  threaded
-                       i386_linux26   gcc       1.4.12     5.8.8  threaded
-
-                       i386_linux26   gcc       1.4.2      5.10.0  non-threaded
-                       i386_linux26   gcc       1.4.5      5.10.0  non-threaded
-                       i386_linux26   gcc       1.4.7      5.10.0  non-threaded
-                       i386_linux26   gcc       1.4.12     5.10.0  non-threaded
-
-                       i386_linux26   gcc       1.4.8      5.10.0  threaded
-                       i386_linux26   gcc       1.4.12     5.10.0  threaded
-
-        Linux 64-bit   amd64_linux26  gcc       1.4.11     5.10.0  non-threaded
-                       amd64_linux26  gcc       1.4.12     5.10.0  non-threaded
-
-                       amd64_linux26  gcc       1.4.12(*)  5.10.0  threaded
-                                                (*) => modified libraries libafsrpc.a
-                                                       and libafsauthent.a
-
-    For former versions I have also got reports that it is running on
-    configurations, not available to me.
-
-        OS             @sys         compiler
-        ------------------------------------
-        AIX            rs_aix32       cc
-                       rs_aix41       cc
-                       rs_aix42       cc
-                       rs_aix51       cc
-
-        Solaris        sun4x_55       gcc
-                       sun4x_56       gcc
-                       sun4x_57       gcc
-                       sun4x_58       gcc
-                       sun4x_59       gcc
-
-        Irix           sgi_65         cc
-
-
-        Digital Unix   alpha_dux40
-
-
-FEEDBACK
-    If you are building the modules on another architecture I would
-    appreciate a note to tell me how you got on. Although I am
-    particularly interested to hear about any problems you encounter
-    when building the system, I would still like to hear from you even
-    if you don't.
-
-    Things I particularly would like to know
-
-       * The Operating system name and version, e.g. SunOS 4.1.3
-       * Architecture, e.g. Solaris
-       * C compiler, e.g. gcc
-       * Where there any warnings/errors printed by the C compiler? If so
-         please send the exact output if possible.
-       * The Perl version
-       * The version of the AFS system libraries
+    This release does NOT support any features and interfaces from Perl
+    AFS modules major version 1.
 
 
 CAVEATS
     A few methods from the AFS command suite BOS are not yet
-    released.  For details, please see 'AFS/BOS.pod'.
-
-
-KNOWN PROBLEMS
-    Under SunOS, several people have encountered problems while compiling
-    and installing the AFS module bundle.
+    released.  For details, please see 'AFS::BOS.pod'.
 
 
 BUGS
-    Please send all bug reports and suggestions for improvements to
-    Norbert E Gruener <nog@MPA-Garching.MPG.de>.  When reporting
-    bugs/problems please include information about operating system
-    version, perl version, AFS version, AFS module version.  Comments
-    and suggestions are always welcome.
+    Development questions, bug reports, and patches should be sent to
+    Norbert E Gruener <nog@MPA-Garching.MPG.de>.
+
+    Bug reports are also welcome at
+    <http://rt.cpan.org/NoAuth/Bugs.html?Dist=AFS>.
+
+    When reporting bugs/problems please include information about
+    operating system version, perl version, AFS version, AFS module
+    version. Comments and suggestions are always welcome.
 
 
 CURRENT AUTHOR
@@ -224,10 +89,10 @@ CREDITS
 
 
 COPYRIGHT AND DISCLAIMER
-    © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+    Â© 2001-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
     All rights reserved.
 
-    © 1994 Board of Trustees, Leland Stanford Jr. University.
+    Â© 1994 Board of Trustees, Leland Stanford Jr. University.
     All rights reserved.
 
     This library is free software; you can redistribute it and/or modify

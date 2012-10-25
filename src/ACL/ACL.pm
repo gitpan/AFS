@@ -1,8 +1,8 @@
 package AFS::ACL;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: ACL.pm 919 2009-10-16 10:34:03Z nog $"
+# RCS-Id: "@(#)$Id: ACL.pm 1056 2011-11-17 13:46:23Z nog $"
 #
-# Copyright © 2001-2009 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2001-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = 'v2.6.2';
+$VERSION = 'v2.6.3';
 
 sub new {
     my ($this, $class);
@@ -101,8 +101,9 @@ sub cleanacl {
     my $acl;
 
     $follow = 1 unless defined $follow;
-    if ($acl = AFS::_getacl($path, $follow)) { AFS::setacl($path, $acl, $follow); }
-    else { return 0; }
+    if (! defined ($acl = AFS::_getacl($path, $follow))) { return 0; }
+    if ($acl->is_clean) { return 1; }
+    AFS::setacl($path, $acl, $follow);
 }
 
 sub crights {
@@ -142,6 +143,12 @@ sub add {
     return $self;
 }
 
+sub is_clean {
+    my $self = shift;
+
+    foreach ($self->get_users, $self->nget_users) { return 0 if (m/^-?\d+$/); }
+    return 1;
+}
 
 # comment Roland Schemers: I hope I don't have to debug these :-)
 sub empty      { $_[0] = bless [ {},{} ]; }

@@ -1,6 +1,9 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
 use blib;
+use strict;
+use warnings;
+
 use AFS::PTS;
 
 die "Usage: $0 id name oid newid\n" if ($#ARGV != 3);
@@ -12,7 +15,8 @@ my $newid = shift;
 
 
 my $pts = AFS::PTS->new;
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n";
 
-$ok = $pts->PR_ChangeEntry($id, $name, $oid, $newid);
-print "ChangeEntry AFS::CODE = $AFS::CODE\n";
-print "success  = $ok\n";
+my $ok = $pts->PR_ChangeEntry($id, $name, $oid, $newid);
+if ($AFS::CODE) { print "AFS::CODE = $AFS::CODE\n"; }
+else            { print "success  = $ok\n"; }

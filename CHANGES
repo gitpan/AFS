@@ -1,3 +1,52 @@
+Version 2.6.3 (released 25 Oct 2012, revision 1142)
+http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.6.3.tar.gz
+
+ NOTICE:
+ * This release does not support AFS system libraries version 3.4 or
+   version 3.5
+ * This release does not support any features and interfaces from
+   AFSPerl "version 1"
+
+ User-visible changes:
+ * added patch for OpenAFS to create "PIC" type system libraries on
+   64-bit platforms
+ * compiles with OpenAFS system libraries version 1.4.X on 32-bit and
+   on 64-bit platforms
+ * added installation description for 64-bit platforms
+ * released the BOS methods
+   - addhost
+   - removehost
+   - adduser
+   - removeuser
+   - setrestart
+ * updated POD documentation of AFS::VLDB
+   updated argument description for VOLUME in several
+   methods: "(volume name or volume ID number)"
+ * fixed method AFS::VOS->create
+ * extended method AFS::VOS->dump: added "omitdir" option
+ * added new method AFS::ACL->is_clean
+ * modified AFS::ACL->cleanacl: uses method "is_clean" to check if
+   there is anything to do
+ * method AFS::VOS->listvolume provides also the values "copyDate",
+   "backupDate", and "accessDate"
+ * patched example for AFS::KTC_TOKEN->SetToken to handle several
+   tokens
+ * updated example scripts for all AFS modules
+
+
+ Developer-visible changes:
+ * rewrite of method AFS::VOS->backupsys
+ * concatenate compiler flags in Makefile.PL
+ * cleaned up compiler warnings
+ * cleaned up memory allocation for the AFS::PTS, AFS::VOS, AFS::VLDB,
+   and AFS::BOS modules
+ * closed memory leaks because of multiple calls to "rx_Init" in the
+   AFS::PTS, AFS::VOS, AFS::VLDB, and AFS::BOS modules
+ * converted "integer" checks to "Scalar::Util(looks_like_number)"
+   utility for all AFS::VOS methods and all AFS::VOS examples
+
+
+
 Version 2.6.2 (released 31 Mar 2010, revision 961)
 http://www.mpa-garching.mpg.de/~nog/perl/AFS-2.6.2.tar.gz
 

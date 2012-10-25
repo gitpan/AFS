@@ -1,6 +1,6 @@
 
           This is the README file for the AFS Perl examples.
-                      AFS Perl (Version 2.6.2)
+                      AFS Perl (Version 2.6.3)
 
 
 WHERE ARE THE EXAMPLES?
@@ -18,7 +18,7 @@ HOW TO USE THE EXAMPLES
     "make test" you can run these test scripts.  Just step into the
     different subdirectories and run the available examples, e.g:
     
-        cd AFS-2.6.2/examples/v2/base
+        cd AFS-2.6.3/examples/v2/base
         ./error_test
 
 

@@ -1,10 +1,13 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
+use v5.10.0;
 use blib;
-
 use strict;
+use warnings;
+
 use AFS::VOS;
 use Time::localtime;
+use Scalar::Util qw(looks_like_number);
 
 my ($vos, $server, $part, $fast, $extend, $Debugging, $long, $shift);
 
@@ -18,19 +21,20 @@ $shift && shift;
 die "Usage: $0 server [partition [fast [extended]]]\n" if $#ARGV < 0;
 
 $server = shift;
-$part   = shift;
-$fast   = shift;
-$extend = shift;
+$part   = shift // '';
+$fast   = shift // 0;
+$extend = shift // 0;
 
-$part   = '' unless $part;
-$fast   = 0  unless $fast;
-$extend = 0  unless $extend;
+if (defined $fast   and !looks_like_number($fast))   { warn "$0: FAST is not an INTEGER ...\n"; }
+else                                                 { $fast = int($fast); }
+if (defined $extend and !looks_like_number($extend)) { warn "$0: EXTENDED is not an INTEGER ...\n"; }
+else                                                 { $extend = int($extend); }
 
 $vos = AFS::VOS->new;
-print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n" and die;
 
 my $partlist = $vos->listvol($server, $part, $fast, $extend);
-print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n" and die;
 
 if    ($fast)      { print_fast($partlist); }
 elsif ($extend)    { print_ext($partlist); }

@@ -19,8 +19,8 @@
 
  MID TERM
  --------
- * remove the modules AFS::KAS, AFS::KTC_EKEY, AFS::KTC_PRINCIPAL, and
-   AFS::KTC_TOKEN
+ * remove the module AFS::KAS
+ * upgrade AFS::KTC_TOKEN
 
 
  LONG TERM

@@ -1,8 +1,9 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
 use blib;
-
 use strict;
+use warnings;
+
 use AFS::BOS;
 
 my ($server, $cellname, $bos);
@@ -14,7 +15,7 @@ $cellname = shift;
 
 if ($cellname) { $bos = AFS::BOS->new($server, 0, 0, $cellname); }
 else           { $bos = AFS::BOS->new($server); }
-print "Error Code-1: $AFS::CODE\n" if ($AFS::CODE);
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n" and die;
 
 my $mode = $bos->getrestricted;     # save old mode
 

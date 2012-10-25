@@ -1,6 +1,9 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
 use blib;
+use strict;
+use warnings;
+
 use AFS::PTS;
 
 die "Usage: $0 name isgroup ownerid\n" if ($#ARGV != 2);
@@ -10,11 +13,12 @@ my $isgroup = shift;
 my $ownerid = shift;
 
 my $pts = AFS::PTS->new;
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n";
 
 my $flag;
 if ($isgroup) { $flag = &AFS::PRGRP; }
 else          { $flag = &AFS::PRUSER; }
 
-$id = $pts ->PR_NewEntry($name, $flag, $ownerid);
-print "CREATE:  AFS::CODE = $AFS::CODE\n";
-print "   ID number = $id \n";
+my $id = $pts ->PR_NewEntry($name, $flag, $ownerid);
+if ($AFS::CODE) { print "AFS::CODE = $AFS::CODE\n"; }
+else            { print "   ID number = $id \n"; }

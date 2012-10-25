@@ -1,11 +1,11 @@
 # -*-cperl-*-
 #-----------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlbos.pod 772 2006-02-16 13:13:16Z nog $"
+# RCS-Id: "@(#)$Id: afsperlbos.pod 1130 2012-10-06 09:30:35Z nog $"
 #
-# Copyright © 2005-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
-#           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>,
-#                       Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
-#                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2005-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>,
+#             Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
+#             Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -129,8 +129,6 @@ rx_connection structure.
 
 =item B<$ok = $bos-E<gt>addhost(\@HOST [, CLONE]);>
 
-B<NOT YET RELEASED>
-
 Adds the given HOST to the local C<CellServDB> file.  HOST is either a
 scalar value or a reference to an array of hosts.  If CLONE is set to
 1 (default 0) the ubik vote of this host does not count.  This
@@ -150,8 +148,6 @@ function I<BOZO_AddKey>.
 =item B<$ok = $bos-E<gt>adduser(USER);>
 
 =item B<$ok = $bos-E<gt>adduser(\@USER);>
-
-B<NOT YET RELEASED>
 
 Adds the given USER to the list of privileged users in the local
 C<UserList> file.  USER is either a scalar value or a reference to an
@@ -262,8 +258,6 @@ I<BOZO_Prune>.
 
 =item B<$ok = $bos-E<gt>removehost(\@HOST);>
 
-B<NOT YET RELEASED>
-
 Removes the database server machine HOST from the local C<CellServDB>
 file.  HOST is either a scalar value or a reference to an array of
 names.  It calls the AFS system library function
@@ -283,8 +277,6 @@ system library function I<BOZO_DeleteKey>.
 =item B<$ok = $bos-E<gt>removeuser(USER);>
 
 =item B<$ok = $bos-E<gt>removeuser(\@USER);>
-
-B<NOT YET RELEASED>
 
 Removes the privileged USER from the local C<UserList> file. USER is
 either a scalar value or a reference to an array of users.  It calls
@@ -357,8 +349,6 @@ copy over the C<ThisCell> and C<CellServDB> files from this or another
 appropriate machine during installation of additional server machines.
 
 =item B<$ok = $bos-E<gt>setrestart(TIME [, GENERAL [, NEWBINARY]]);>
-
-B<NOT YET RELEASED>
 
 Sets the restart TIME at which the BOS Server restarts processes.  Set
 GENERAL to 1 (default 0) to set the restart time of the BOS Server to
@@ -460,23 +450,23 @@ documentation were written by
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2005-2006 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
- © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>,
-             Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
-             Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ Copyright (c) 2005-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ Copyright (c) 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu>,
+                         Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
+                         Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  All rights reserved.
 
- Most of the explanations in this document are taken from the original
- AFS documentation.
+Most of the explanations in this document are taken from the original
+AFS documentation.
 
  AFS-3 Programmer's Reference:
  BOS Server Interface
  Edward R. Zayas
- © 1991 Transarc Corporation.
+ Copyright (c) 1991 Transarc Corporation.
  All rights reserved.
 
  IBM AFS Administration Reference
- © IBM Corporation 2000.
+ Copyright (c) IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -484,4 +474,4 @@ under the same terms as Perl itself.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 772 $
+Revision $Rev: 1130 $

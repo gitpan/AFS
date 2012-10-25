@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlkas.pod 899 2008-11-06 11:03:41Z nog $"
+# RCS-Id: "@(#)$Id: afsperlkas.pod 980 2010-07-19 09:17:28Z nog $"
 #
-# Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -293,31 +293,31 @@ calls the AFS system library function 'KAM_SetFields'.
 
 =head1 CURRENT AUTHOR
 
-Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+Norbert E. Gruener E<lt>nog@MPA-Garching.MPG.deE<gt>
 
 =head1 AUTHOR EMERITUS
 
-Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
+Roland Schemers E<lt>schemers@slapshot.stanford.eduE<gt>
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ Copyright (c) 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
- © 1994 Board of Trustees, Leland Stanford Jr. University.
+ Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University.
  All rights reserved.
 
- Most of the explanations in this document are taken from the original
- AFS documentation.
+Most of the explanations in this document are taken from the original
+AFS documentation.
 
  AFS-3 Programmer's Reference:
  Authentication Server Interface
  Edward R. Zayas
- © 1991 Transarc Corporation.
+ Copyright (c) 1991 Transarc Corporation.
  All rights reserved.
 
  IBM AFS Administration Reference
- © IBM Corporation 2000.
+ Copyright (c) IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -345,4 +345,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 899 $
+Revision $Rev: 980 $

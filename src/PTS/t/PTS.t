@@ -8,7 +8,7 @@ use Test::More;
 
 BEGIN {
     use AFS::FS;
-    if (AFS::FS::isafs('./')) { plan tests => 47; }
+    if (AFS::FS::isafs('./')) { plan tests => 48; }
     else { plan skip_all => 'Working directory is not in AFS file system ...'; }
 
     use_ok('AFS::PTS');
@@ -25,7 +25,11 @@ is(ref($pts), 'AFS::PTS', 'pts->new(1)');
 
 $pts = AFS::PTS->new;
 is(ref($pts), 'AFS::PTS', 'pts->new()');
+undef $pts;
 
+is(leak_test($cell), 1210, 'pts leak_test');
+
+$pts = AFS::PTS->new;
 can_ok('AFS::PTS', qw(ascii2ptsaccess));
 
 can_ok('AFS::PTS', qw(ptsaccess2ascii));
@@ -112,3 +116,17 @@ can_ok('AFS::PTS', qw(PR_WhereIsIt));
 
 $pts->DESTROY;
 ok(! defined $pts, 'pts->DESTROY');
+
+sub leak_test {
+    my $cell  = shift;
+
+    my $count = 0;
+    my $sec   = 1;
+    while(1) {
+        $count++;
+        my $pts = AFS::PTS->new($sec, $cell);
+        $pts->DESTROY();
+        if ($count == 1210) { last; }
+    }
+    return $count;
+}

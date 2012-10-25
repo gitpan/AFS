@@ -1,32 +1,26 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
+use v5.10.0;
 use blib;
-
 use strict;
+use warnings;
+
 use AFS::BOS;
 
-my ($server, $cellname, $bos);
+my (@hosts, $host, $server, $cellname, $bos);
 
-die "Usage: $0 server [cell]\n" if $#ARGV < 0;
+die "Usage: $0 host server [cell]\n" if $#ARGV < 1;
 
+$host     = shift;
 $server   = shift;
-$cellname = shift;
+$cellname = shift // '';
 
 if ($cellname) { $bos = AFS::BOS->new($server, 0, 0, $cellname); }
 else           { $bos = AFS::BOS->new($server); }
-print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n" and die;
 
-die "not yet tested ... \n";
-
-print "bos->removehost()...\n";
-
-my $ok = $bos->removehost('sysdev11');
-print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
-
-$ok = $bos->removehost(['sysdev11']);
-print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
-
-$ok = $bos->removehost(['sysdev11', 'sysdev12']);
+@hosts = split (/ /, $host);
+my $ok = $bos->removehost(\@hosts);
 print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
 
 $bos->DESTROY;

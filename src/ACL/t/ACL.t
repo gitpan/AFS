@@ -8,7 +8,7 @@ use Test::More;
 
 BEGIN {
     use AFS::FS;
-    if (AFS::FS::isafs('./')) { plan tests => 25; }
+    if (AFS::FS::isafs('./')) { plan tests => 26; }
     else { plan skip_all => 'Working directory is not in AFS file system ...'; }
 
     use_ok('AFS::ACL');
@@ -39,6 +39,7 @@ is($rights, 'rl', 'crights');
 my $new_acl = AFS::ACL->retrieve('./');
 is(ref($new_acl), 'AFS::ACL', 'AFS::ACL->retrieve()');
 
+is($new_acl->is_clean, 1, 'acl->is_clean()');
 
 can_ok('AFS::ACL', qw(apply));
 can_ok('AFS::ACL', qw(copyacl));

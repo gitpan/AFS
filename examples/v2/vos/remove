@@ -1,8 +1,9 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
 use blib;
-
 use strict;
+use warnings;
+
 use AFS::VOS;
 
 my ($vos, $server, $part, $volume, $volid);
@@ -14,11 +15,12 @@ $server = shift;
 $part   = shift;
 
 $vos = AFS::VOS->new;
-print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n";
 
 if ($server) { $volid = $vos->remove($volume, $server, $part); }
 else         { $volid = $vos->remove($volume); }
-print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
-
-if ($server) { printf "Volume %u on partition /vicep%s server %s deleted\n", $volid, $part, $server if $volid; }
-else         { printf "Volume %u deleted\n", $volid if $volid; }
+if ($AFS::CODE) { print "AFS::CODE = $AFS::CODE\n"; }
+else {
+    if ($server) { printf "Volume %u on partition /vicep%s server %s deleted\n", $volid, $part, $server if $volid; }
+    else         { printf "Volume %u deleted\n", $volid if $volid; }
+}

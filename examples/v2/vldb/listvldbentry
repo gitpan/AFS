@@ -1,8 +1,9 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
 use blib;
-
 use strict;
+use warnings;
+
 use AFS::VLDB;
 
 my ($vldb, $vol);
@@ -12,9 +13,10 @@ die "Usage: $0 volume \n" if $#ARGV != 0;
 $vol = shift;
 
 $vldb = AFS::VLDB->new;
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n";
 
 my $vldblist = $vldb->listvldbentry($vol);
-print "Error: ", $AFS::CODE, "\n" if ($AFS::CODE);
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n";
 
 print_vldblist($vldblist);
 

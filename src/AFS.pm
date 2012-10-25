@@ -1,14 +1,13 @@
-# -*-cperl-*-
 package AFS;
 
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: AFS.pm 919 2009-10-16 10:34:03Z nog $"
+# RCS-Id: "@(#)$Id: AFS.pm 1054 2011-11-17 11:51:37Z nog $"
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# Copyright © 2001-2009 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
-# Copyright © 1994 Board of Trustees, Leland Stanford Jr. University.
+# Â© 2001-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 1994 Board of Trustees, Leland Stanford Jr. University.
 #
 #  The original library is covered by the following copyright:
 #
@@ -35,7 +34,7 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(Exporter AutoLoader DynaLoader);
 
-$VERSION = 'v2.6.2';
+$VERSION = 'v2.6.3';
 
 @CELL = qw (
             configdir
@@ -274,6 +273,10 @@ sub AUTOLOAD {
 	}
     }
     goto &$AUTOLOAD;
+}
+
+END {
+    AFS::_finalize();
 }
 
 bootstrap AFS;

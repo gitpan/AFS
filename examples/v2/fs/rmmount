@@ -1,6 +1,9 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
 use blib;
+use strict;
+use warnings;
+
 use AFS::FS qw(rmmount);
 
 my ($mountp, $ok);
@@ -10,5 +13,5 @@ die "Usage: $0 mountp\n" if ($#ARGV == -1);
 $mountp = shift;
 
 $ok = rmmount($mountp);
-print "Error Code: $AFS::CODE\n" if ($AFS::CODE);
-print "ok rmmount = $ok\n";
+if ($AFS::CODE) { print "AFS::CODE = $AFS::CODE\n"; }
+else            { print "ok rmmount = $ok\n"; }

@@ -1,10 +1,10 @@
 package AFS::VOS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: VOS.pm 919 2009-10-16 10:34:03Z nog $"
+# RCS-Id: "@(#)$Id: VOS.pm 1111 2012-02-09 13:14:46Z nog $"
 #
-# Copyright © 2005-2009 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
-#           © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
-#                       Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2005-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+#             Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -12,11 +12,12 @@ package AFS::VOS;
 
 use Carp;
 use AFS ();
+use Scalar::Util qw(looks_like_number);
 
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = 'v2.6.2';
+$VERSION = 'v2.6.3';
 
 sub DESTROY {
     my (undef, undef, undef, $subroutine) = caller(1);
@@ -27,34 +28,36 @@ sub DESTROY {
 sub setquota {
     my $self   = shift;
     my $volume = shift;
-    my $quota  = shift;
+    my $quota  = shift || 0;
+    my $clear  = shift || 0;
 
-    $self->_setfields($volume, $quota);
+    if (defined $quota and !looks_like_number($quota)) { warn "VOS::setquota: QUOTA is not an INTEGER ...\n"; return 0; }
+    else                                               { $quota = int($quota); }
+    if (defined $clear and !looks_like_number($clear)) { warn "VOS::setquota: CLEAR is not an INTEGER ...\n"; return 0; }
+    else                                               { $clear = int($clear); }
+
+    $self->_setfields($volume, $quota, $clear);
 }
 
 sub backupsys {
     my $self = shift;
+    my ($prefix, $server, $partition, $exclude, $xprefix, $dryrun) = @_;
 
-    if ($#_ > -1 and ! defined $_[0]) { $_[0] = ''; }
+    my (@Prefix, @XPrefix, $pcount);
 
-    if (ref($_[0]) eq 'ARRAY') {
-        $self->_backupsys(@_);
-    }
-    elsif (ref($_[0]) eq '') {
-        my (@prefix, @xprefix);
-        my @args = @_;
-        $prefix[0] = $args[0];
-        $args[0] = \@prefix;
-        if ($args[4]) {
-            $xprefix[0] = $args[4];
-            $args[4] = \@xprefix;
-        }
-        $self->_backupsys(@args);
-    }
-    else {
-        carp "AFS::VOS->backupsys: not a valid input ...\n";
-        return (undef, undef);
-    }
+    if (!defined $dryrun)    { $dryrun = 0; }
+    if (!defined $xprefix)   { @XPrefix = (); }
+    elsif (! ref($xprefix))  { @XPrefix = split(/ /, $xprefix); }
+    else                     { @XPrefix = @{$xprefix}; }
+    if (!defined $exclude)   { $exclude = 0; }
+    if (!defined $partition) { $partition = ''; }
+    if (!defined $server)    { $server = ''; }
+    if (!defined $prefix)    { @Prefix = (''); }
+    elsif (! ref($prefix))   { @Prefix = split(/ /, $prefix); }
+    else                     { @Prefix = @{$prefix}; }
+    if (!($pcount = @Prefix)) {@Prefix = (''); }
+
+    return($self->_backupsys(\@Prefix, $server, $partition, $exclude, \@XPrefix, $dryrun))
 }
 
 1;

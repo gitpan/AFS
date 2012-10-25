@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 956 2010-03-29 12:53:52Z nog $
+ * RCS-Id: @(#)$Id: AFS.xs 1130 2012-10-06 09:30:35Z nog $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -11,7 +11,7 @@
  * directory or online at http://www.openafs.org/dl/license10.html
  *
  * Contributors
- *    2004-2010: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ *    2004-2012: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  *         2003: Alf Wachsmann <alfw@slac.stanford.edu>
  *               Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
  *               Norbert E. Gruener <nog@MPA-Garching.MPG.de>
@@ -40,6 +40,8 @@
 
 #include "perl.h"
 #include "XSUB.h"
+#define NEED_newRV_noinc
+#define NEED_sv_2pv_flags
 #include "ppport.h"
 
 #include <afs/param.h>
@@ -57,12 +59,12 @@
 #undef INIT
 #include <afs/stds.h>
 #include <afs/afs.h>
-#include <afs/afsint.h>
 #include <afs/vice.h>
 #include <afs/venus.h>
 #undef VIRTUE
 #undef VICE
-#include "afs/prs_fs.h"
+#include <afs/prs_fs.h>
+#include <afs/afsint.h>
 
 #include <afs/auth.h>
 #include <afs/cellconfig.h>
@@ -77,11 +79,12 @@
 #ifndef RV_RDONLY
 #define RV_RDONLY  0x10000
 #endif
-#include <afs/usd.h>
 #include <afs/vlserver.h>
+#include <afs/volint.h>
 #include <afs/cmd.h>
-#include "afs/prclient.h"
-#include <afs/prerror.h>
+#include <afs/usd.h>
+#include <afs/ptclient.h>
+#include <afs/pterror.h>
 #include <afs/print.h>
 #include <afs/kauth.h>
 #include <afs/kautils.h>
@@ -95,15 +98,13 @@
 #endif
 #include <des.h>
 
-#include <afs/volint.h>
-
 #if defined(AFS_3_4) || defined(AFS_3_5)
 #else
 #define int32 afs_int32
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Version 2.6.2)";
+const char *const xs_version = "AFS.xs (Version 2.6.3)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -128,27 +129,14 @@ typedef struct ubik_client *AFS__VLDB;
 typedef struct ubik_client *AFS__VOS;
 typedef struct rx_connection *AFS__BOS;
 
-#if defined(OpenAFS_1_0) || defined(OpenAFS_1_1) || defined(OpenAFS_1_2) || defined(OpenAFS_1_3) 
-extern const char *error_message();
-#endif
 extern struct ubik_client *cstruct;
-extern int UV_SetSecurity();
-#ifdef OpenAFS
-extern int UV_SetVolumeInfo();
-#endif
-extern int VL_DeleteEntry();
-extern int VL_SetLock();
-extern int VL_ReleaseLock();
-extern int VL_ChangeAddr();
-extern int VL_GetAddrs();
-extern int VL_GetAddrsU();
-extern struct hostent *hostutil_GetHostByName();
-extern char *hostutil_GetNameByINet();
-extern char *volutil_PartitionName();
+#include "afs_prototypes.h"
+extern int afs_setpag();
 
 static rxkad_level vsu_rxkad_level = rxkad_clear;
 static struct ktc_token the_null_token;
 static int32 convert_numeric_names = 1;
+static int32 rx_initialized = 0;
 
 #define MAXSIZE 2048
 #define MAXINSIZE 1300
@@ -180,11 +168,19 @@ struct clock clock_now;
 
 static int32 raise_exception = 0;
 
+void safe_hv_store (HV* ahv,char * key ,int i ,SV * asv,int j) {
+   if (! hv_store(ahv, key, i, asv, j)) {
+       fprintf(stderr,"Panic ... internal error. hv_store failed.\n");
+       exit(1);
+   }
+   return;
+}
+
 static void bv_set_code(code, msg)
     int32 code;
     const char *msg;
 {
-    SV *sv = perl_get_sv("AFS::CODE", TRUE);
+    SV *sv = get_sv("AFS::CODE", TRUE);
     sv_setiv(sv, (IV) code);
 /*   printf("BV_SET_CODE %s (%d)\n", msg, code); */
     if (code == 0) {
@@ -206,7 +202,7 @@ static void p_set_code(msg)
     const char *msg;
 {
     int32 code = errno;
-    SV *sv = perl_get_sv("AFS::CODE", TRUE);
+    SV *sv = get_sv("AFS::CODE", TRUE);
     sv_setiv(sv, (IV) code);
 /*   printf("P_SET_CODE %s (%d)\n", msg, code); */
     if (code == 0) {
@@ -229,7 +225,7 @@ static void k_set_code(code, msg)
     int32 code;
     const char *msg;
 {
-    SV *sv = perl_get_sv("AFS::CODE", TRUE);
+    SV *sv = get_sv("AFS::CODE", TRUE);
     sv_setiv(sv, (IV) code);
 /*   printf("K_SET_CODE %s (%d)\n", msg, code); */
     if (code == 0) {
@@ -251,7 +247,7 @@ static void k_set_code(code, msg)
 static void set_code(code)
     int32 code;
 {
-    SV *sv = perl_get_sv("AFS::CODE", TRUE);
+    SV *sv = get_sv("AFS::CODE", TRUE);
     if (code == -1) { code = errno; }
 /*     printf("SET_CODE %d\n", code); */
     sv_setiv(sv, (IV) code);
@@ -271,7 +267,7 @@ static void set_code(code)
 
 /* taken from openafs-1.2.9  */
 /* volser/vsprocs.c          */
-set_errbuff(buffer, errcode)
+int set_errbuff(buffer, errcode)
     char *buffer;
     int32 errcode;
 {
@@ -491,7 +487,7 @@ static int32 not_here(s)
     return -1;
 }
 
-PrintDiagnostics(astring, acode)
+int PrintDiagnostics(astring, acode)
     char *astring;
     afs_int32 acode;
 {
@@ -529,7 +525,7 @@ static int32 internal_GetConfigDir()
 
         cdir = afsconf_Open(config_dir);
         if (!cdir) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "GetConfigDir: Can't open configuration directory (%s)", config_dir);
             PSETCODE(buffer);
             return errno;
@@ -554,7 +550,7 @@ static int32 internal_GetServerConfigDir()
 
         cdir = afsconf_Open(config_dir);
         if (!cdir) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "GetServerConfigDir: Can't open configuration directory (%s)", config_dir);
             PSETCODE(buffer);
             return errno;
@@ -574,7 +570,7 @@ static int32 internal_GetCellInfo(cell, service, info)
     if (code == 0) {
         code = afsconf_GetCellInfo(cdir, cell, service, info);
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "GetCellInfo: ");
             KSETCODE(code, buffer);
         }
@@ -597,7 +593,7 @@ static char *internal_GetLocalCell(code)
             return NULL;
         *code = afsconf_GetLocalCell(cdir, localcell, sizeof(localcell));
         if (*code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "GetLocalCell: Can't determine local cell name");
             PSETCODE(buffer);
             return NULL;
@@ -646,11 +642,11 @@ static struct ubik_client *internal_pts_new(code, sec, cell)
     char *cell;
 {
     struct rx_connection *serverconns[MAXSERVERS];
-    struct rx_securityClass *sc;
+    struct rx_securityClass *sc = NULL;
     struct ktc_token token;
     struct afsconf_cell info;
 /*  tpf nog 03/29/99
- *  caused by changes in ubikclient.c,v 2.20 1996/12/10 
+ *  caused by changes in ubikclient.c,v 2.20 1996/12/10
  *            and     in ubikclient.c,v 2.24 1997/01/21
  * struct ubik_client *client;                             */
     struct ubik_client *client = 0;
@@ -665,22 +661,26 @@ static struct ubik_client *internal_pts_new(code, sec, cell)
     if (*code)
         return NULL;
 
-    *code = rx_Init(0);
-    if (*code) {
-        char buffer[80];
-        sprintf(buffer, "AFS::PTS: could not initialize Rx (%d)\n", *code);
-        BSETCODE(code, buffer);
-        return NULL;
+    if (!rx_initialized) {
+        /* printf("pts DEBUG rx_Init\n"); */
+        *code = rx_Init(0);
+        if (*code) {
+            char buffer[256];
+            sprintf(buffer, "AFS::PTS: could not initialize Rx (%d)\n", *code);
+            BSETCODE(code, buffer);
+            return NULL;
+        }
+        rx_initialized = 1;
     }
 
     if (sec > 0) {
         strcpy(prin.cell, info.name);
         prin.instance[0] = 0;
         strcpy(prin.name, "afs");
-        *code = ktc_GetToken(&prin, &token, sizeof(token), (char *) 0);
+        *code = ktc_GetToken(&prin, &token, sizeof(token), NULL);
         if (*code) {
             if (sec == 2) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::PTS: failed to get token for service AFS (%d)\n", *code);
                 BSETCODE(code, buffer);
                 return NULL;    /* we want security or nothing */
@@ -707,7 +707,7 @@ static struct ubik_client *internal_pts_new(code, sec, cell)
 
     *code = ubik_ClientInit(serverconns, &client);
     if (*code) {
-        char buffer[80];
+        char buffer[256];
         sprintf(buffer, "AFS::PTS: Can't initialize ubik connection to Protection server (%d)\n", *code);
         BSETCODE(code, buffer);
         return NULL;
@@ -733,7 +733,8 @@ static int32 internal_pr_name(server, id, name)
     code = ubik_Call(PR_IDToName, server, 0, &lids, &lnames);
     if (lnames.namelist_val) {
         strncpy(name, (char *) lnames.namelist_val, PR_MAXNAMELEN);
-        safefree(lnames.namelist_val);
+        if (lnames.namelist_val)
+            free(lnames.namelist_val);
     }
     if (lids.idlist_val)
         safefree(lids.idlist_val);
@@ -764,7 +765,8 @@ static int32 internal_pr_id(server, name, id, anon)
     code = ubik_Call(PR_NameToID, server, 0, &lnames, &lids);
     if (lids.idlist_val) {
         *id = *lids.idlist_val;
-        safefree(lids.idlist_val);
+        if (lids.idlist_val)
+            free(lids.idlist_val);
     }
     if (lnames.namelist_val)
         safefree(lnames.namelist_val);
@@ -842,7 +844,7 @@ static char *parse_flags_ptsaccess(flags)
     return buff;
 }
 
-static parse_prcheckentry(server, stats, entry, lookupids, convertflags)
+static int parse_prcheckentry(server, stats, entry, lookupids, convertflags)
     struct ubik_client *server;
     HV *stats;
     struct prcheckentry *entry;
@@ -852,44 +854,44 @@ static parse_prcheckentry(server, stats, entry, lookupids, convertflags)
     int32 code;
     char name[PR_MAXNAMELEN];
 
-    hv_store(stats, "id", 2, newSViv(entry->id), 0);
-    hv_store(stats, "name", 4, newSVpv(entry->name, strlen(entry->name)), 0);
+    safe_hv_store(stats, "id", 2, newSViv(entry->id), 0);
+    safe_hv_store(stats, "name", 4, newSVpv(entry->name, strlen(entry->name)), 0);
     if (convertflags) {
-        hv_store(stats, "flags", 5, newSVpv(parse_flags_ptsaccess(entry->flags), 5), 0);
+        safe_hv_store(stats, "flags", 5, newSVpv(parse_flags_ptsaccess(entry->flags), 5), 0);
     }
     else {
-        hv_store(stats, "flags", 5, newSViv(entry->flags), 0);
+        safe_hv_store(stats, "flags", 5, newSViv(entry->flags), 0);
     }
     if (lookupids) {
         code = internal_pr_name(server, entry->owner, name);
         if (code)
-            hv_store(stats, "owner", 5, newSViv(entry->owner), 0);
+            safe_hv_store(stats, "owner", 5, newSViv(entry->owner), 0);
         else
-            hv_store(stats, "owner", 5, newSVpv(name, strlen(name)), 0);
+            safe_hv_store(stats, "owner", 5, newSVpv(name, strlen(name)), 0);
         code = internal_pr_name(server, entry->creator, name);
         if (code)
-            hv_store(stats, "creator", 7, newSViv(entry->creator), 0);
+            safe_hv_store(stats, "creator", 7, newSViv(entry->creator), 0);
         else
-            hv_store(stats, "creator", 7, newSVpv(name, strlen(name)), 0);
+            safe_hv_store(stats, "creator", 7, newSVpv(name, strlen(name)), 0);
     }
     else {
-        hv_store(stats, "owner", 5, newSViv(entry->owner), 0);
-        hv_store(stats, "creator", 7, newSViv(entry->creator), 0);
+        safe_hv_store(stats, "owner", 5, newSViv(entry->owner), 0);
+        safe_hv_store(stats, "creator", 7, newSViv(entry->creator), 0);
     }
-    hv_store(stats, "ngroups", 7, newSViv(entry->ngroups), 0);
-/*  hv_store(stats, "nusers",6, newSViv(entry->nusers),0);*/
-    hv_store(stats, "count", 5, newSViv(entry->count), 0);
+    safe_hv_store(stats, "ngroups", 7, newSViv(entry->ngroups), 0);
+/*  safe_hv_store(stats, "nusers",6, newSViv(entry->nusers),0);*/
+    safe_hv_store(stats, "count", 5, newSViv(entry->count), 0);
 /*
-  hv_store(stats, "reserved0",9, newSViv(entry->reserved[0]),0);
-  hv_store(stats, "reserved1",9, newSViv(entry->reserved[1]),0);
-  hv_store(stats, "reserved2",9, newSViv(entry->reserved[2]),0);
-  hv_store(stats, "reserved3",9, newSViv(entry->reserved[3]),0);
-  hv_store(stats, "reserved4",9, newSViv(entry->reserved[4]),0);
+  safe_hv_store(stats, "reserved0",9, newSViv(entry->reserved[0]),0);
+  safe_hv_store(stats, "reserved1",9, newSViv(entry->reserved[1]),0);
+  safe_hv_store(stats, "reserved2",9, newSViv(entry->reserved[2]),0);
+  safe_hv_store(stats, "reserved3",9, newSViv(entry->reserved[3]),0);
+  safe_hv_store(stats, "reserved4",9, newSViv(entry->reserved[4]),0);
 */
     return 1;
 }
 
-static parse_prdebugentry(server, stats, entry, lookupids, convertflags)
+static int parse_prdebugentry(server, stats, entry, lookupids, convertflags)
     struct ubik_client *server;
     HV *stats;
     struct prdebugentry *entry;
@@ -901,67 +903,67 @@ static parse_prdebugentry(server, stats, entry, lookupids, convertflags)
     char buff[128];
     int i;
 
-    hv_store(stats, "id", 2, newSViv(entry->id), 0);
-    hv_store(stats, "name", 4, newSVpv(entry->name, strlen(entry->name)), 0);
+    safe_hv_store(stats, "id", 2, newSViv(entry->id), 0);
+    safe_hv_store(stats, "name", 4, newSVpv(entry->name, strlen(entry->name)), 0);
 
     if (convertflags) {
-        hv_store(stats, "flags", 5, newSVpv(parse_flags_ptsaccess(entry->flags), 5), 0);
+        safe_hv_store(stats, "flags", 5, newSVpv(parse_flags_ptsaccess(entry->flags), 5), 0);
     }
     else {
-        hv_store(stats, "flags", 5, newSViv(entry->flags), 0);
+        safe_hv_store(stats, "flags", 5, newSViv(entry->flags), 0);
     }
 
     if (lookupids) {
         code = internal_pr_name(server, entry->owner, name);
         if (code)
-            hv_store(stats, "owner", 5, newSViv(entry->owner), 0);
+            safe_hv_store(stats, "owner", 5, newSViv(entry->owner), 0);
         else
-            hv_store(stats, "owner", 5, newSVpv(name, strlen(name)), 0);
+            safe_hv_store(stats, "owner", 5, newSVpv(name, strlen(name)), 0);
 
         code = internal_pr_name(server, entry->creator, name);
         if (code)
-            hv_store(stats, "creator", 7, newSViv(entry->creator), 0);
+            safe_hv_store(stats, "creator", 7, newSViv(entry->creator), 0);
         else
-            hv_store(stats, "creator", 7, newSVpv(name, strlen(name)), 0);
+            safe_hv_store(stats, "creator", 7, newSVpv(name, strlen(name)), 0);
 
         for (i = 0; i < 10; i++) {
             sprintf(buff, "entries%d", i);
             code = internal_pr_name(server, entry->entries[i], name);
             if (code)
-                hv_store(stats, buff, strlen(buff), newSViv(entry->entries[i]), 0);
+                safe_hv_store(stats, buff, strlen(buff), newSViv(entry->entries[i]), 0);
             else
-                hv_store(stats, buff, strlen(buff), newSVpv(name, strlen(name)), 0);
+                safe_hv_store(stats, buff, strlen(buff), newSVpv(name, strlen(name)), 0);
 
         }
 
     }
     else {
-        hv_store(stats, "owner", 5, newSViv(entry->owner), 0);
-        hv_store(stats, "creator", 7, newSViv(entry->creator), 0);
+        safe_hv_store(stats, "owner", 5, newSViv(entry->owner), 0);
+        safe_hv_store(stats, "creator", 7, newSViv(entry->creator), 0);
         for (i = 0; i < 10; i++) {
             sprintf(buff, "entries%d", i);
-            hv_store(stats, buff, strlen(buff), newSViv(entry->entries[i]), 0);
+            safe_hv_store(stats, buff, strlen(buff), newSViv(entry->entries[i]), 0);
         }
 
     }
-    hv_store(stats, "cellid", 6, newSViv(entry->cellid), 0);
-    hv_store(stats, "next", 4, newSViv(entry->next), 0);
-    hv_store(stats, "nextID", 6, newSViv(entry->nextID), 0);
-    hv_store(stats, "nextname", 8, newSViv(entry->nextname), 0);
-    hv_store(stats, "ngroups", 7, newSViv(entry->ngroups), 0);
-    hv_store(stats, "nusers", 6, newSViv(entry->nusers), 0);
-    hv_store(stats, "count", 5, newSViv(entry->count), 0);
-    hv_store(stats, "instance", 8, newSViv(entry->instance), 0);
-    hv_store(stats, "owned", 5, newSViv(entry->owned), 0);
-    hv_store(stats, "nextOwned", 9, newSViv(entry->nextOwned), 0);
-    hv_store(stats, "parent", 6, newSViv(entry->parent), 0);
-    hv_store(stats, "sibling", 7, newSViv(entry->sibling), 0);
-    hv_store(stats, "child", 5, newSViv(entry->child), 0);
-    hv_store(stats, "reserved0", 9, newSViv(entry->reserved[0]), 0);
-    hv_store(stats, "reserved1", 9, newSViv(entry->reserved[1]), 0);
-    hv_store(stats, "reserved2", 9, newSViv(entry->reserved[2]), 0);
-    hv_store(stats, "reserved3", 9, newSViv(entry->reserved[3]), 0);
-    hv_store(stats, "reserved4", 9, newSViv(entry->reserved[4]), 0);
+    safe_hv_store(stats, "cellid", 6, newSViv(entry->cellid), 0);
+    safe_hv_store(stats, "next", 4, newSViv(entry->next), 0);
+    safe_hv_store(stats, "nextID", 6, newSViv(entry->nextID), 0);
+    safe_hv_store(stats, "nextname", 8, newSViv(entry->nextname), 0);
+    safe_hv_store(stats, "ngroups", 7, newSViv(entry->ngroups), 0);
+    safe_hv_store(stats, "nusers", 6, newSViv(entry->nusers), 0);
+    safe_hv_store(stats, "count", 5, newSViv(entry->count), 0);
+    safe_hv_store(stats, "instance", 8, newSViv(entry->instance), 0);
+    safe_hv_store(stats, "owned", 5, newSViv(entry->owned), 0);
+    safe_hv_store(stats, "nextOwned", 9, newSViv(entry->nextOwned), 0);
+    safe_hv_store(stats, "parent", 6, newSViv(entry->parent), 0);
+    safe_hv_store(stats, "sibling", 7, newSViv(entry->sibling), 0);
+    safe_hv_store(stats, "child", 5, newSViv(entry->child), 0);
+    safe_hv_store(stats, "reserved0", 9, newSViv(entry->reserved[0]), 0);
+    safe_hv_store(stats, "reserved1", 9, newSViv(entry->reserved[1]), 0);
+    safe_hv_store(stats, "reserved2", 9, newSViv(entry->reserved[2]), 0);
+    safe_hv_store(stats, "reserved3", 9, newSViv(entry->reserved[3]), 0);
+    safe_hv_store(stats, "reserved4", 9, newSViv(entry->reserved[4]), 0);
 
     return 1;
 }
@@ -975,6 +977,521 @@ static int32 check_name_for_id(name, id)
     return strcmp(buff, name) == 0;
 }
 /* end of helper functions for PTS class: */
+
+
+/* helper functions for VOS && VLDB class: */
+/* copy taken from <src/util/regex.c> OpenAFS-1.4.14.1 */
+/*
+ * constants for re's
+ */
+#define	CBRA	1
+#define	CCHR	2
+#define	CDOT	4
+#define	CCL	6
+#define	NCCL	8
+#define	CDOL	10
+#define	CEOF	11
+#define	CKET	12
+#define	CBACK	18
+
+#define	CSTAR	01
+
+#define	ESIZE	512
+#define	NBRA	9
+
+static char expbuf[ESIZE], *braslist[NBRA], *braelist[NBRA];
+static char circf;
+
+/* forward defs
+*/
+
+static int advance(register char *lp, register char *ep);
+static int backref(register int i, register char *lp);
+static int cclass(register char *set, register char c, int af);
+
+/*
+ * compile the regular expression argument into a dfa
+ */
+char *
+re_comp(register char *sp)
+{
+    register int c;
+    register char *ep = expbuf;
+    int cclcnt, numbra = 0;
+    char *lastep = 0;
+    char bracket[NBRA];
+    char *bracketp = &bracket[0];
+    static char *retoolong = "Regular expression too long";
+
+#define	comperr(msg) {expbuf[0] = 0; numbra = 0; return(msg); }
+
+    if (sp == 0 || *sp == '\0') {
+	if (*ep == 0)
+	    return ("No previous regular expression");
+	return (0);
+    }
+    if (*sp == '^') {
+	circf = 1;
+	sp++;
+    } else
+	circf = 0;
+    for (;;) {
+	if (ep >= &expbuf[ESIZE - 10 /* fudge factor */])
+	    comperr(retoolong);
+	if ((c = *sp++) == '\0') {
+	    if (bracketp != bracket)
+		comperr("unmatched \\(");
+	    *ep++ = CEOF;
+	    *ep++ = 0;
+	    return (0);
+	}
+	if (c != '*')
+	    lastep = ep;
+	switch (c) {
+
+	case '.':
+	    *ep++ = CDOT;
+	    continue;
+
+	case '*':
+	    if (lastep == 0 || *lastep == CBRA || *lastep == CKET)
+		goto defchar;
+	    *lastep |= CSTAR;
+	    continue;
+
+	case '$':
+	    if (*sp != '\0')
+		goto defchar;
+	    *ep++ = CDOL;
+	    continue;
+
+	case '[':
+	    *ep++ = CCL;
+	    *ep++ = 0;
+	    cclcnt = 1;
+	    if ((c = *sp++) == '^') {
+		c = *sp++;
+		ep[-2] = NCCL;
+	    }
+	    do {
+		if (c == '\0')
+		    comperr("missing ]");
+		if (c == '-' && ep[-1] != 0) {
+		    if ((c = *sp++) == ']') {
+			*ep++ = '-';
+			cclcnt++;
+			break;
+		    }
+		    while (ep[-1] < c) {
+			*ep = ep[-1] + 1;
+			ep++;
+			cclcnt++;
+			if (ep >= &expbuf[ESIZE - 10 /* fudge factor */])
+			    comperr(retoolong);
+		    }
+		}
+		*ep++ = c;
+		cclcnt++;
+		if (ep >= &expbuf[ESIZE - 10 /* fudge factor */])
+		    comperr(retoolong);
+	    } while ((c = *sp++) != ']');
+	    lastep[1] = cclcnt;
+	    continue;
+
+	case '\\':
+	    if ((c = *sp++) == '(') {
+		if (numbra >= NBRA)
+		    comperr("too many \\(\\) pairs");
+		*bracketp++ = numbra;
+		*ep++ = CBRA;
+		*ep++ = numbra++;
+		continue;
+	    }
+	    if (c == ')') {
+		if (bracketp <= bracket)
+		    comperr("unmatched \\)");
+		*ep++ = CKET;
+		*ep++ = *--bracketp;
+		continue;
+	    }
+	    if (c >= '1' && c < ('1' + NBRA)) {
+		*ep++ = CBACK;
+		*ep++ = c - '1';
+		continue;
+	    }
+	    *ep++ = CCHR;
+	    *ep++ = c;
+	    continue;
+
+	  defchar:
+	default:
+	    *ep++ = CCHR;
+	    *ep++ = c;
+	}
+    }
+}
+
+/* 
+ * match the argument string against the compiled re
+ */
+int
+re_exec(register char *p1)
+{
+    register char *p2 = expbuf;
+    register int c;
+    int rv;
+
+    for (c = 0; c < NBRA; c++) {
+	braslist[c] = 0;
+	braelist[c] = 0;
+    }
+    if (circf)
+	return ((advance(p1, p2)));
+    /*
+     * fast check for first character
+     */
+    if (*p2 == CCHR) {
+	c = p2[1];
+	do {
+	    if (*p1 != c)
+		continue;
+	    if ((rv = advance(p1, p2)))
+		return (rv);
+	} while (*p1++);
+	return (0);
+    }
+    /*
+     * regular algorithm
+     */
+    do
+	if ((rv = advance(p1, p2)))
+	    return (rv);
+    while (*p1++);
+    return (0);
+}
+
+/* 
+ * try to match the next thing in the dfa
+ */
+static int
+advance(register char *lp, register char *ep)
+{
+    register char *curlp;
+    int ct, i;
+    int rv;
+
+    for (;;)
+	switch (*ep++) {
+
+	case CCHR:
+	    if (*ep++ == *lp++)
+		continue;
+	    return (0);
+
+	case CDOT:
+	    if (*lp++)
+		continue;
+	    return (0);
+
+	case CDOL:
+	    if (*lp == '\0')
+		continue;
+	    return (0);
+
+	case CEOF:
+	    return (1);
+
+	case CCL:
+	    if (cclass(ep, *lp++, 1)) {
+		ep += *ep;
+		continue;
+	    }
+	    return (0);
+
+	case NCCL:
+	    if (cclass(ep, *lp++, 0)) {
+		ep += *ep;
+		continue;
+	    }
+	    return (0);
+
+	case CBRA:
+	    braslist[*ep++] = lp;
+	    continue;
+
+	case CKET:
+	    braelist[*ep++] = lp;
+	    continue;
+
+	case CBACK:
+	    if (braelist[i = *ep++] == 0)
+		return (-1);
+	    if (backref(i, lp)) {
+		lp += braelist[i] - braslist[i];
+		continue;
+	    }
+	    return (0);
+
+	case CBACK | CSTAR:
+	    if (braelist[i = *ep++] == 0)
+		return (-1);
+	    curlp = lp;
+	    ct = braelist[i] - braslist[i];
+	    while (backref(i, lp))
+		lp += ct;
+	    while (lp >= curlp) {
+		if (rv = advance(lp, ep))
+		    return (rv);
+		lp -= ct;
+	    }
+	    continue;
+
+	case CDOT | CSTAR:
+	    curlp = lp;
+	    while (*lp++);
+	    goto star;
+
+	case CCHR | CSTAR:
+	    curlp = lp;
+	    while (*lp++ == *ep);
+	    ep++;
+	    goto star;
+
+	case CCL | CSTAR:
+	case NCCL | CSTAR:
+	    curlp = lp;
+	    while (cclass(ep, *lp++, ep[-1] == (CCL | CSTAR)));
+	    ep += *ep;
+	    goto star;
+
+	  star:
+	    do {
+		lp--;
+		if (rv = advance(lp, ep))
+		    return (rv);
+	    } while (lp > curlp);
+	    return (0);
+
+	default:
+	    return (-1);
+	}
+}
+
+static int
+backref(register int i, register char *lp)
+{
+    register char *bp;
+
+    bp = braslist[i];
+    while (*bp++ == *lp++)
+	if (bp >= braelist[i])
+	    return (1);
+    return (0);
+}
+
+static int
+cclass(register char *set, register char c, int af)
+{
+    register int n;
+
+    if (c == 0)
+	return (0);
+    n = *set++;
+    while (--n)
+	if (*set++ == c)
+	    return (af);
+    return (!af);
+}
+
+/* copy taken from <src/ubik/uinit.c> OpenAFS-1.4.14.1 */
+static afs_int32
+internal_ugen_ClientInit(int noAuthFlag, const char *confDir, char *cellName, afs_int32 sauth,
+	       struct ubik_client **uclientp, int (*secproc) (),
+	       char *funcName, afs_int32 gen_rxkad_level,
+	       afs_int32 maxservers, char *serviceid, afs_int32 deadtime,
+	       afs_uint32 server, afs_uint32 port, afs_int32 usrvid)
+{
+    afs_int32 code, scIndex, i;
+    struct afsconf_cell info;
+    struct afsconf_dir *tdir;
+    struct ktc_principal sname;
+    struct ktc_token ttoken;
+    struct rx_securityClass *sc;
+    /* This must change if VLDB_MAXSERVERS becomes larger than MAXSERVERS */
+    static struct rx_connection *serverconns[MAXSERVERS];
+    char cellstr[64];
+
+    if (!rx_initialized) {
+        /* printf("ugen DEBUG rx_Init\n"); */
+        code = rx_Init(0);
+        if (code) {
+            char buffer[256];
+            sprintf(buffer, "%s: could not initialize rx.\n", funcName);
+            VSETCODE(code, buffer);
+            return (code);
+        }
+        rx_initialized = 1;
+    }
+    rx_SetRxDeadTime(deadtime);
+
+    if (sauth) {		/* -localauth */
+	tdir = afsconf_Open(AFSDIR_SERVER_ETC_DIRPATH);
+	if (!tdir) {
+            char buffer[256];
+            sprintf(buffer,
+		    "%s: Could not process files in configuration directory (%s).\n",
+		    funcName, AFSDIR_SERVER_ETC_DIRPATH);
+	    code = -1;
+            VSETCODE(code, buffer);
+            return (code);
+	}
+	code = afsconf_ClientAuth(tdir, &sc, &scIndex);	/* sets sc,scIndex */
+	if (code) {
+	    afsconf_Close(tdir);
+            char buffer[256];
+            sprintf(buffer,
+		    "%s: Could not get security object for -localAuth\n",
+		    funcName);
+            VSETCODE(code, buffer);
+            return (code);
+	}
+	code = afsconf_GetCellInfo(tdir, tdir->cellName, serviceid, &info);
+	if (code) {
+	    afsconf_Close(tdir);
+            char buffer[256];
+            sprintf(buffer,
+		    "%s: can't find cell %s's hosts in %s/%s\n",
+		    funcName, cellName, AFSDIR_SERVER_ETC_DIRPATH,
+		    AFSDIR_CELLSERVDB_FILE);
+            VSETCODE(code, buffer);
+            return (code);
+	}
+    } else {			/* not -localauth */
+	tdir = afsconf_Open(confDir);
+	if (!tdir) {
+            char buffer[256];
+            sprintf(buffer,
+		    "%s: Could not process files in configuration directory (%s).\n",
+		    funcName, confDir);
+	    code = -1;
+            VSETCODE(code, buffer);
+            return (code);
+	}
+
+	if (!cellName) {
+	    code = afsconf_GetLocalCell(tdir, cellstr, sizeof(cellstr));
+	    if (code) {
+                char buffer[256];
+                sprintf(buffer,
+			"%s: can't get local cellname, check %s/%s\n",
+			funcName, confDir, AFSDIR_THISCELL_FILE);
+                VSETCODE(code, buffer);
+                return (code);
+	    }
+	    cellName = cellstr;
+	}
+
+	code = afsconf_GetCellInfo(tdir, cellName, serviceid, &info);
+	if (code) {
+            char buffer[256];
+            sprintf(buffer,
+		    "%s: can't find cell %s's hosts in %s/%s\n",
+		    funcName, cellName, confDir, AFSDIR_CELLSERVDB_FILE);
+            VSETCODE(code, buffer);
+            return (code);
+	}
+	if (noAuthFlag)		/* -noauth */
+	    scIndex = 0;
+	else {			/* not -noauth */
+	    strcpy(sname.cell, info.name);
+	    sname.instance[0] = 0;
+	    strcpy(sname.name, "afs");
+	    code = ktc_GetToken(&sname, &ttoken, sizeof(ttoken), NULL);
+	    if (code) {		/* did not get ticket */
+		fprintf(stderr,
+			"%s: Could not get afs tokens, running unauthenticated.\n",
+			funcName);
+		scIndex = 0;
+	    } else {		/* got a ticket */
+		scIndex = 2;
+		if ((ttoken.kvno < 0) || (ttoken.kvno > 256)) {
+		    fprintf(stderr,
+			    "%s: funny kvno (%d) in ticket, proceeding\n",
+			    funcName, ttoken.kvno);
+		}
+	    }
+	}
+
+        char buffer[256];
+	switch (scIndex) {
+	case 0:
+	    sc = rxnull_NewClientSecurityObject();
+	    break;
+	case 2:
+	    sc = rxkad_NewClientSecurityObject(gen_rxkad_level,
+					       &ttoken.sessionKey,
+					       ttoken.kvno, ttoken.ticketLen,
+					       ttoken.ticket);
+	    break;
+	default:
+            sprintf(buffer, "%s: unsupported security index %d\n",
+		    funcName, scIndex);
+	    code = 1;
+            VSETCODE(code, buffer);
+            return (code);
+	    break;
+	}
+    }
+
+    afsconf_Close(tdir);
+
+    if (secproc)	/* tell UV module about default authentication */
+	(*secproc) (sc, scIndex);
+    if (server) {
+	serverconns[0] = rx_NewConnection(server, port,
+					  usrvid, sc, scIndex);
+    } else {
+	if (info.numServers > maxservers) {
+            char buffer[256];
+            sprintf(buffer,
+		    "%s: info.numServers=%d (> maxservers=%d)\n",
+		    funcName, info.numServers, maxservers);
+	    code = 1;
+            VSETCODE(code, buffer);
+            return (code);
+	}
+	for (i = 0; i < info.numServers; i++) {
+	    serverconns[i] =
+		rx_NewConnection(info.hostAddr[i].sin_addr.s_addr,
+				 info.hostAddr[i].sin_port, usrvid,
+				 sc, scIndex);
+	}
+    }
+    /* Are we just setting up connections, or is this really ubik stuff? */
+    if (uclientp) {
+	*uclientp = 0;
+	code = ubik_ClientInit(serverconns, uclientp);
+	if (code) {
+            char buffer[256];
+            sprintf(buffer, "%s: ubik client init failed.\n", funcName);
+            VSETCODE(code, buffer);
+            return (code);
+	}
+    }
+    return 0;
+}
+
+/* copy taken from <src/volser/vsutils.c> OpenAFS-1.4.14.1 */
+static afs_int32
+internal_vsu_ClientInit(int noAuthFlag, const char *confDir, char *cellName, afs_int32 sauth,
+	       struct ubik_client **uclientp, int (*secproc)())
+{
+    return internal_ugen_ClientInit(noAuthFlag, confDir, cellName, sauth, uclientp,
+			   secproc, "internal_vsu_ClientInit", vsu_rxkad_level,
+			   VLDB_MAXSERVERS, AFSCONF_VLDBSERVICE, 90,
+			   0, 0, USER_SERVICE_ID);
+}
+/* end of helper functions for VOS && VLDB class */
 
 
 /* helper functions for VOS class: */
@@ -1001,7 +1518,7 @@ int32 GetVolumeInfo(volid, server, part, voltype, rentry)
 
     vcode = VLDB_GetEntryByID(volid, -1, rentry);
     if (vcode) {
-        char buffer[80];
+        char buffer[256];
         sprintf(buffer, "Could not fetch the entry for volume %u from VLDB \n", volid);
         VSETCODE(vcode, buffer);
         return (vcode);
@@ -1015,7 +1532,7 @@ int32 GetVolumeInfo(volid, server, part, voltype, rentry)
                 index = i;
         }
         if (index == -1) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "RO volume is not found in VLDB entry for volume %u\n",
                     volid);
             VSETCODE(-1, buffer);
@@ -1029,7 +1546,7 @@ int32 GetVolumeInfo(volid, server, part, voltype, rentry)
 
     index = Lp_GetRwIndex(rentry);
     if (index == -1) {
-        char buffer[80];
+        char buffer[256];
         sprintf(buffer, "RW Volume is not found in VLDB entry for volume %u\n", volid);
         VSETCODE(-1, buffer);
         return -1;
@@ -1046,9 +1563,12 @@ int32 GetVolumeInfo(volid, server, part, voltype, rentry)
         *part = rentry->serverPartition[index];
         return 0;
     }
+    /* should never reach this ? */
+    printf("FIXME: reached end of control at %d\n",__LINE__);
+    return -1;
 }
 
-static VolNameOK(name)
+static int VolNameOK(name)
     char *name;
 {
     int total;
@@ -1066,7 +1586,7 @@ static VolNameOK(name)
     }
 }
 
-static IsNumeric(name)
+static int IsNumeric(name)
     char *name;
 {
     int result, len, i;
@@ -1146,7 +1666,7 @@ afs_int32 GetServer(aname)
 
  /*sends the contents of file associated with <fd> and <blksize>  to Rx Stream 
     * associated  with <call> */
-SendFile(ufd, call, blksize)
+int SendFile(ufd, call, blksize)
     usd_handle_t ufd;
     register struct rx_call *call;
     long blksize;
@@ -1158,7 +1678,7 @@ SendFile(ufd, call, blksize)
 
     buffer = (char *) safemalloc(blksize);
     if (!buffer) {
-        char buf[80];
+        char buf[256];
         sprintf(buf, "malloc failed\n");
         VSETCODE(-1, buf);
         return -1;
@@ -1178,7 +1698,7 @@ SendFile(ufd, call, blksize)
 #endif
         error = USD_READ(ufd, buffer, blksize, &nbytes);
         if (error) {
-            char buf[80];
+            char buf[256];
             sprintf(buf, "File system read failed\n");
             VSETCODE(error, buf);
             break;
@@ -1224,7 +1744,7 @@ afs_int32 WriteData(call, rock)
             code = USD_IOCTL(ufd, USD_IOCTL_GETBLKSIZE, &blksize);
         }
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not access file '%s'\n", filename);
             error = VOLSERBADOP;
             VSETCODE(error, buffer);
@@ -1240,7 +1760,7 @@ afs_int32 WriteData(call, rock)
     if (ufdIsOpen) {
         code = USD_CLOSE(ufd);
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not close dump file %s\n",
                     (filename && *filename) ? filename : "STDOUT");
             VSETCODE(code, buffer);
@@ -1266,7 +1786,7 @@ int ReceiveFile(ufd, call, blksize)
 
     buffer = (char *) safemalloc(blksize);
     if (!buffer) {
-        char buf[80];
+        char buf[256];
         sprintf(buf, "memory allocation failed\n");
         VSETCODE(-1, buf);
         ERROR_EXIT(-1);
@@ -1287,7 +1807,7 @@ int ReceiveFile(ufd, call, blksize)
 #endif
             error = USD_WRITE(ufd, &buffer[bytesread - bytesleft], bytesleft, &w);
             if (error) {
-                char buf[80];
+                char buf[256];
                 sprintf(buf, "File system write failed\n");
                 VSETCODE(-1, buf);
                 ERROR_EXIT(-1);
@@ -1328,7 +1848,7 @@ afs_int32 DumpFunction(call, filename)
             code = USD_IOCTL(ufd, USD_IOCTL_GETBLKSIZE, &blksize);
         }
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not create file '%s'\n", filename);
             VSETCODE(VOLSERBADOP, buffer);
             ERROR_EXIT(VOLSERBADOP);
@@ -1344,7 +1864,7 @@ afs_int32 DumpFunction(call, filename)
     if (ufdIsOpen) {
         code = USD_CLOSE(ufd);
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not close dump file %s\n",
                     (filename && *filename) ? filename : "STDIN");
             VSETCODE(code, buffer);
@@ -1389,23 +1909,24 @@ static void qPut(ahead, volid)
     return;
 }
 
-static void qGet(ahead, volid)
-    struct tqHead *ahead;
-    afs_int32 *volid;
-{
-    struct tqElem *tmp;
+/* Kann vielleicht ganz raus ???    */
+/* static void qGet(ahead, volid) */
+/*     struct tqHead *ahead; */
+/*     afs_int32 *volid; */
+/* { */
+/*     struct tqElem *tmp; */
 
-    if (ahead->count <= 0)
-        return;
-    *volid = ahead->next->volid;
-    tmp = ahead->next;
-    ahead->next = tmp->next;
-    ahead->count--;
-    free(tmp);
-    return;
-}
+/*     if (ahead->count <= 0) */
+/*         return; */
+/*     *volid = ahead->next->volid; */
+/*     tmp = ahead->next; */
+/*     ahead->next = tmp->next; */
+/*     ahead->count--; */
+/*     free(tmp); */
+/*     return; */
+/* } */
 
-static FileExists(filename)
+static int FileExists(filename)
     char *filename;
 {
     usd_handle_t ufd;
@@ -1435,47 +1956,55 @@ static void myDisplayFormat(vol, pntr, server, part, totalOK, totalNotOK, totalB
     char hostname[256];
 
     if (fast) {
-        hv_store(vol, "volid", 5, newSViv(pntr->volid), 0);
+        safe_hv_store(vol, "volid", 5, newSViv(pntr->volid), 0);
     }
     else {
-        hv_store(vol, "status", 6, newSViv(pntr->status), 0);
-        hv_store(vol, "volid", 5, newSViv(pntr->volid), 0);
+        safe_hv_store(vol, "status", 6, newSViv(pntr->status), 0);
+        safe_hv_store(vol, "volid", 5, newSViv(pntr->volid), 0);
 
         if (pntr->status == VOK) {
-            hv_store(vol, "name", 4,  newSVpv(pntr->name, strlen((char *) pntr->name)), 0);
+            safe_hv_store(vol, "name", 4,  newSVpv(pntr->name, strlen((char *) pntr->name)), 0);
             if (pntr->type == 0)
-                hv_store(vol, "type", 4, newSVpv("RW", 2), 0);
+                safe_hv_store(vol, "type", 4, newSVpv("RW", 2), 0);
             if (pntr->type == 1)
-                hv_store(vol, "type", 4, newSVpv("RO", 2), 0);
+                safe_hv_store(vol, "type", 4, newSVpv("RO", 2), 0);
             if (pntr->type == 2)
-                hv_store(vol, "type", 4, newSVpv("BK", 2), 0);
+                safe_hv_store(vol, "type", 4, newSVpv("BK", 2), 0);
 
-            hv_store(vol, "size", 4, newSViv(pntr->size), 0);
+            safe_hv_store(vol, "size", 4, newSViv(pntr->size), 0);
 
             if (pntr->inUse == 1) {
-                hv_store(vol, "inUse", 5, newSVpv("On-line", 7), 0);
+                safe_hv_store(vol, "inUse", 5, newSVpv("On-line", 7), 0);
                 *totalOK += 1;
             }
             else {
-                hv_store(vol, "inUse", 5, newSVpv("Off-line", 8), 0);
+                safe_hv_store(vol, "inUse", 5, newSVpv("Off-line", 8), 0);
                 *totalNotOK += 1;
             }
 
             MapPartIdIntoName(part, pname);
             strcpy(hostname, (char *) hostutil_GetNameByINet(server));
-            hv_store(vol, "server", 6, newSVpv(hostname, strlen((char *) hostname)), 0);
-            hv_store(vol, "backupID", 8, newSViv(pntr->backupID), 0);
-            hv_store(vol, "parentID", 8, newSViv(pntr->parentID), 0);
-            hv_store(vol, "cloneID", 7, newSViv(pntr->cloneID), 0);
-            hv_store(vol, "maxquota", 8, newSViv(pntr->maxquota), 0);
-            hv_store(vol, "creationDate", 12, newSViv(pntr->creationDate), 0);
-
-            if (pntr->updateDate < pntr->creationDate)
-                hv_store(vol, "updateDate", 10, newSViv(pntr->creationDate), 0);
+            safe_hv_store(vol, "server", 6, newSVpv(hostname, strlen((char *) hostname)), 0);
+            safe_hv_store(vol, "backupID", 8, newSViv(pntr->backupID), 0);
+            safe_hv_store(vol, "parentID", 8, newSViv(pntr->parentID), 0);
+            safe_hv_store(vol, "cloneID", 7, newSViv(pntr->cloneID), 0);
+            safe_hv_store(vol, "maxquota", 8, newSViv(pntr->maxquota), 0);
+            safe_hv_store(vol, "creationDate", 12, newSViv(pntr->creationDate), 0);
+#ifdef OpenAFS           /* copy taken from <src/volser/vos.c> OpenAFS-1.2.11 FULL_LISTVOL_SWITCH*/
+            safe_hv_store(vol, "copyDate", 8, newSViv(pntr->copyDate), 0);
+            if (!pntr->backupDate)
+                safe_hv_store(vol, "backupDate", 10, newSVpv("Never", 5), 0);
             else
-                hv_store(vol, "updateDate", 10, newSViv(pntr->updateDate), 0);
+                safe_hv_store(vol, "backupDate", 10, newSViv(pntr->backupDate), 0);
+            if (pntr->accessDate)
+                safe_hv_store(vol, "accessDate", 10, newSViv(pntr->accessDate), 0);
+#endif
+            if (!pntr->updateDate)
+                safe_hv_store(vol, "updateDate", 10, newSVpv("Never", 5), 0);
+            else
+                safe_hv_store(vol, "updateDate", 10, newSViv(pntr->updateDate), 0);
 
-            hv_store(vol, "dayUse", 6, newSViv(pntr->dayUse), 0);
+            safe_hv_store(vol, "dayUse", 6, newSViv(pntr->dayUse), 0);
 
         }
         else if (pntr->status == VBUSY) {
@@ -1513,127 +2042,135 @@ static void myXDisplayFormat(stats, a_xInfoP, a_servID, a_partID, a_totalOKP,
     HV *stat8 = (HV *) sv_2mortal((SV *) newHV());
 
     /* Fully-detailed listing. */
-    hv_store(stats, "status", 6, newSViv(a_xInfoP->status), 0);
-    hv_store(stats, "volid", 5, newSViv(a_xInfoP->volid), 0);
+    safe_hv_store(stats, "status", 6, newSViv(a_xInfoP->status), 0);
+    safe_hv_store(stats, "volid", 5, newSViv(a_xInfoP->volid), 0);
     if (a_xInfoP->status == VOK) {
         /* Volume's status is OK - all the fields are valid. */
 
         if (a_xInfoP->type == 0)
-            hv_store(stats, "type", 4, newSVpv("RW", 2), 0);
+            safe_hv_store(stats, "type", 4, newSVpv("RW", 2), 0);
         if (a_xInfoP->type == 1)
-            hv_store(stats, "type", 4, newSVpv("RO", 2), 0);
+            safe_hv_store(stats, "type", 4, newSVpv("RO", 2), 0);
         if (a_xInfoP->type == 2)
-            hv_store(stats, "type", 4, newSVpv("BK", 2), 0);
+            safe_hv_store(stats, "type", 4, newSVpv("BK", 2), 0);
 
-        hv_store(stats, "size", 4, newSViv(a_xInfoP->size), 0);
-        hv_store(stats, "filecount", 9, newSViv(a_xInfoP->filecount), 0);
+        safe_hv_store(stats, "size", 4, newSViv(a_xInfoP->size), 0);
+        safe_hv_store(stats, "filecount", 9, newSViv(a_xInfoP->filecount), 0);
 
         if (a_xInfoP->inUse == 1) {
-            hv_store(stats, "inUse", 5, newSVpv("On-line", 7), 0);
+            safe_hv_store(stats, "inUse", 5, newSVpv("On-line", 7), 0);
             (*a_totalOKP)++;
         }
         else {
-            hv_store(stats, "inUse", 5, newSVpv("Off-line", 8), 0);
+            safe_hv_store(stats, "inUse", 5, newSVpv("Off-line", 8), 0);
             (*a_totalNotOKP)++;
         }
 
         MapPartIdIntoName(a_partID, pname);
         strcpy(hostname, (char *) hostutil_GetNameByINet(a_servID));
-        hv_store(stats, "server", 6, newSVpv(hostname, strlen((char *) hostname)), 0);
-        hv_store(stats, "partition", 9, newSVpv(pname, strlen(pname)), 0);
-        hv_store(stats, "parentID", 8, newSViv(a_xInfoP->parentID), 0);
-        hv_store(stats, "cloneID", 7, newSViv(a_xInfoP->cloneID), 0);
-        hv_store(stats, "backupID", 8, newSViv(a_xInfoP->backupID), 0);
-        hv_store(stats, "maxquota", 8, newSViv(a_xInfoP->maxquota), 0);
-        hv_store(stats, "creationDate", 12, newSViv(a_xInfoP->creationDate), 0);
-
-        if (a_xInfoP->updateDate < a_xInfoP->creationDate) {
-            hv_store(stats, "updateDate", 10, newSViv(a_xInfoP->creationDate), 0);
+        safe_hv_store(stats, "server", 6, newSVpv(hostname, strlen((char *) hostname)), 0);
+        safe_hv_store(stats, "partition", 9, newSVpv(pname, strlen(pname)), 0);
+        safe_hv_store(stats, "parentID", 8, newSViv(a_xInfoP->parentID), 0);
+        safe_hv_store(stats, "cloneID", 7, newSViv(a_xInfoP->cloneID), 0);
+        safe_hv_store(stats, "backupID", 8, newSViv(a_xInfoP->backupID), 0);
+        safe_hv_store(stats, "maxquota", 8, newSViv(a_xInfoP->maxquota), 0);
+        safe_hv_store(stats, "creationDate", 12, newSViv(a_xInfoP->creationDate), 0);
+#ifdef OpenAFS           /* copy taken from <src/volser/vos.c> OpenAFS-1.2.11 FULL_LISTVOL_SWITCH*/
+            safe_hv_store(stats, "copyDate", 8, newSViv(a_xInfoP->copyDate), 0);
+            if (!a_xInfoP->backupDate)
+                safe_hv_store(stats, "backupDate", 10, newSVpv("Never", 5), 0);
+            else
+                safe_hv_store(stats, "backupDate", 10, newSViv(a_xInfoP->backupDate), 0);
+            if (a_xInfoP->accessDate)
+                safe_hv_store(stats, "accessDate", 10, newSViv(a_xInfoP->accessDate), 0);
+#endif
+        if (!a_xInfoP->updateDate) {
+            safe_hv_store(stats, "updateDate", 10, newSVpv("Never", 5), 0);
         }
         else {
-            hv_store(stats, "updateDate", 10, newSViv(a_xInfoP->updateDate), 0);
+            safe_hv_store(stats, "updateDate", 10, newSViv(a_xInfoP->updateDate), 0);
         }
 
-        hv_store(stats, "dayUse", 6, newSViv(a_xInfoP->dayUse), 0);
-        hv_store(stat1, "samenet", 7,
+        safe_hv_store(stats, "dayUse", 6, newSViv(a_xInfoP->dayUse), 0);
+        safe_hv_store(stat1, "samenet", 7,
                  newSViv(a_xInfoP->stat_reads[VOLINT_STATS_SAME_NET]), 0);
-        hv_store(stat1, "samenetauth", 11,
+        safe_hv_store(stat1, "samenetauth", 11,
                  newSViv(a_xInfoP->stat_reads[VOLINT_STATS_SAME_NET_AUTH]), 0);
-        hv_store(stat1, "diffnet", 7,
+        safe_hv_store(stat1, "diffnet", 7,
                  newSViv(a_xInfoP->stat_reads[VOLINT_STATS_DIFF_NET]), 0);
-        hv_store(stat1, "diffnetauth", 11,
+        safe_hv_store(stat1, "diffnetauth", 11,
                  newSViv(a_xInfoP->stat_reads[VOLINT_STATS_DIFF_NET_AUTH]), 0);
-        hv_store(stats, "Reads", 5, newRV_inc((SV *) (stat1)), 0);
+        safe_hv_store(stats, "Reads", 5, newRV_inc((SV *) (stat1)), 0);
 
-        hv_store(stat2, "samenet", 7,
+        safe_hv_store(stat2, "samenet", 7,
                  newSViv(a_xInfoP->stat_writes[VOLINT_STATS_SAME_NET]), 0);
-        hv_store(stat2, "samenetauth", 11,
+        safe_hv_store(stat2, "samenetauth", 11,
                  newSViv(a_xInfoP->stat_writes[VOLINT_STATS_SAME_NET_AUTH]), 0);
-        hv_store(stat2, "diffnet", 7,
+        safe_hv_store(stat2, "diffnet", 7,
                  newSViv(a_xInfoP->stat_writes[VOLINT_STATS_DIFF_NET]), 0);
-        hv_store(stat2, "diffnetauth", 11,
+        safe_hv_store(stat2, "diffnetauth", 11,
                  newSViv(a_xInfoP->stat_writes[VOLINT_STATS_DIFF_NET_AUTH]), 0);
-        hv_store(stats, "Writes", 6, newRV_inc((SV *) (stat2)), 0);
+        safe_hv_store(stats, "Writes", 6, newRV_inc((SV *) (stat2)), 0);
 
-        hv_store(stat3, "fileSameAuthor", 12,
+        safe_hv_store(stat3, "fileSameAuthor", 12,
                  newSViv(a_xInfoP->stat_fileSameAuthor[VOLINT_STATS_TIME_IDX_0]), 0);
-        hv_store(stat3, "fileDiffAuthor", 12,
+        safe_hv_store(stat3, "fileDiffAuthor", 12,
                  newSViv(a_xInfoP->stat_fileDiffAuthor[VOLINT_STATS_TIME_IDX_0]), 0);
-        hv_store(stat3, "dirSameAuthor", 11,
+        safe_hv_store(stat3, "dirSameAuthor", 11,
                  newSViv(a_xInfoP->stat_dirSameAuthor[VOLINT_STATS_TIME_IDX_0]), 0);
-        hv_store(stat3, "dirDiffAuthor", 11,
+        safe_hv_store(stat3, "dirDiffAuthor", 11,
                  newSViv(a_xInfoP->stat_dirDiffAuthor[VOLINT_STATS_TIME_IDX_0]), 0);
-        hv_store(stats, "0-60sec", 7, newRV_inc((SV *) (stat3)), 0);
+        safe_hv_store(stats, "0-60sec", 7, newRV_inc((SV *) (stat3)), 0);
 
-        hv_store(stat4, "fileSameAuthor", 12,
+        safe_hv_store(stat4, "fileSameAuthor", 12,
                  newSViv(a_xInfoP->stat_fileSameAuthor[VOLINT_STATS_TIME_IDX_1]), 0);
-        hv_store(stat4, "fileDiffAuthor", 12,
+        safe_hv_store(stat4, "fileDiffAuthor", 12,
                  newSViv(a_xInfoP->stat_fileDiffAuthor[VOLINT_STATS_TIME_IDX_1]), 0);
-        hv_store(stat4, "dirSameAuthor", 11,
+        safe_hv_store(stat4, "dirSameAuthor", 11,
                  newSViv(a_xInfoP->stat_dirSameAuthor[VOLINT_STATS_TIME_IDX_1]), 0);
-        hv_store(stat4, "dirDiffAuthor", 11,
+        safe_hv_store(stat4, "dirDiffAuthor", 11,
                  newSViv(a_xInfoP->stat_dirDiffAuthor[VOLINT_STATS_TIME_IDX_1]), 0);
-        hv_store(stats, "1-10min", 7, newRV_inc((SV *) (stat4)), 0);
+        safe_hv_store(stats, "1-10min", 7, newRV_inc((SV *) (stat4)), 0);
 
-        hv_store(stat5, "fileSameAuthor", 12,
+        safe_hv_store(stat5, "fileSameAuthor", 12,
                  newSViv(a_xInfoP->stat_fileSameAuthor[VOLINT_STATS_TIME_IDX_2]), 0);
-        hv_store(stat5, "fileDiffAuthor", 12,
+        safe_hv_store(stat5, "fileDiffAuthor", 12,
                  newSViv(a_xInfoP->stat_fileDiffAuthor[VOLINT_STATS_TIME_IDX_2]), 0);
-        hv_store(stat5, "dirSameAuthor", 11,
+        safe_hv_store(stat5, "dirSameAuthor", 11,
                  newSViv(a_xInfoP->stat_dirSameAuthor[VOLINT_STATS_TIME_IDX_2]), 0);
-        hv_store(stat5, "dirDiffAuthor", 11,
+        safe_hv_store(stat5, "dirDiffAuthor", 11,
                  newSViv(a_xInfoP->stat_dirDiffAuthor[VOLINT_STATS_TIME_IDX_2]), 0);
-        hv_store(stats, "10min-1hr", 9, newRV_inc((SV *) (stat5)), 0);
+        safe_hv_store(stats, "10min-1hr", 9, newRV_inc((SV *) (stat5)), 0);
 
-        hv_store(stat6, "fileSameAuthor", 12,
+        safe_hv_store(stat6, "fileSameAuthor", 12,
                  newSViv(a_xInfoP->stat_fileSameAuthor[VOLINT_STATS_TIME_IDX_3]), 0);
-        hv_store(stat6, "fileDiffAuthor", 12,
+        safe_hv_store(stat6, "fileDiffAuthor", 12,
                  newSViv(a_xInfoP->stat_fileDiffAuthor[VOLINT_STATS_TIME_IDX_3]), 0);
-        hv_store(stat6, "dirSameAuthor", 11,
+        safe_hv_store(stat6, "dirSameAuthor", 11,
                  newSViv(a_xInfoP->stat_dirSameAuthor[VOLINT_STATS_TIME_IDX_3]), 0);
-        hv_store(stat6, "dirDiffAuthor", 11,
+        safe_hv_store(stat6, "dirDiffAuthor", 11,
                  newSViv(a_xInfoP->stat_dirDiffAuthor[VOLINT_STATS_TIME_IDX_3]), 0);
-        hv_store(stats, "1hr-1day", 8, newRV_inc((SV *) (stat6)), 0);
+        safe_hv_store(stats, "1hr-1day", 8, newRV_inc((SV *) (stat6)), 0);
 
-        hv_store(stat7, "fileSameAuthor", 12,
+        safe_hv_store(stat7, "fileSameAuthor", 12,
                  newSViv(a_xInfoP->stat_fileSameAuthor[VOLINT_STATS_TIME_IDX_4]), 0);
-        hv_store(stat7, "fileDiffAuthor", 12,
+        safe_hv_store(stat7, "fileDiffAuthor", 12,
                  newSViv(a_xInfoP->stat_fileDiffAuthor[VOLINT_STATS_TIME_IDX_4]), 0);
-        hv_store(stat7, "dirSameAuthor", 11,
+        safe_hv_store(stat7, "dirSameAuthor", 11,
                  newSViv(a_xInfoP->stat_dirSameAuthor[VOLINT_STATS_TIME_IDX_4]), 0);
-        hv_store(stat7, "dirDiffAuthor", 11,
+        safe_hv_store(stat7, "dirDiffAuthor", 11,
                  newSViv(a_xInfoP->stat_dirDiffAuthor[VOLINT_STATS_TIME_IDX_4]), 0);
-        hv_store(stats, "1day-1wk", 8, newRV_inc((SV *) (stat7)), 0);
+        safe_hv_store(stats, "1day-1wk", 8, newRV_inc((SV *) (stat7)), 0);
 
-        hv_store(stat8, "fileSameAuthor", 12,
+        safe_hv_store(stat8, "fileSameAuthor", 12,
                  newSViv(a_xInfoP->stat_fileSameAuthor[VOLINT_STATS_TIME_IDX_5]), 0);
-        hv_store(stat8, "fileDiffAuthor", 12,
+        safe_hv_store(stat8, "fileDiffAuthor", 12,
                  newSViv(a_xInfoP->stat_fileDiffAuthor[VOLINT_STATS_TIME_IDX_5]), 0);
-        hv_store(stat8, "dirSameAuthor", 11,
+        safe_hv_store(stat8, "dirSameAuthor", 11,
                  newSViv(a_xInfoP->stat_dirSameAuthor[VOLINT_STATS_TIME_IDX_5]), 0);
-        hv_store(stat8, "dirDiffAuthor", 11,
+        safe_hv_store(stat8, "dirDiffAuthor", 11,
                  newSViv(a_xInfoP->stat_dirDiffAuthor[VOLINT_STATS_TIME_IDX_5]), 0);
-        hv_store(stats, ">1wk", 4, newRV_inc((SV *) (stat8)), 0);
+        safe_hv_store(stats, ">1wk", 4, newRV_inc((SV *) (stat8)), 0);
     }                       /*Volume status OK */
     else if (a_xInfoP->status == VBUSY) {
         (*a_totalBusyP)++;
@@ -1644,26 +2181,6 @@ static void myXDisplayFormat(stats, a_xInfoP, a_servID, a_partID, a_totalOKP,
         qPut(&notokHead, a_xInfoP->volid);
     }                       /*Screwed volume */
 }                           /*myXDisplayFormat */
-
-/* static void XVolumeStats_ZZZ(volinfo, a_xInfoP, a_entryP, a_srvID, a_partID, a_volType) */
-/*     HV *volinfo; */
-/*     volintXInfo *a_xInfoP; */
-/*     struct nvldbentry *a_entryP; */
-/*     afs_int32 a_srvID; */
-/*     afs_int32 a_partID; */
-/*     int a_volType; */
-/* {                               /\*XVolumeStats *\/ */
-
-/*     int totalOK, totalNotOK, totalBusy; /\*Dummies - we don't really count here *\/ */
-
-/*     myXDisplayFormat(volinfo, a_xInfoP, /\*Ptr to extended volume info *\/ */
-/*                      a_srvID,   /\*Server ID to print *\/ */
-/*                      a_partID,  /\*Partition ID to print *\/ */
-/*                      &totalOK,  /\*Ptr to total-OK counter *\/ */
-/*                      &totalNotOK,       /\*Ptr to total-screwed counter *\/ */
-/*                      &totalBusy);        /\*Ptr to total-busy counter *\/ */
-/*     return; */
-/* }                               /\*XVolumeStats *\/ */
 
 static void VolumeStats(volinfo, pntr, entry, server, part, voltype)
     HV *volinfo;
@@ -1685,7 +2202,6 @@ static void DisplayVolumes(partition, server, part, pntr, count, fast)
     afs_int32 count, fast;
 {
     int totalOK, totalNotOK, totalBusy, i;
-    afs_int32 volid;
     char buff[32];
 
     totalOK = 0;
@@ -1697,93 +2213,26 @@ static void DisplayVolumes(partition, server, part, pntr, count, fast)
         HV *vol = (HV *) sv_2mortal((SV *) newHV());
         myDisplayFormat(vol, pntr, server, part, &totalOK, &totalNotOK, &totalBusy, fast);
         if (pntr->status == VOK) {
-            hv_store(partition, pntr->name, strlen(pntr->name), newRV_inc((SV *) (vol)), 0);
+            safe_hv_store(partition, pntr->name, strlen(pntr->name), newRV_inc((SV *) (vol)), 0);
         }
         else if (pntr->status == VBUSY) {
             sprintf(buff, "volume_busy_%d", i);
-            hv_store(partition, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
+            safe_hv_store(partition, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
             /* fprintf(STDERR, "DEBUG-1: %s %d\n", buff, strlen(buff)); */
         }
         else {
             sprintf(buff, "volume_notok_%d", i);
-            hv_store(partition, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
+            safe_hv_store(partition, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
             /* fprintf(STDERR, "DEBUG-2: %s %d\n", buff, strlen(buff)); */
         }
         pntr++;
     }
     if (!fast) {
-        hv_store(partition, " totalOK", 8, newSViv(totalOK), 0);
-        hv_store(partition, " totalBusy", 10, newSViv(totalBusy), 0);
-        hv_store(partition, " totalNotOK", 11, newSViv(totalNotOK), 0);
+        safe_hv_store(partition, " totalOK", 8, newSViv(totalOK), 0);
+        safe_hv_store(partition, " totalBusy", 10, newSViv(totalBusy), 0);
+        safe_hv_store(partition, " totalNotOK", 11, newSViv(totalNotOK), 0);
     }
 }
-
-/* static void myDisplayFormat2(vol, server, partition, pntr) */
-/*     HV *vol; */
-/*     long server, partition; */
-/*     volintInfo *pntr; */
-/* { */
-/*     static long server_cache = -1, partition_cache = -1; */
-/*     static char hostname[256], address[32], pname[16]; */
-
-/*     if (server != server_cache) { */
-/*         struct in_addr s; */
-
-/*         s.s_addr = server; */
-/*         strcpy(hostname, (char *) hostutil_GetNameByINet(server)); */
-/*         strcpy(address, inet_ntoa(s)); */
-/*         server_cache = server; */
-/*     } */
-/*     if (partition != partition_cache) { */
-/*         MapPartIdIntoName(partition, pname); */
-/*         partition_cache = partition; */
-/*     } */
-/*     hv_store(vol, "name", 4, newSVpv(pntr->name, strlen(pntr->name)), 0); */
-/*     hv_store(vol, "id", 2, newSViv(pntr->volid), 0); */
-/*     hv_store(vol, "address", 7, newSVpv(address, strlen(address)), 0); */
-/*     hv_store(vol, "hostname", 8, newSVpv(hostname, strlen(hostname)), 0); */
-/*     hv_store(vol, "part", 4, newSVpv(pname, strlen(pname)), 0); */
-/*     hv_store(vol, "status", 6, newSViv(pntr->status), 0); */
-/*     hv_store(vol, "backupID", 8, newSViv(pntr->backupID), 0); */
-/*     hv_store(vol, "parentID", 8, newSViv(pntr->parentID), 0); */
-/*     hv_store(vol, "cloneID", 7, newSViv(pntr->cloneID), 0); */
-/*     hv_store(vol, "inUse", 5, newSViv(pntr->inUse), 0); */
-/*     hv_store(vol, "needsSalvaged", 13, newSViv(pntr->needsSalvaged), 0); */
-/*     /\* 0xD3 is from afs/volume.h since I had trouble including the file *\/ */
-/*     hv_store(vol, "destroyMe", 9, newSViv(pntr->destroyMe), 0); */
-/*     hv_store(vol, "type", 4, newSViv(pntr->type), 0); */
-/*     hv_store(vol, "creationDate", 12, newSViv(pntr->creationDate), 0); */
-/*     hv_store(vol, "accessDate", 10, newSViv(pntr->accessDate), 0); */
-/*     hv_store(vol, "updateDate", 10, newSViv(pntr->updateDate), 0); */
-/*     hv_store(vol, "backupDate", 10, newSViv(pntr->backupDate), 0); */
-/*     hv_store(vol, "copyDate", 8, newSViv(pntr->copyDate), 0); */
-/*     hv_store(vol, "flags", 5, newSViv(pntr->flags), 0); */
-/*     hv_store(vol, "diskused", 8, newSViv(pntr->size), 0); */
-/*     hv_store(vol, "maxquota", 8, newSViv(pntr->maxquota), 0); */
-/*     hv_store(vol, "minquota", 8, newSViv(pntr->spare0), 0); */
-/*     hv_store(vol, "filecount", 9, newSViv(pntr->filecount), 0); */
-/*     hv_store(vol, "dayUse", 6, newSViv(pntr->dayUse), 0); */
-/*     hv_store(vol, "weekUse", 7, newSViv(pntr->spare1), 0); */
-/*     hv_store(vol, "spare2", 6, newSViv(pntr->spare2), 0); */
-/*     hv_store(vol, "spare3", 6, newSViv(pntr->spare3), 0); */
-/*     return; */
-/* } */
-
-/* static void DisplayVolumes2(part, server, partition, pntr, count) */
-/*     HV *part; */
-/*     volintInfo *pntr; */
-/*     long server, partition, count; */
-/* { */
-/*     long i; */
-
-/*     for (i = 0; i < count; i++) { */
-/*         HV *vol = (HV *) sv_2mortal((SV *) newHV()); */
-/*         myDisplayFormat2(vol, server, partition, pntr); */
-/*         hv_store(part, pntr->name, strlen(pntr->name), newRV_inc((SV *) (vol)), 0); */
-/*         pntr++; */
-/*     } */
-/*     return; */
-/* } */
 
 static void XDisplayVolumes(part, a_servID, a_partID, a_xInfoP, a_count)
     HV *part;
@@ -1798,7 +2247,6 @@ static void XDisplayVolumes(part, a_servID, a_partID, a_xInfoP, a_count)
     int totalNotOK;             /*Total screwed volumes */
     int totalBusy;              /*Total busy volumes */
     int i;                      /*Loop variable */
-    afs_int32 volid;            /*Current volume ID */
     char buff[32];
 
     /* Initialize counters and (global!!) queues.*/
@@ -1816,25 +2264,25 @@ static void XDisplayVolumes(part, a_servID, a_partID, a_xInfoP, a_count)
                          a_servID,
                          a_partID, &totalOK, &totalNotOK, &totalBusy);
         if (a_xInfoP->status == VOK) {
-            hv_store(part, a_xInfoP->name, strlen(a_xInfoP->name), newRV_inc((SV *) (vol)), 0);
+            safe_hv_store(part, a_xInfoP->name, strlen(a_xInfoP->name), newRV_inc((SV *) (vol)), 0);
         }
         else if (a_xInfoP->status == VBUSY) {
             sprintf(buff, "volume_busy_%d", i);
-            hv_store(part, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
+            safe_hv_store(part, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
             /* fprintf(STDERR, "DEBUG-1: %s %d\n", buff, strlen(buff)); */
         }
         else {
             sprintf(buff, "volume_notok_%d", i);
-            hv_store(part, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
+            safe_hv_store(part, buff, strlen(buff), newRV_inc((SV *) (vol)), 0);
             /* fprintf(STDERR, "DEBUG-2: %s %d\n", buff, strlen(buff)); */
         }
         a_xInfoP++;
     }
 
     /* If any volumes were found to be busy or screwed, display them.*/
-    hv_store(part, " totalOK", 8, newSViv(totalOK), 0);
-    hv_store(part, " totalBusy", 10, newSViv(totalBusy), 0);
-    hv_store(part, " totalNotOK", 11, newSViv(totalNotOK), 0);
+    safe_hv_store(part, " totalOK", 8, newSViv(totalOK), 0);
+    safe_hv_store(part, " totalBusy", 10, newSViv(totalBusy), 0);
+    safe_hv_store(part, " totalNotOK", 11, newSViv(totalNotOK), 0);
 }                               /*XDisplayVolumes */
 /* end of helper functions for VOS class */
 
@@ -1852,15 +2300,15 @@ void myEnumerateEntry(stats, entry)
     AV *av = (AV *) sv_2mortal((SV *) newAV());
 
     if (entry->flags & RW_EXISTS)
-        hv_store(stats, "RWrite", 6, newSViv(entry->volumeId[RWVOL]), 0);
+        safe_hv_store(stats, "RWrite", 6, newSViv(entry->volumeId[RWVOL]), 0);
     if (entry->flags & RO_EXISTS)
-        hv_store(stats, "ROnly", 5, newSViv(entry->volumeId[ROVOL]), 0);
+        safe_hv_store(stats, "ROnly", 5, newSViv(entry->volumeId[ROVOL]), 0);
     if (entry->flags & BACK_EXISTS)
-        hv_store(stats, "Backup", 6, newSViv(entry->volumeId[BACKVOL]), 0);
+        safe_hv_store(stats, "Backup", 6, newSViv(entry->volumeId[BACKVOL]), 0);
     if ((entry->cloneId != 0) && (entry->flags & RO_EXISTS))
-        hv_store(stats, "cloneId", 7, newSViv(entry->cloneId), 0);
+        safe_hv_store(stats, "cloneId", 7, newSViv(entry->cloneId), 0);
 
-    hv_store(stats, "nServers", 8, newSViv(entry->nServers), 0);
+    safe_hv_store(stats, "nServers", 8, newSViv(entry->nServers), 0);
 
     for (i = 0; i < entry->nServers; i++) {
         if (entry->serverFlags[i] & NEW_REPSITE)
@@ -1871,38 +2319,38 @@ void myEnumerateEntry(stats, entry)
         HV *server = (HV *) sv_2mortal((SV *) newHV());
         MapPartIdIntoName(entry->serverPartition[i], pname);
         strcpy(hostname, (char *) hostutil_GetNameByINet(entry->serverNumber[i]));
-        hv_store(server, "name", 4, newSVpv(hostname, strlen((char *) hostname)), 0);
-        hv_store(server, "partition", 9, newSVpv(pname, strlen((char *) pname)), 0);
+        safe_hv_store(server, "name", 4, newSVpv(hostname, strlen((char *) hostname)), 0);
+        safe_hv_store(server, "partition", 9, newSVpv(pname, strlen((char *) pname)), 0);
 
-        hv_store(server, "serverFlags", 11, newSViv(entry->serverFlags[i]), 0);
+        safe_hv_store(server, "serverFlags", 11, newSViv(entry->serverFlags[i]), 0);
 
         if (entry->serverFlags[i] & ITSRWVOL)
-            hv_store(server, "type", 4, newSVpv("RW", 2), 0);
+            safe_hv_store(server, "type", 4, newSVpv("RW", 2), 0);
         else
-            hv_store(server, "type", 4, newSVpv("RO", 2), 0);
+            safe_hv_store(server, "type", 4, newSVpv("RO", 2), 0);
 
         if (isMixed) {
             if (entry->serverFlags[i] & NEW_REPSITE)
-                hv_store(server, "release", 7, newSVpv("New release", 11), 0);
+                safe_hv_store(server, "release", 7, newSVpv("New release", 11), 0);
             else
-                hv_store(server, "release", 7, newSVpv("Old release", 11), 0);
+                safe_hv_store(server, "release", 7, newSVpv("Old release", 11), 0);
         }
         else {
             if (entry->serverFlags[i] & RO_DONTUSE)
-                hv_store(server, "release", 7, newSVpv("Not released", 12), 0);
+                safe_hv_store(server, "release", 7, newSVpv("Not released", 12), 0);
         }
         av_push(av, newRV_inc((SV *) (server)));
     }
-    hv_store(stats, "server", 6, newRV_inc((SV *) (av)), 0);
+    safe_hv_store(stats, "server", 6, newRV_inc((SV *) (av)), 0);
 
-    hv_store(stats, "flags", 5, newSViv(entry->flags), 0);
+    safe_hv_store(stats, "flags", 5, newSViv(entry->flags), 0);
     if (entry->flags & VLOP_ALLOPERS)
-        hv_store(stats, "locked", 6, newSViv(entry->flags & VLOP_ALLOPERS), 0);
+        safe_hv_store(stats, "locked", 6, newSViv(entry->flags & VLOP_ALLOPERS), 0);
 
     return;
 }
 
-static VolumeInfoCmd(stats, name)
+static int VolumeInfoCmd(stats, name)
     HV *stats;
     char *name;
 {
@@ -1947,7 +2395,7 @@ static void myprint_addrs(addr, addrs, m_uuid, nentries, print, noresolve)
     int noresolve;
 {
     afs_int32 vcode;
-    afs_int32 i, j;
+    afs_int32 i;
     afs_int32 *addrp;
     bulkaddrs m_addrs;
     ListAddrByAttributes m_attrs;
@@ -1958,7 +2406,7 @@ static void myprint_addrs(addr, addrs, m_uuid, nentries, print, noresolve)
 #ifdef OpenAFS
     if (print) {
         afsUUID_to_string(m_uuid, buf, sizeof(buf));
-        hv_store(addr, "UUID", 4, newSVpv(buf, strlen(buf)), 0);
+        safe_hv_store(addr, "UUID", 4, newSVpv(buf, strlen(buf)), 0);
     }
 #else
     noresolve = 0;
@@ -1991,7 +2439,7 @@ static void myprint_addrs(addr, addrs, m_uuid, nentries, print, noresolve)
                 vcode = ubik_Call(VL_GetAddrsU, cstruct, 0,
                                   &m_attrs, &m_uuid, &m_unique, &m_nentries, &m_addrs);
                 if (vcode) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer,
                             "AFS::VLDB: could not list the multi-homed server addresses\n");
                     VSETCODE(vcode, buffer);
@@ -2023,8 +2471,8 @@ static void myprint_addrs(addr, addrs, m_uuid, nentries, print, noresolve)
 
                 continue;
 
-                hv_store(addr, "IP", 2, newRV_inc((SV *) (IPs)), 0);
-                hv_store(addr, "name", 4, newRV_inc((SV *) (names)), 0);
+                safe_hv_store(addr, "IP", 2, newRV_inc((SV *) (IPs)), 0);
+                safe_hv_store(addr, "name", 4, newRV_inc((SV *) (names)), 0);
             }
         }
 
@@ -2037,13 +2485,13 @@ static void myprint_addrs(addr, addrs, m_uuid, nentries, print, noresolve)
             char hoststr[16];
             sprintf(key, "IP-%d", j);
             sprintf(buf, "%s", afs_inet_ntoa_r(*addrp, hoststr));
-            hv_store(addr, key, 4, newSVpv(buf, strlen(buf)), 0);
+            safe_hv_store(addr, key, 4, newSVpv(buf, strlen(buf)), 0);
         }
         else {
 #endif
             sprintf(key, "name-%d", j);
             sprintf(buf, "%s", (char *) hostutil_GetNameByINet(*addrp));
-            hv_store(addr, key, 6, newSVpv(buf, strlen(buf)), 0);
+            safe_hv_store(addr, key, 6, newSVpv(buf, strlen(buf)), 0);
 #ifdef OpenAFS
         }
 #endif
@@ -2096,6 +2544,7 @@ static void GetServerAndPart(entry, voltype, server, part, previdx)
 
 /* helper functions for BOS class */
 
+#ifndef OpenAFS
 /* is this a digit or a digit-like thing? */
 static int ismeta(ac, abase)
     register int abase;
@@ -2130,7 +2579,6 @@ static int getmeta(ac)
     return 0;
 }
 
-#ifndef OpenAFS
 afs_uint32 GetUInt32(as, aval)
     register char *as;
     afs_uint32 *aval;
@@ -2172,15 +2620,6 @@ afs_uint32 GetUInt32(as, aval)
     *aval = total;
     return 0;
 }
-#else
-#if defined(OpenAFS_1_3) || defined(OpenAFS_1_4)
-afs_uint32 GetUInt32(as, aval)
-    register char *as;
-    afs_uint32 *aval;
-{
-    croak("DEBUG: GetUInt32 for OpenAFS not available ...\nPlease inform the author..  .");
-}
-#endif
 #endif
 
 /* keep those lines small */
@@ -2213,9 +2652,10 @@ static struct rx_connection *internal_bos_new(code, hostname, localauth, noauth,
     struct ktc_principal sname;
     struct ktc_token ttoken;
 
+    /* printf("bos DEBUG-1: %s \n", cdir); */
     th = (struct hostent *) hostutil_GetHostByName(hostname);
     if (!th) {
-        char buffer[80];
+        char buffer[256];
         sprintf(buffer, "AFS::BOS: can't find address for host '%s'\n", hostname);
         *code = -1;
         BSETCODE(code, buffer);
@@ -2226,28 +2666,34 @@ static struct rx_connection *internal_bos_new(code, hostname, localauth, noauth,
     Copy(th->h_addr, &addr, th->h_length, char);
 
     /* get tokens for making authenticated connections */
-    *code = rx_Init(0);
-    if (*code) {
-        char buffer[80];
-        sprintf(buffer, "AFS::BOS: could not initialize rx (%d)\n", *code);
-        BSETCODE(code, buffer);
-/*         printf("bos DEBUG-2\n"); */
-        return NULL;
+    if (!rx_initialized) {
+        /* printf("bos DEBUG rx_Init\n"); */
+        *code = rx_Init(0);
+        if (*code) {
+            char buffer[256];
+            sprintf(buffer, "AFS::BOS: could not initialize rx (%d)\n", *code);
+            BSETCODE(code, buffer);
+/*          printf("bos DEBUG-2\n"); */
+            return NULL;
+        }
     }
+    rx_initialized = 1;
+
     *code = ka_Init(0);
     if (*code) {
-        char buffer[80];
+        char buffer[256];
         sprintf(buffer, "AFS::BOS: could not initialize ka (%d)\n", *code);
         BSETCODE(code, buffer);
-/*         printf("bos DEBUG-3\n"); */
+/*          printf("bos DEBUG-3\n"); */
         return NULL;
     }
+
     if (localauth)
         internal_GetServerConfigDir();
     else
         internal_GetConfigDir();
+    /* printf("bos DEBUG-2: %s\n", cdir->name); */
 
-    cdir = afsconf_Open(config_dir);
     if (!cdir) {
         *code = errno;
         SETCODE(code);
@@ -2255,36 +2701,26 @@ static struct rx_connection *internal_bos_new(code, hostname, localauth, noauth,
         return NULL;
     }
 
-    if (cdir) {
-        struct afsconf_cell info;
+    struct afsconf_cell info;
 
-        /* next call expands cell name abbrevs for us and handles looking up
-         * local cell */
-        *code = internal_GetCellInfo(tname, (char *) 0, &info);
-        if (*code) {
-            char buffer[80];
-            sprintf(buffer, "AFS::BOS %d (can't find cell '%s' in cell database)",
-                    *code, (tname ? tname : "<default>"));
-            BSETCODE(code, buffer);
-/*             printf("bos DEBUG-5\n"); */
-            return NULL;
-        }
-        else
-            strcpy(sname.cell, info.name);
-    }
-    else {
-        char buffer[80];
-        sprintf(buffer, "AFS::BOS: can't open cell database (%s)\n", config_dir);
-        *code = -1;
+    /* next call expands cell name abbrevs for us and handles looking up
+     * local cell */
+    *code = internal_GetCellInfo(tname, (char *) 0, &info);
+    if (*code) {
+        char buffer[256];
+        sprintf(buffer, "AFS::BOS %d (can't find cell '%s' in cell database)",
+                *code, (tname ? tname : "<default>"));
         BSETCODE(code, buffer);
-/*         printf("bos DEBUG-6\n"); */
+        /*             printf("bos DEBUG-5\n"); */
         return NULL;
     }
+
+    strcpy(sname.cell, info.name);
     sname.instance[0] = 0;
     strcpy(sname.name, "afs");
     sc[0] = (struct rx_securityClass *) rxnull_NewClientSecurityObject();
     sc[1] = 0;
-    sc[2] = 0;
+    sc[2] = (struct rx_securityClass *) NULL;
     scIndex = 0;
 
     if (!noauth) {              /* not -noauth */
@@ -2304,7 +2740,7 @@ static struct rx_connection *internal_bos_new(code, hostname, localauth, noauth,
             }
         }
         else {                  /* not -localauth, check for tickets */
-            *code = ktc_GetToken(&sname, &ttoken, sizeof(ttoken), (char *) 0);
+            *code = ktc_GetToken(&sname, &ttoken, sizeof(ttoken), NULL);
             if (*code == 0) {
                 /* have tickets, will travel */
                 if (ttoken.kvno >= 0 && ttoken.kvno <= 256);
@@ -2334,7 +2770,7 @@ static struct rx_connection *internal_bos_new(code, hostname, localauth, noauth,
     }
     tconn = rx_NewConnection(addr, htons(AFSCONF_NANNYPORT), 1, sc[scIndex], scIndex);
     if (!tconn) {
-        char buffer[80];
+        char buffer[256];
         sprintf(buffer, "AFS::BOS: could not create rx connection\n");
         *code = -1;
         BSETCODE(code, buffer);
@@ -2365,21 +2801,21 @@ static int DoStat(stats, aname, aconn, aint32p, firstTime)
     tp = buffer;
     code = BOZO_GetInstanceInfo(aconn, aname, &tp, &istatus);
     if (code) {
-        char buf[240];
+        char buf[256];
         sprintf(buf, "AFS::BOS: failed to get instance info for '%s' (%s)\n",
                 aname, em(code));
         BSETCODE(code, buf);
         return -1;
     }
     if (firstTime && aint32p && (istatus.flags & BOZO_BADDIRACCESS)) {
-        char buf[80];
+        char buf[256];
         sprintf(buf, "Bosserver reports inappropriate access on server directories\n");
         BSETCODE(-1, buf);
     }
     /*printf("Instance %s, ", aname); */
     if (aint32p) {
         /* printf("(type is %s) ", buffer); */
-        hv_store(stats, "type", 4, newSVpv(buffer, strlen(buffer)), 0);
+        safe_hv_store(stats, "type", 4, newSVpv(buffer, strlen(buffer)), 0);
     }
 
     sprintf(info, "%s", "");
@@ -2393,24 +2829,24 @@ static int DoStat(stats, aname, aconn, aint32p, firstTime)
         else
             sprintf(info, "%s", "temporarily enabled");
     }
-    hv_store(stats, "info", 4, newSVpv(info, strlen(info)), 0);
-    hv_store(stats, "goal", 4, newSViv(istatus.goal), 0);
-    hv_store(stats, "fileGoal", 8, newSViv(istatus.fileGoal), 0);
+    safe_hv_store(stats, "info", 4, newSVpv(info, strlen(info)), 0);
+    safe_hv_store(stats, "goal", 4, newSViv(istatus.goal), 0);
+    safe_hv_store(stats, "fileGoal", 8, newSViv(istatus.fileGoal), 0);
 
     if (istatus.flags & BOZO_ERRORSTOP) {
         /* printf("stopped for too many errors, "); */
-        hv_store(stats, "status", 6, newSViv(BOZO_ERRORSTOP), 0);
+        safe_hv_store(stats, "status", 6, newSViv(BOZO_ERRORSTOP), 0);
     }
     if (istatus.flags & BOZO_HASCORE) {
         /* printf("has core file, "); */
-        hv_store(stats, "status", 6, newSViv(BOZO_HASCORE), 0);
+        safe_hv_store(stats, "status", 6, newSViv(BOZO_HASCORE), 0);
     }
-    hv_store(stats, "flags", 5, newSViv(istatus.flags), 0);
+    safe_hv_store(stats, "flags", 5, newSViv(istatus.flags), 0);
 
     tp = buffer;
     code = BOZO_GetStatus(aconn, aname, &temp, &tp);
     if (code) {
-        char buf[240];
+        char buf[256];
         sprintf(buf, "AFS::BOS: failed to get status for instance '%s' (%s)\n",
                 aname, em(code));
         BSETCODE(code, buf);
@@ -2421,10 +2857,10 @@ static int DoStat(stats, aname, aconn, aint32p, firstTime)
         /* else if (temp == BSTAT_SHUTDOWN) printf("shutdown.\n"); */
         /* else if (temp == BSTAT_STARTINGUP) printf("starting up.\n"); */
         /* else if (temp == BSTAT_SHUTTINGDOWN) printf("shutting down.\n"); */
-        hv_store(stats, "status", 6, newSViv(temp), 0);
+        safe_hv_store(stats, "status", 6, newSViv(temp), 0);
         if (buffer[0] != 0) {
             /* printf("    Auxiliary status is: %s.\n", buffer); */
-            hv_store(stats, "aux_status", 10, newSVpv(buffer, strlen(buffer)), 0);
+            safe_hv_store(stats, "aux_status", 10, newSVpv(buffer, strlen(buffer)), 0);
         }
     }
 
@@ -2435,17 +2871,17 @@ static int DoStat(stats, aname, aconn, aint32p, firstTime)
     if (istatus.procStartTime) {
         /* printf("    Process last started at %s (%d proc starts)\n", */
         /*        DateOf(istatus.procStartTime), istatus.procStarts); */
-        hv_store(stats, "procStartTime", 13, newSViv(istatus.procStartTime), 0);
-        hv_store(stats, "procStarts", 10, newSViv(istatus.procStarts), 0);
+        safe_hv_store(stats, "procStartTime", 13, newSViv(istatus.procStartTime), 0);
+        safe_hv_store(stats, "procStarts", 10, newSViv(istatus.procStarts), 0);
     }
     if (istatus.lastAnyExit) {
         /* printf("    Last exit at %s\n", DateOf(istatus.lastAnyExit)); */
-        hv_store(stats, "lastAnyExit", 11, newSViv(istatus.lastAnyExit), 0);
+        safe_hv_store(stats, "lastAnyExit", 11, newSViv(istatus.lastAnyExit), 0);
     }
     if (istatus.lastErrorExit) {
         is1 = is2 = is3 = is4 = (char *) 0;
         /* printf("    Last error exit at %s, ", DateOf(istatus.lastErrorExit)); */
-        hv_store(stats, "lastErrorExit", 13, newSViv(istatus.lastErrorExit), 0);
+        safe_hv_store(stats, "lastErrorExit", 13, newSViv(istatus.lastErrorExit), 0);
         code = BOZO_GetInstanceStrings(aconn, aname, &is1, &is2, &is3, &is4);
         /* don't complain about failing call, since could simply mean
          * interface mismatch.
@@ -2454,23 +2890,27 @@ static int DoStat(stats, aname, aconn, aint32p, firstTime)
             if (*is1 != 0) {
                 /* non-null instance string */
                 /* printf("by %s, ", is1); */
-                hv_store(stats, "by", 2, newSVpv(is1, strlen(is1)), 0);
+                safe_hv_store(stats, "by", 2, newSVpv(is1, strlen(is1)), 0);
             }
-            Safefree(is1);
-            Safefree(is2);
-            Safefree(is3);
-            Safefree(is4);
+            if (is1)
+                free(is1);
+            if (is2)
+                free(is2);
+            if (is3)
+                free(is3);
+            if (is4)
+                free(is4);
         }
         if (istatus.errorSignal) {
             /* if (istatus.errorSignal == SIGTERM) */
             /*    printf("due to shutdown request\n"); */
             /* else */
             /*    printf("due to signal %d\n", istatus.errorSignal); */
-            hv_store(stats, "errorSignal", 11, newSViv(istatus.errorSignal), 0);
+            safe_hv_store(stats, "errorSignal", 11, newSViv(istatus.errorSignal), 0);
         }
         else {
             /* printf("by exiting with code %d\n", istatus.errorCode); */
-            hv_store(stats, "errorCode", 9, newSViv(istatus.errorCode), 0);
+            safe_hv_store(stats, "errorCode", 9, newSViv(istatus.errorCode), 0);
         }
     }
 
@@ -2486,14 +2926,14 @@ static int DoStat(stats, aname, aconn, aint32p, firstTime)
             /* fprintf(stderr, "    Command %d is '%s'\n", i+1, buffer); */
             av_push(av, newSVpv(buffer, strlen(buffer)));
         }
-        hv_store(stats, "command", 7, newRV_inc((SV *) (av)), 0);
+        safe_hv_store(stats, "command", 7, newRV_inc((SV *) (av)), 0);
 
         tp = buffer;
         code = BOZO_GetInstanceParm(aconn, aname, 999, &tp);
         if (!code) {
             /* Any type of failure is treated as not having a notifier program */
             /* printf("    Notifier  is '%s'\n", buffer); */
-            hv_store(stats, "notifier", 8, newSVpv(buffer, strlen(buffer)), 0);
+            safe_hv_store(stats, "notifier", 8, newSVpv(buffer, strlen(buffer)), 0);
         }
         /* printf("\n"); */
     }
@@ -2574,14 +3014,14 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     if (aparm1) {
         partNumber = volutil_GetPartitionID(aparm1);
         if (partNumber < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: could not parse partition ID '%s'\n", aparm1);
             BSETCODE(EINVAL, buffer);
             return EINVAL;
         }
         tp = (char *) volutil_PartitionName(partNumber);
         if (!tp) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: internal error parsing partition ID '%s'\n",
                     aparm1);
             BSETCODE(EINVAL, buffer);
@@ -2596,7 +3036,7 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     if (aoutName) {
         outFile = fopen(aoutName, "w");
         if (!outFile) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: can't open specified SalvageLog file '%s'\n",
                     aoutName);
             BSETCODE(ENOENT, buffer);
@@ -2618,7 +3058,7 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     if (*aparm2 != 0) {
         if ((strlen(tbuffer) + 1 + strlen(partName) + 1 + strlen(aparm2) + 1) >
             BOZO_BSSIZE) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: command line too big\n");
             BSETCODE(E2BIG, buffer);
             return (E2BIG);
@@ -2630,7 +3070,7 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     }
     else {
         if ((strlen(tbuffer) + 4 + strlen(partName) + 1) > BOZO_BSSIZE) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: command line too big\n");
             BSETCODE(E2BIG, buffer);
             return (E2BIG);
@@ -2642,7 +3082,7 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     /* add the parallel option if given */
     if (parallel != (char *) 0) {
         if ((strlen(tbuffer) + 11 + strlen(parallel) + 1) > BOZO_BSSIZE) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: command line too big\n");
             BSETCODE(E2BIG, buffer);
             return (E2BIG);
@@ -2654,7 +3094,7 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     /* add the tmpdir option if given */
     if (atmpDir != (char *) 0) {
         if ((strlen(tbuffer) + 9 + strlen(atmpDir) + 1) > BOZO_BSSIZE) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: command line too big\n");
             BSETCODE(E2BIG, buffer);
             return (E2BIG);
@@ -2666,7 +3106,7 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     /* add the orphans option if given */
     if (orphans != (char *) 0) {
         if ((strlen(tbuffer) + 10 + strlen(orphans) + 1) > BOZO_BSSIZE) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: command line too big\n");
             BSETCODE(E2BIG, buffer);
             return (E2BIG);
@@ -2706,13 +3146,13 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     if (mrafsParm.OptDontAskFS)
         strcat(tbuffer, " -DontAskFS");
     if (mrafsParm.OptLogLevel) {
-        sprintf(pbuffer, " -LogLevel %ld", mrafsParm.OptLogLevel);
+        sprintf(pbuffer, " -LogLevel %d", mrafsParm.OptLogLevel);
         strcat(tbuffer, pbuffer);
     }
     if (mrafsParm.OptRxDebug)
         strcat(tbuffer, " -rxdebug");
     if (mrafsParm.OptResidencies) {
-        sprintf(pbuffer, " -Residencies %lu", mrafsParm.OptResidencies);
+        sprintf(pbuffer, " -Residencies %u", mrafsParm.OptResidencies);
         strcat(tbuffer, pbuffer);
     }
 
@@ -2721,7 +3161,7 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
     code = BOZO_CreateBnode(aconn, "cron", "salvage-tmp", parms[0], parms[1],
                             parms[2], parms[3], parms[4], notifier);
     if (code) {
-        char buffer[240];
+        char buffer[256];
         sprintf(buffer, "AFS::BOS: failed to start 'salvager' (%s)\n", em(code));
         BSETCODE(code, buffer);
         goto done;
@@ -2740,7 +3180,7 @@ static int DoSalvage(aconn, aparm1, aparm2, aoutName, showlog, parallel, atmpDir
         /* fprintf(stderr, "AFS::BOS: waiting for salvage to complete.\n"); */
     }
     if (code != BZNOENT) {
-        char buffer[240];
+        char buffer[256];
         sprintf(buffer, "AFS::BOS: salvage failed (%s)\n", em(code));
         BSETCODE(code, buffer);
         goto done;
@@ -2974,7 +3414,7 @@ static int32 parse_acl(p, ph, nh)
         if (sscanf(p, "%s %d", user, &acl) != 2)
             return 0;
         facl = format_rights(acl);
-        hv_store(ph, user, strlen(user), newSVpv(facl, strlen(facl)), 0);
+        safe_hv_store(ph, user, strlen(user), newSVpv(facl, strlen(facl)), 0);
         while (*p && *p != '\n')
             p++;
         if (*p == '\n')
@@ -2984,7 +3424,7 @@ static int32 parse_acl(p, ph, nh)
         if (sscanf(p, "%s %d", user, &acl) != 2)
             return 0;
         facl = format_rights(acl);
-        hv_store(nh, user, strlen(user), newSVpv(facl, strlen(facl)), 0);
+        safe_hv_store(nh, user, strlen(user), newSVpv(facl, strlen(facl)), 0);
         while (*p && *p != '\n')
             p++;
         if (*p == '\n')
@@ -2993,7 +3433,7 @@ static int32 parse_acl(p, ph, nh)
     return 1;
 }
 
-static parse_volstat(stats, space)
+static int parse_volstat(stats, space)
     HV *stats;
     char *space;
 {
@@ -3004,34 +3444,34 @@ static parse_volstat(stats, space)
     name = (char *) status + sizeof(*status);
     offmsg = name + strlen(name) + 1;
     motd = offmsg + strlen(offmsg) + 1;
-    hv_store(stats, "Name", 4, newSVpv(name, strlen(name)), 0);
-    hv_store(stats, "OffMsg", 6, newSVpv(offmsg, strlen(offmsg)), 0);
-    hv_store(stats, "Motd", 4, newSVpv(motd, strlen(motd)), 0);
-    hv_store(stats, "Vid", 3, newSViv(status->Vid), 0);
-    hv_store(stats, "ParentId", 8, newSViv(status->ParentId), 0);
-    hv_store(stats, "Online", 6, newSViv(status->Online), 0);
-    hv_store(stats, "InService", 9, newSViv(status->InService), 0);
-    hv_store(stats, "Blessed", 7, newSViv(status->Blessed), 0);
-    hv_store(stats, "NeedsSalvage", 12, newSViv(status->NeedsSalvage), 0);
+    safe_hv_store(stats, "Name", 4, newSVpv(name, strlen(name)), 0);
+    safe_hv_store(stats, "OffMsg", 6, newSVpv(offmsg, strlen(offmsg)), 0);
+    safe_hv_store(stats, "Motd", 4, newSVpv(motd, strlen(motd)), 0);
+    safe_hv_store(stats, "Vid", 3, newSViv(status->Vid), 0);
+    safe_hv_store(stats, "ParentId", 8, newSViv(status->ParentId), 0);
+    safe_hv_store(stats, "Online", 6, newSViv(status->Online), 0);
+    safe_hv_store(stats, "InService", 9, newSViv(status->InService), 0);
+    safe_hv_store(stats, "Blessed", 7, newSViv(status->Blessed), 0);
+    safe_hv_store(stats, "NeedsSalvage", 12, newSViv(status->NeedsSalvage), 0);
     if (status->Type == ReadOnly)
         strcpy(type, "ReadOnly");
     else if (status->Type == ReadWrite)
         strcpy(type, "ReadWrite");
     else
         sprintf(type, "%d", status->Type);
-    hv_store(stats, "Type", 4, newSVpv(type, strlen(type)), 0);
-    hv_store(stats, "MinQuota", 8, newSViv(status->MinQuota), 0);
-    hv_store(stats, "MaxQuota", 8, newSViv(status->MaxQuota), 0);
-    hv_store(stats, "BlocksInUse", 11, newSViv(status->BlocksInUse), 0);
-    hv_store(stats, "PartBlocksAvail", 15, newSViv(status->PartBlocksAvail), 0);
-    hv_store(stats, "PartMaxBlocks", 13, newSViv(status->PartMaxBlocks), 0);
+    safe_hv_store(stats, "Type", 4, newSVpv(type, strlen(type)), 0);
+    safe_hv_store(stats, "MinQuota", 8, newSViv(status->MinQuota), 0);
+    safe_hv_store(stats, "MaxQuota", 8, newSViv(status->MaxQuota), 0);
+    safe_hv_store(stats, "BlocksInUse", 11, newSViv(status->BlocksInUse), 0);
+    safe_hv_store(stats, "PartBlocksAvail", 15, newSViv(status->PartBlocksAvail), 0);
+    safe_hv_store(stats, "PartMaxBlocks", 13, newSViv(status->PartMaxBlocks), 0);
     return 1;
 }
 /* end of helper functions for FS class: */
 
 
 /* helper functions for KAS class: */
-static parse_kaentryinfo(stats, ka)
+static int parse_kaentryinfo(stats, ka)
     HV *stats;
     struct kaentryinfo *ka;
 {
@@ -3040,160 +3480,160 @@ static parse_kaentryinfo(stats, ka)
     sprintf(buffer, "%s%s%s", ka->modification_user.name,
             ka->modification_user.instance[0] ? "." : "", ka->modification_user.instance);
 
-    hv_store(stats, "modification_user", 17, newSVpv(buffer, strlen(buffer)), 0);
-    hv_store(stats, "minor_version", 13, newSViv(ka->minor_version), 0);
-    hv_store(stats, "flags", 5, newSViv(ka->flags), 0);
-    hv_store(stats, "user_expiration", 15, newSViv(ka->user_expiration), 0);
-    hv_store(stats, "modification_time", 17, newSViv(ka->modification_time), 0);
-    hv_store(stats, "change_password_time", 20, newSViv(ka->change_password_time), 0);
-    hv_store(stats, "max_ticket_lifetime", 19, newSViv(ka->max_ticket_lifetime), 0);
-    hv_store(stats, "key_version", 11, newSViv(ka->key_version), 0);
-    hv_store(stats, "keyCheckSum", 11, newSVuv(ka->keyCheckSum), 0);
-    hv_store(stats, "misc_auth_bytes", 15, newSVuv(ka->misc_auth_bytes), 0);
-    hv_store(stats, "passwd_reuse", 12, newSViv(ka->reserved3), 0);
+    safe_hv_store(stats, "modification_user", 17, newSVpv(buffer, strlen(buffer)), 0);
+    safe_hv_store(stats, "minor_version", 13, newSViv(ka->minor_version), 0);
+    safe_hv_store(stats, "flags", 5, newSViv(ka->flags), 0);
+    safe_hv_store(stats, "user_expiration", 15, newSViv(ka->user_expiration), 0);
+    safe_hv_store(stats, "modification_time", 17, newSViv(ka->modification_time), 0);
+    safe_hv_store(stats, "change_password_time", 20, newSViv(ka->change_password_time), 0);
+    safe_hv_store(stats, "max_ticket_lifetime", 19, newSViv(ka->max_ticket_lifetime), 0);
+    safe_hv_store(stats, "key_version", 11, newSViv(ka->key_version), 0);
+    safe_hv_store(stats, "keyCheckSum", 11, newSVuv(ka->keyCheckSum), 0);
+    safe_hv_store(stats, "misc_auth_bytes", 15, newSVuv(ka->misc_auth_bytes), 0);
+    safe_hv_store(stats, "passwd_reuse", 12, newSViv(ka->reserved3), 0);
     /*               1234567890123456789012345 */
     return 1;
 }
 
-static parse_ka_getstats(stats, dstats, kas, kad)
+static int parse_ka_getstats(stats, dstats, kas, kad)
     HV *stats;
     HV *dstats;
     struct kasstats *kas;
     struct kadstats *kad;
 {
-    hv_store(stats, "minor_version", 13, newSViv(kas->minor_version), 0);
-    hv_store(stats, "allocs", 6, newSViv(kas->allocs), 0);
-    hv_store(stats, "frees", 5, newSViv(kas->frees), 0);
-    hv_store(stats, "cpws", 4, newSViv(kas->cpws), 0);
-    hv_store(stats, "reserved1", 9, newSViv(kas->reserved1), 0);
-    hv_store(stats, "reserved2", 9, newSViv(kas->reserved2), 0);
-    hv_store(stats, "reserved3", 9, newSViv(kas->reserved3), 0);
-    hv_store(stats, "reserved4", 9, newSViv(kas->reserved4), 0);
+    safe_hv_store(stats, "minor_version", 13, newSViv(kas->minor_version), 0);
+    safe_hv_store(stats, "allocs", 6, newSViv(kas->allocs), 0);
+    safe_hv_store(stats, "frees", 5, newSViv(kas->frees), 0);
+    safe_hv_store(stats, "cpws", 4, newSViv(kas->cpws), 0);
+    safe_hv_store(stats, "reserved1", 9, newSViv(kas->reserved1), 0);
+    safe_hv_store(stats, "reserved2", 9, newSViv(kas->reserved2), 0);
+    safe_hv_store(stats, "reserved3", 9, newSViv(kas->reserved3), 0);
+    safe_hv_store(stats, "reserved4", 9, newSViv(kas->reserved4), 0);
 
     /* dynamic stats */
 
-    hv_store(dstats, "minor_version", 13, newSViv(kad->minor_version), 0);
+    safe_hv_store(dstats, "minor_version", 13, newSViv(kad->minor_version), 0);
 
-    hv_store(dstats, "host", 4, newSViv(kad->host), 0);
-    hv_store(dstats, "start_time", 10, newSViv(kad->start_time), 0);
-    hv_store(dstats, "hashTableUtilization", 20, newSViv(kad->hashTableUtilization), 0);
-    hv_store(dstats, "string_checks", 13, newSViv(kad->string_checks), 0);
-    hv_store(dstats, "reserved1", 9, newSViv(kad->reserved1), 0);
-    hv_store(dstats, "reserved2", 9, newSViv(kad->reserved2), 0);
-    hv_store(dstats, "reserved3", 9, newSViv(kad->reserved3), 0);
-    hv_store(dstats, "reserved4", 9, newSViv(kad->reserved4), 0);
-    hv_store(dstats, "Authenticate_requests", 21, newSViv(kad->Authenticate.requests), 0);
-    hv_store(dstats, "Authenticate_aborts", 19, newSViv(kad->Authenticate.aborts), 0);
-    hv_store(dstats, "ChangePassword_requests", 23,
+    safe_hv_store(dstats, "host", 4, newSViv(kad->host), 0);
+    safe_hv_store(dstats, "start_time", 10, newSViv(kad->start_time), 0);
+    safe_hv_store(dstats, "hashTableUtilization", 20, newSViv(kad->hashTableUtilization), 0);
+    safe_hv_store(dstats, "string_checks", 13, newSViv(kad->string_checks), 0);
+    safe_hv_store(dstats, "reserved1", 9, newSViv(kad->reserved1), 0);
+    safe_hv_store(dstats, "reserved2", 9, newSViv(kad->reserved2), 0);
+    safe_hv_store(dstats, "reserved3", 9, newSViv(kad->reserved3), 0);
+    safe_hv_store(dstats, "reserved4", 9, newSViv(kad->reserved4), 0);
+    safe_hv_store(dstats, "Authenticate_requests", 21, newSViv(kad->Authenticate.requests), 0);
+    safe_hv_store(dstats, "Authenticate_aborts", 19, newSViv(kad->Authenticate.aborts), 0);
+    safe_hv_store(dstats, "ChangePassword_requests", 23,
              newSViv(kad->ChangePassword.requests), 0);
-    hv_store(dstats, "ChangePassword_aborts", 21, newSViv(kad->ChangePassword.aborts), 0);
-    hv_store(dstats, "GetTicket_requests", 18, newSViv(kad->GetTicket.requests), 0);
-    hv_store(dstats, "GetTicket_aborts", 16, newSViv(kad->GetTicket.aborts), 0);
-    hv_store(dstats, "CreateUser_requests", 19, newSViv(kad->CreateUser.requests), 0);
-    hv_store(dstats, "CreateUser_aborts", 17, newSViv(kad->CreateUser.aborts), 0);
-    hv_store(dstats, "SetPassword_requests", 20, newSViv(kad->SetPassword.requests), 0);
-    hv_store(dstats, "SetPassword_aborts", 18, newSViv(kad->SetPassword.aborts), 0);
-    hv_store(dstats, "SetFields_requests", 18, newSViv(kad->SetFields.requests), 0);
-    hv_store(dstats, "SetFields_aborts", 16, newSViv(kad->SetFields.aborts), 0);
-    hv_store(dstats, "DeleteUser_requests", 19, newSViv(kad->DeleteUser.requests), 0);
-    hv_store(dstats, "DeleteUser_aborts", 17, newSViv(kad->DeleteUser.aborts), 0);
-    hv_store(dstats, "GetEntry_requests", 17, newSViv(kad->GetEntry.requests), 0);
-    hv_store(dstats, "GetEntry_aborts", 15, newSViv(kad->GetEntry.aborts), 0);
-    hv_store(dstats, "ListEntry_requests", 18, newSViv(kad->ListEntry.requests), 0);
-    hv_store(dstats, "ListEntry_aborts", 16, newSViv(kad->ListEntry.aborts), 0);
-    hv_store(dstats, "GetStats_requests", 17, newSViv(kad->GetStats.requests), 0);
-    hv_store(dstats, "GetStats_aborts", 15, newSViv(kad->GetStats.aborts), 0);
-    hv_store(dstats, "GetPassword_requests", 20, newSViv(kad->GetPassword.requests), 0);
-    hv_store(dstats, "GetPassword_aborts", 18, newSViv(kad->GetPassword.aborts), 0);
-    hv_store(dstats, "GetRandomKey_requests", 21, newSViv(kad->GetRandomKey.requests), 0);
-    hv_store(dstats, "GetRandomKey_aborts", 19, newSViv(kad->GetRandomKey.aborts), 0);
-    hv_store(dstats, "Debug_requests", 14, newSViv(kad->Debug.requests), 0);
-    hv_store(dstats, "Debug_aborts", 12, newSViv(kad->Debug.aborts), 0);
-    hv_store(dstats, "UAuthenticate_requests", 22,
+    safe_hv_store(dstats, "ChangePassword_aborts", 21, newSViv(kad->ChangePassword.aborts), 0);
+    safe_hv_store(dstats, "GetTicket_requests", 18, newSViv(kad->GetTicket.requests), 0);
+    safe_hv_store(dstats, "GetTicket_aborts", 16, newSViv(kad->GetTicket.aborts), 0);
+    safe_hv_store(dstats, "CreateUser_requests", 19, newSViv(kad->CreateUser.requests), 0);
+    safe_hv_store(dstats, "CreateUser_aborts", 17, newSViv(kad->CreateUser.aborts), 0);
+    safe_hv_store(dstats, "SetPassword_requests", 20, newSViv(kad->SetPassword.requests), 0);
+    safe_hv_store(dstats, "SetPassword_aborts", 18, newSViv(kad->SetPassword.aborts), 0);
+    safe_hv_store(dstats, "SetFields_requests", 18, newSViv(kad->SetFields.requests), 0);
+    safe_hv_store(dstats, "SetFields_aborts", 16, newSViv(kad->SetFields.aborts), 0);
+    safe_hv_store(dstats, "DeleteUser_requests", 19, newSViv(kad->DeleteUser.requests), 0);
+    safe_hv_store(dstats, "DeleteUser_aborts", 17, newSViv(kad->DeleteUser.aborts), 0);
+    safe_hv_store(dstats, "GetEntry_requests", 17, newSViv(kad->GetEntry.requests), 0);
+    safe_hv_store(dstats, "GetEntry_aborts", 15, newSViv(kad->GetEntry.aborts), 0);
+    safe_hv_store(dstats, "ListEntry_requests", 18, newSViv(kad->ListEntry.requests), 0);
+    safe_hv_store(dstats, "ListEntry_aborts", 16, newSViv(kad->ListEntry.aborts), 0);
+    safe_hv_store(dstats, "GetStats_requests", 17, newSViv(kad->GetStats.requests), 0);
+    safe_hv_store(dstats, "GetStats_aborts", 15, newSViv(kad->GetStats.aborts), 0);
+    safe_hv_store(dstats, "GetPassword_requests", 20, newSViv(kad->GetPassword.requests), 0);
+    safe_hv_store(dstats, "GetPassword_aborts", 18, newSViv(kad->GetPassword.aborts), 0);
+    safe_hv_store(dstats, "GetRandomKey_requests", 21, newSViv(kad->GetRandomKey.requests), 0);
+    safe_hv_store(dstats, "GetRandomKey_aborts", 19, newSViv(kad->GetRandomKey.aborts), 0);
+    safe_hv_store(dstats, "Debug_requests", 14, newSViv(kad->Debug.requests), 0);
+    safe_hv_store(dstats, "Debug_aborts", 12, newSViv(kad->Debug.aborts), 0);
+    safe_hv_store(dstats, "UAuthenticate_requests", 22,
              newSViv(kad->UAuthenticate.requests), 0);
-    hv_store(dstats, "UAuthenticate_aborts", 20, newSViv(kad->UAuthenticate.aborts), 0);
-    hv_store(dstats, "UGetTicket_requests", 19, newSViv(kad->UGetTicket.requests), 0);
-    hv_store(dstats, "UGetTicket_aborts", 17, newSViv(kad->UGetTicket.aborts), 0);
-    hv_store(dstats, "Unlock_requests", 15, newSViv(kad->Unlock.requests), 0);
-    hv_store(dstats, "Unlock_aborts", 13, newSViv(kad->Unlock.aborts), 0);
-    hv_store(dstats, "LockStatus_requests", 19, newSViv(kad->LockStatus.requests), 0);
-    hv_store(dstats, "LockStatus_aborts", 17, newSViv(kad->LockStatus.aborts), 0);
+    safe_hv_store(dstats, "UAuthenticate_aborts", 20, newSViv(kad->UAuthenticate.aborts), 0);
+    safe_hv_store(dstats, "UGetTicket_requests", 19, newSViv(kad->UGetTicket.requests), 0);
+    safe_hv_store(dstats, "UGetTicket_aborts", 17, newSViv(kad->UGetTicket.aborts), 0);
+    safe_hv_store(dstats, "Unlock_requests", 15, newSViv(kad->Unlock.requests), 0);
+    safe_hv_store(dstats, "Unlock_aborts", 13, newSViv(kad->Unlock.aborts), 0);
+    safe_hv_store(dstats, "LockStatus_requests", 19, newSViv(kad->LockStatus.requests), 0);
+    safe_hv_store(dstats, "LockStatus_aborts", 17, newSViv(kad->LockStatus.aborts), 0);
     /*               1234567890123456789012345 */
     return 1;
 }
 
-static parse_ka_debugInfo(stats, ka)
+static int parse_ka_debugInfo(stats, ka)
     HV *stats;
     struct ka_debugInfo *ka;
 {
     char buff[1024];
     int i;
 
-    hv_store(stats, "lastOperation", 13,
+    safe_hv_store(stats, "lastOperation", 13,
              newSVpv(ka->lastOperation, strlen(ka->lastOperation)), 0);
 
-    hv_store(stats, "lastAuth", 7, newSVpv(ka->lastAuth, strlen(ka->lastAuth)), 0);
-    hv_store(stats, "lastUAuth", 9, newSVpv(ka->lastUAuth, strlen(ka->lastUAuth)), 0);
+    safe_hv_store(stats, "lastAuth", 7, newSVpv(ka->lastAuth, strlen(ka->lastAuth)), 0);
+    safe_hv_store(stats, "lastUAuth", 9, newSVpv(ka->lastUAuth, strlen(ka->lastUAuth)), 0);
 
-    hv_store(stats, "lastTGS", 7, newSVpv(ka->lastTGS, strlen(ka->lastTGS)), 0);
-    hv_store(stats, "lastUTGS", 8, newSVpv(ka->lastUTGS, strlen(ka->lastUTGS)), 0);
+    safe_hv_store(stats, "lastTGS", 7, newSVpv(ka->lastTGS, strlen(ka->lastTGS)), 0);
+    safe_hv_store(stats, "lastUTGS", 8, newSVpv(ka->lastUTGS, strlen(ka->lastUTGS)), 0);
 
-    hv_store(stats, "lastAdmin", 9, newSVpv(ka->lastAdmin, strlen(ka->lastAdmin)), 0);
-    hv_store(stats, "lastTGSServer", 13,
+    safe_hv_store(stats, "lastAdmin", 9, newSVpv(ka->lastAdmin, strlen(ka->lastAdmin)), 0);
+    safe_hv_store(stats, "lastTGSServer", 13,
              newSVpv(ka->lastTGSServer, strlen(ka->lastTGSServer)), 0);
-    hv_store(stats, "lastUTGSServer", 14,
+    safe_hv_store(stats, "lastUTGSServer", 14,
              newSVpv(ka->lastUTGSServer, strlen(ka->lastUTGSServer)), 0);
 
-    hv_store(stats, "minorVersion", 12, newSViv(ka->minorVersion), 0);
-    hv_store(stats, "host", 4, newSViv(ka->host), 0);
-    hv_store(stats, "startTime", 9, newSViv(ka->startTime), 0);
-    hv_store(stats, "noAuth", 6, newSViv(ka->noAuth), 0);
-    hv_store(stats, "lastTrans", 9, newSViv(ka->lastTrans), 0);
-    hv_store(stats, "nextAutoCPW", 11, newSViv(ka->nextAutoCPW), 0);
-    hv_store(stats, "updatesRemaining", 16, newSViv(ka->updatesRemaining), 0);
-    hv_store(stats, "dbHeaderRead", 12, newSViv(ka->dbHeaderRead), 0);
+    safe_hv_store(stats, "minorVersion", 12, newSViv(ka->minorVersion), 0);
+    safe_hv_store(stats, "host", 4, newSViv(ka->host), 0);
+    safe_hv_store(stats, "startTime", 9, newSViv(ka->startTime), 0);
+    safe_hv_store(stats, "noAuth", 6, newSViv(ka->noAuth), 0);
+    safe_hv_store(stats, "lastTrans", 9, newSViv(ka->lastTrans), 0);
+    safe_hv_store(stats, "nextAutoCPW", 11, newSViv(ka->nextAutoCPW), 0);
+    safe_hv_store(stats, "updatesRemaining", 16, newSViv(ka->updatesRemaining), 0);
+    safe_hv_store(stats, "dbHeaderRead", 12, newSViv(ka->dbHeaderRead), 0);
 
-    hv_store(stats, "dbVersion", 9, newSViv(ka->dbVersion), 0);
-    hv_store(stats, "dbFreePtr", 9, newSViv(ka->dbFreePtr), 0);
-    hv_store(stats, "dbEofPtr", 8, newSViv(ka->dbEofPtr), 0);
-    hv_store(stats, "dbKvnoPtr", 9, newSViv(ka->dbKvnoPtr), 0);
+    safe_hv_store(stats, "dbVersion", 9, newSViv(ka->dbVersion), 0);
+    safe_hv_store(stats, "dbFreePtr", 9, newSViv(ka->dbFreePtr), 0);
+    safe_hv_store(stats, "dbEofPtr", 8, newSViv(ka->dbEofPtr), 0);
+    safe_hv_store(stats, "dbKvnoPtr", 9, newSViv(ka->dbKvnoPtr), 0);
 
-    hv_store(stats, "dbSpecialKeysVersion", 20, newSViv(ka->dbSpecialKeysVersion), 0);
+    safe_hv_store(stats, "dbSpecialKeysVersion", 20, newSViv(ka->dbSpecialKeysVersion), 0);
 
-    hv_store(stats, "cheader_lock", 12, newSViv(ka->cheader_lock), 0);
-    hv_store(stats, "keycache_lock", 13, newSViv(ka->keycache_lock), 0);
-    hv_store(stats, "kcVersion", 9, newSViv(ka->kcVersion), 0);
-    hv_store(stats, "kcSize", 6, newSViv(ka->kcSize), 0);
+    safe_hv_store(stats, "cheader_lock", 12, newSViv(ka->cheader_lock), 0);
+    safe_hv_store(stats, "keycache_lock", 13, newSViv(ka->keycache_lock), 0);
+    safe_hv_store(stats, "kcVersion", 9, newSViv(ka->kcVersion), 0);
+    safe_hv_store(stats, "kcSize", 6, newSViv(ka->kcSize), 0);
 
-    hv_store(stats, "reserved1", 9, newSViv(ka->reserved1), 0);
-    hv_store(stats, "reserved2", 9, newSViv(ka->reserved2), 0);
-    hv_store(stats, "reserved3", 9, newSViv(ka->reserved3), 0);
-    hv_store(stats, "reserved4", 9, newSViv(ka->reserved4), 0);
+    safe_hv_store(stats, "reserved1", 9, newSViv(ka->reserved1), 0);
+    safe_hv_store(stats, "reserved2", 9, newSViv(ka->reserved2), 0);
+    safe_hv_store(stats, "reserved3", 9, newSViv(ka->reserved3), 0);
+    safe_hv_store(stats, "reserved4", 9, newSViv(ka->reserved4), 0);
 
     if (ka->kcUsed > KADEBUGKCINFOSIZE) {
-        hv_store(stats, "actual_kcUsed", 13, newSViv(ka->kcUsed), 0);
+        safe_hv_store(stats, "actual_kcUsed", 13, newSViv(ka->kcUsed), 0);
         ka->kcUsed = KADEBUGKCINFOSIZE;
     }
 
-    hv_store(stats, "kcUsed", 6, newSViv(ka->kcUsed), 0);
+    safe_hv_store(stats, "kcUsed", 6, newSViv(ka->kcUsed), 0);
 
     for (i = 0; i < ka->kcUsed; i++) {
         sprintf(buff, "kcInfo_used%d", i);
-        hv_store(stats, buff, strlen(buff), newSViv(ka->kcInfo[i].used), 0);
+        safe_hv_store(stats, buff, strlen(buff), newSViv(ka->kcInfo[i].used), 0);
 
         sprintf(buff, "kcInfo_kvno%d", i);
-        hv_store(stats, buff, strlen(buff), newSViv(ka->kcInfo[i].kvno), 0);
+        safe_hv_store(stats, buff, strlen(buff), newSViv(ka->kcInfo[i].kvno), 0);
 
         sprintf(buff, "kcInfo_primary%d", i);
-        hv_store(stats, buff, strlen(buff),
+        safe_hv_store(stats, buff, strlen(buff),
                  newSViv((unsigned char) ka->kcInfo[i].primary), 0);
 
         sprintf(buff, "kcInfo_keycksum%d", i);
-        hv_store(stats, buff, strlen(buff),
+        safe_hv_store(stats, buff, strlen(buff),
                  newSViv((unsigned char) ka->kcInfo[i].keycksum), 0);
 
         sprintf(buff, "kcInfo_principal%d", i);
-        hv_store(stats, buff, strlen(buff),
+        safe_hv_store(stats, buff, strlen(buff),
                  newSVpv(ka->kcInfo[i].principal, strlen(ka->kcInfo[i].principal)), 0);
     }
     /*               1234567890123456789012345 */
@@ -3225,7 +3665,7 @@ fs_pioctl(path,setpath,op,in,setin,setout,follow)
         int32 code;
         char space[MAXSIZE];
         STRLEN insize;
-        
+
         if (!setpath)
             path = NULL;
         if (setout) {
@@ -3237,7 +3677,7 @@ fs_pioctl(path,setpath,op,in,setin,setout,follow)
             vi.out_size = 0;
             vi.out = 0;
         }
-        
+
         if (setin) {
             vi.in = (char *) SvPV(ST(2), insize);
             vi.in_size = insize;
@@ -3246,7 +3686,7 @@ fs_pioctl(path,setpath,op,in,setin,setout,follow)
             vi.in = 0;
             vi.in_size = 0;
         }
-        
+
         code = pioctl(path, op, &vi, follow);
         SETCODE(code);
         if (code == 0 && setout) {
@@ -3266,7 +3706,7 @@ fs_getvolstats(dir,follow=1)
         int32 code;
         char space[MAXSIZE];
         HV *stats;
-        
+
         vi.out_size = MAXSIZE;
         vi.in_size = 0;
         vi.out = space;
@@ -3294,7 +3734,7 @@ fs_whereis(dir,ip=0,follow=1)
         struct ViceIoctl vi;
         int32 code;
         char space[MAXSIZE];
-        
+
         vi.out_size = MAXSIZE;
         vi.in_size = 0;
         vi.out = space;
@@ -3320,7 +3760,7 @@ fs_whereis(dir,ip=0,follow=1)
                 }
                 XPUSHs(sv_2mortal(newSVpv(h, strlen(h))));
             }
-        
+
         }
     }
 
@@ -3335,7 +3775,7 @@ fs_checkservers(fast,cell=0,ip=0)
         struct ViceIoctl vi;
         int32 code, *num;
         char space[MAXSIZE];
-        
+
         checkserv.magic = 0x12345678;
         checkserv.tflags = 2;
         if (fast)
@@ -3346,12 +3786,12 @@ fs_checkservers(fast,cell=0,ip=0)
             checkserv.tsize = strlen(cell);
         }
         checkserv.tinterval = -1;
-        
+
         vi.out_size = MAXSIZE;
         vi.in_size = sizeof(checkserv);
         vi.in = (char *) &checkserv;
         vi.out = space;
-        
+
         code = pioctl(0, VIOCCKSERV, &vi, 1);
         num = (int32 *) space;
         SETCODE(code);
@@ -3375,7 +3815,7 @@ fs_checkservers(fast,cell=0,ip=0)
                 }
                 XPUSHs(sv_2mortal(newSVpv(h, strlen(h))));
             }
-        
+
         }
     }
 
@@ -3389,7 +3829,7 @@ fs_getcell(in_index,ip=0)
         int32 code, max = OMAXHOSTS;
         int32 *lp;
         char space[MAXSIZE];
-        
+
         lp = (int32 *) space;
         *lp++ = in_index;
         *lp = 0x12345678;
@@ -3426,7 +3866,7 @@ fs_getcell(in_index,ip=0)
                 }
                 XPUSHs(sv_2mortal(newSVpv(h, strlen(h))));
             }
-        
+
         }
     }
 
@@ -3449,7 +3889,7 @@ fs__get_server_version(port,hostName="localhost",verbose=0)
         int32 code;
         char version[64];
         int s;
-        
+
           /* lookup host */
         if (hostName) {
             th = (struct hostent *) hostutil_GetHostByName(hostName);
@@ -3463,23 +3903,23 @@ fs__get_server_version(port,hostName="localhost",verbose=0)
         }
         else
             host = htonl(0x7f000001);   /* IP localhost */
-        
+
         hostAddr.s_addr = host;
         if (verbose)
             printf("Trying %s (port %d):\n", inet_ntoa(hostAddr), ntohs(port_num));
-        
+
         s = socket(AF_INET, SOCK_DGRAM, 0);
         taddr.sin_family = AF_INET;
         taddr.sin_port = 0;
         taddr.sin_addr.s_addr = 0;
-        
+
         code = bind(s, (struct sockaddr *) &taddr, sizeof(struct sockaddr_in));
         SETCODE(code);
         if (code) {
             perror("bind");
             XSRETURN_UNDEF;
         }
-        
+
         code = rx_GetServerVersion(s, host, port_num, length, version);
         ST(0) = sv_newmortal();
         if (code < 0) {
@@ -3517,9 +3957,9 @@ fs_sysname(newname=0)
         struct ViceIoctl vi;
         int32 code, set;
         char space[MAXSIZE];
-        
+
         set = (newname && *newname);
-        
+
         vi.in = space;
         bcopy(&set, space, sizeof(set));
         vi.in_size = sizeof(set);
@@ -3545,13 +3985,13 @@ fs_getcrypt()
         struct ViceIoctl vi;
         int32 code, flag;
         char space[MAXSIZE];
-        
+
         vi.in_size = 0;
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
         code = pioctl(0, VIOC_GETRXKCRYPT, &vi, 1);
         SETCODE(code);
-        
+
         ST(0) = sv_newmortal();
         if (code == 0) {
             bcopy((char *) space, &flag, sizeof(int32));
@@ -3570,8 +4010,7 @@ fs_setcrypt(as)
 #ifdef VIOC_SETRXKCRYPT
         struct ViceIoctl vi;
         int32 code, flag;
-        char space[MAXSIZE];
-        
+
         if (strcmp(as, "on") == 0)
             flag = 1;
         else if (strcmp(as, "off") == 0)
@@ -3581,7 +4020,7 @@ fs_setcrypt(as)
             SETCODE(EINVAL);
             XSRETURN_UNDEF;
         }
-        
+
         vi.in = (char *) &flag;
         vi.in_size = sizeof(flag);
         vi.out_size = 0;
@@ -3604,7 +4043,7 @@ fs_whichcell(dir,follow=1)
         struct ViceIoctl vi;
         int32 code;
         char space[MAXSIZE];
-        
+
         vi.in_size = 0;
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
@@ -3627,7 +4066,7 @@ fs_lsmount(path,follow=1)
         char space[MAXSIZE];
         char *dir, *file;
         char parent[1024];
-        
+
         if (strlen(path) > (sizeof(parent) - 1))
             code = EINVAL;
         else {
@@ -3641,14 +4080,14 @@ fs_lsmount(path,follow=1)
                 dir = ".";
                 file = parent;
             }
-        
+
             vi.in_size = strlen(file) + 1;
             vi.in = file;
             vi.out_size = MAXSIZE;
             vi.out = (caddr_t) space;
             code = pioctl(dir, VIOC_AFS_STAT_MT_PT, &vi, follow);
         }
-        
+
         SETCODE(code);
         ST(0) = sv_newmortal();
         if (code == 0) {
@@ -3665,7 +4104,7 @@ fs_rmmount(path)
         int32 code;
         char *file, *dir;
         char parent[1024];
-        
+
         if (strlen(path) > (sizeof(parent) - 1))
             code = EINVAL;
         else {
@@ -3679,13 +4118,13 @@ fs_rmmount(path)
                 dir = ".";
                 file = parent;
             }
-        
+
             vi.in_size = strlen(file) + 1;
             vi.in = file;
             vi.out_size = 0;
             code = pioctl(dir, VIOC_AFS_DELETE_MT_PT, &vi, 0);
         }
-        
+
         SETCODE(code);
         RETVAL = (code == 0);
     }
@@ -3701,7 +4140,7 @@ fs_flushvolume(path,follow=1)
         struct ViceIoctl vi;
         int32 code;
         char space[MAXSIZE];
-        
+
         vi.in_size = 0;
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
@@ -3721,12 +4160,12 @@ fs_flush(path,follow=1)
         struct ViceIoctl vi;
         int32 code;
         char space[MAXSIZE];
-        
+
         vi.in_size = 0;
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
         code = pioctl(path, VIOCFLUSH, &vi, follow);
-        
+
         SETCODE(code);
         RETVAL = (code == 0);
     }
@@ -3742,7 +4181,7 @@ fs_flushcb(path,follow=1)
         struct ViceIoctl vi;
         int32 code;
         char space[MAXSIZE];
-        
+
         vi.in_size = 0;
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
@@ -3765,7 +4204,7 @@ fs_setquota(path,newquota,follow=1)
         char space[MAXSIZE];
         struct VolumeStatus *status;
         char *input;
-        
+
         vi.in_size = sizeof(*status) + 3;
         vi.in = space;
         vi.out_size = MAXSIZE;
@@ -3773,12 +4212,12 @@ fs_setquota(path,newquota,follow=1)
         status = (VolumeStatus *) space;
         status->MinQuota = -1;
         status->MaxQuota = newquota;
-        
+
         input = (char *) status + sizeof(*status);
         *(input++) = '\0';              /* never set name: this call doesn't change vldb */
         *(input++) = '\0';              /* offmsg  */
         *(input++) = '\0';              /* motd  */
-        
+
         code = pioctl(path, VIOCSETVOLSTAT, &vi, follow);
         SETCODE(code);
         RETVAL = (code == 0);
@@ -3822,10 +4261,10 @@ fs_mkmount(mountp,volume,rw=0,cell=0)
         char buffer[1024];
         char parent[1024];
         int32 code = 0;
-        
+
         if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
-        
+
         if (strlen(mountp) > (sizeof(parent) - 1))
             code = EINVAL;
         else {
@@ -3839,7 +4278,7 @@ fs_mkmount(mountp,volume,rw=0,cell=0)
             if (!isafs(parent))
                 code = EINVAL;
         }
-        
+
         if (code == 0) {
             sprintf(buffer, "%c%s%s%s.",
                     rw ? '%' : '#', cell ? cell : "", cell ? ":" : "", volume);
@@ -3857,7 +4296,7 @@ fs_checkvolumes()
     {
         struct ViceIoctl vi;
         int32 code;
-        
+
         vi.in_size = 0;
         vi.out_size = 0;
         code = pioctl(NULL, VIOCCKBACK, &vi, 0);
@@ -3874,7 +4313,7 @@ fs_checkconn()
         struct ViceIoctl vi;
         int32 code;
         int32 status;
-        
+
         vi.in_size = 0;
         vi.out_size = sizeof(status);
         vi.out = (caddr_t) & status;
@@ -3892,13 +4331,13 @@ fs_getcacheparms()
         struct ViceIoctl vi;
         int32 code;
         int32 stats[16];
-        
+
         vi.in_size = 0;
         vi.in = 0;
         vi.out_size = sizeof(stats);
         vi.out = (char *) stats;
         code = pioctl(NULL, VIOCGETCACHEPARMS, &vi, 0);
-        
+
         SETCODE(code);
         if (code == 0) {
             EXTEND(sp, 2);
@@ -3914,7 +4353,7 @@ fs_setcachesize(size)
     {
         struct ViceIoctl vi;
         int32 code;
-        
+
         vi.in_size = sizeof(size);;
         vi.in = (char *) &size;
         vi.out_size = 0;
@@ -3932,7 +4371,7 @@ fs_unlog()
     {
         struct ViceIoctl vi;
         int32 code;
-        
+
         vi.in_size = 0;
         vi.out_size = 0;
         code = pioctl(NULL, VIOCUNLOG, &vi, 0);
@@ -3951,7 +4390,7 @@ fs_getfid(path,follow=1)
         struct ViceIoctl vi;
         int32 code;
         struct VenusFid vf;
-        
+
         vi.in_size = 0;
         vi.out_size = sizeof(vf);
         vi.out = (char *) &vf;
@@ -3993,7 +4432,7 @@ fs_cm_access(path,perm="read",follow=1)
         struct ViceIoctl vi;
         int32 code;
         int32 rights;
-        
+
         code = canonical_parse_rights(perm, &rights);
         if (code == 0) {
             code = vi.in_size = sizeof(rights);
@@ -4014,10 +4453,10 @@ fs_ascii2rights(perm)
     CODE:
     {
         int32 code, rights = -1;
-        
+
         code = canonical_parse_rights(perm, &rights);
         SETCODE(code);
-        
+
         if (code != 0)
             rights = -1;
         RETVAL = rights;
@@ -4032,9 +4471,9 @@ fs_rights2ascii(perm)
     {
         char *p;
         p = format_rights(perm);
-        
+
         SETCODE(0);
-        
+
         ST(0) = sv_newmortal();
         sv_setpv(ST(0), p);
     }
@@ -4046,7 +4485,7 @@ fs_crights(perm)
     {
         int32 code;
         int32 rights;
-        
+
         code = canonical_parse_rights(perm, &rights);
         SETCODE(code);
         ST(0) = sv_newmortal();
@@ -4063,7 +4502,7 @@ fs_getcellstatus(cell=0)
         struct ViceIoctl vi;
         struct afsconf_cell info;
         int32 code, flags;
-        
+
         if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
 
@@ -4103,7 +4542,7 @@ fs_setcellstatus(setuid_allowed,cell=0)
             int32 reserved;
             char cell[MAXCELLCHARS];
         } set;
-        
+
         if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
 
@@ -4136,7 +4575,7 @@ fs_wscell()
         struct ViceIoctl vi;
         int32 code;
         char space[MAXSIZE];
-        
+
         vi.in_size = 0;
         vi.out_size = MAXSIZE;
         vi.out = (caddr_t) space;
@@ -4163,11 +4602,11 @@ fs__getacl(dir,follow=1)
         vi.out = space;
         code = pioctl(dir, VIOCGETAL, &vi, follow);
         SETCODE(code);
-        
+
         if (code == 0) {
             ph = newHV();
             nh = newHV();
-        
+
             if (parse_acl(space, ph, nh)) {
                 AV *acl;
                 acl = newAV();
@@ -4201,7 +4640,7 @@ fs_setacl(dir,acl,follow=1)
         int plen, nlen;
         int32 rights;
         char *name, *perm;
-        
+
         if (sv_isa(acl, "AFS::ACL") && SvROK(acl)
             && (SvTYPE(SvRV(acl)) == SVt_PVAV)
             ) {
@@ -4210,35 +4649,35 @@ fs_setacl(dir,acl,follow=1)
         else {
             croak("acl is not of type AFS::ACL");
         }
-        
+
         ph = nh = NULL;
         sv = av_fetch(object, 0, 0);
-        
+
         if (sv) {
             SV *sph = *sv;
             if (SvROK(sph) && (SvTYPE(SvRV(sph)) == SVt_PVHV)) {
                 ph = (HV *) SvRV(sph);
             }
         }
-        
+
         sv = av_fetch(object, 1, 0);
-        
+
         if (sv) {
             SV *snh = *sv;
             if (SvROK(snh) && (SvTYPE(SvRV(snh)) == SVt_PVHV)) {
                 nh = (HV *) SvRV(snh);
             }
         }
-        
+
         plen = nlen = 0;
-        
+
         p = acls;
         *p = 0;
         code = 0;
-        
+
         if (ph) {
             hv_iterinit(ph);
-        
+
             while ((code == 0) && (he = hv_iternext(ph))) {
                 I32 len;
                 name = hv_iterkey(he, &len);
@@ -4251,7 +4690,7 @@ fs_setacl(dir,acl,follow=1)
                 }
             }
         }
-        
+
         if (code == 0 && nh) {
             hv_iterinit(nh);
             while ((code == 0) && (he = hv_iternext(nh))) {
@@ -4266,7 +4705,7 @@ fs_setacl(dir,acl,follow=1)
                 }
             }
         }
-        
+
         if (code == 0) {
             sprintf(space, "%d\n%d\n%s", plen, nlen, acls);
             vi.in_size = strlen(space) + 1;
@@ -4292,15 +4731,15 @@ ktcp__new(class,name,...)
     {
         struct ktc_principal *p;
         int32 code;
-        
+
         if (items != 2 && items != 4)
             croak("Usage: AFS::KTC_PRINCIPAL->new(USER.INST@CELL) or AFS::KTC_PRINCIPAL->new(USER, INST, CELL)");
-        
+
         p = (struct ktc_principal *) safemalloc(sizeof(struct ktc_principal));
         p->name[0] = '\0';
         p->instance[0] = '\0';
         p->cell[0] = '\0';
-        
+
         if (items == 2) {
             code = ka_ParseLoginName(name, p->name, p->instance, p->cell);
         }
@@ -4318,7 +4757,7 @@ ktcp__new(class,name,...)
                 code = 0;
             }
         }
-        
+
         SETCODE(code);
         ST(0) = sv_newmortal();
         if (code == 0) {
@@ -4327,7 +4766,7 @@ ktcp__new(class,name,...)
         else {
             safefree(p);
         }
-        
+
         XSRETURN(1);
     }
 
@@ -4338,10 +4777,10 @@ ktcp_set(p,name,...)
     PPCODE:
     {
         int32 code;
-        
+
         if (items != 2 && items != 4)
             croak("Usage: set($user.$inst@$cell) or set($user,$inst,$cell)");
-        
+
         if (items == 2) {
             code = ka_ParseLoginName(name, p->name, p->instance, p->cell);
         }
@@ -4359,7 +4798,7 @@ ktcp_set(p,name,...)
                 code = 0;
             }
         }
-        
+
         SETCODE(code);
         EXTEND(sp, 1);
         PUSHs(sv_2mortal(newSViv(code == 0)));
@@ -4382,7 +4821,7 @@ ktcp_name(p,name=0)
     PPCODE:
     {
         int32 code = 0;
-        
+
         if (name != 0) {
             int nlen = strlen(name);
             if (nlen > MAXKTCNAMELEN - 1)
@@ -4404,7 +4843,7 @@ ktcp_instance(p,instance=0)
     PPCODE:
     {
         int32 code = 0;
-        
+
         if (instance != 0) {
             int ilen = strlen(instance);
             if (ilen > MAXKTCNAMELEN - 1)
@@ -4413,7 +4852,7 @@ ktcp_instance(p,instance=0)
                 strcpy(p->instance, instance);
             SETCODE(code);
         }
-        
+
         if (code == 0) {
             EXTEND(sp, 1);
             PUSHs(sv_2mortal(newSVpv(p->instance, strlen(p->instance))));
@@ -4427,7 +4866,7 @@ ktcp_cell(p,cell=0)
     PPCODE:
     {
         int32 code = 0;
-        
+
         if (cell != 0) {
             int clen = strlen(cell);
             if (clen > MAXKTCREALMLEN - 1)
@@ -4448,7 +4887,7 @@ ktcp_principal(p)
     PPCODE:
     {
         int32 code = 0;
-        
+
         char buffer[MAXKTCNAMELEN + MAXKTCNAMELEN + MAXKTCREALMLEN + 3];
         sprintf(buffer, "%s%s%s%s%s", p->name,
                 p->instance[0] ? "." : "", p->instance, p->cell[0] ? "@" : "", p->cell);
@@ -4523,7 +4962,7 @@ ktct_sessionKey(t)
         struct ktc_encryptionKey *key;
         SV *sv;
         key = (struct ktc_encryptionKey *) safemalloc(sizeof(*key));
-        
+
         *key = t->sessionKey;
         sv = sv_newmortal();
         EXTEND(sp, 1);
@@ -4566,62 +5005,107 @@ ktck_string(k)
 MODULE = AFS     PACKAGE = AFS::VOS       PREFIX = vos_
 
 AFS::VOS
-vos_new(class=0, verb=0, timeout=90, noauth=0, localauth=0, tcell=NULL, crypt=0) 
-        char *  class
-        int     verb
-        int     timeout
-        int     noauth
-        int     localauth
-        char *  tcell
-        int     crypt
+vos_new(class=0, verb=Nullsv, timeout=Nullsv, noauth=Nullsv, localauth=Nullsv, tcell=NULL, crypt=Nullsv)
+        char * class
+        SV *   verb
+        SV *   timeout
+        SV *   noauth
+        SV *   localauth
+        char * tcell
+        SV *   crypt
     PREINIT:
-        int32 code = -1;
+        int32 code;
         extern int verbose;
+        int itimeout, inoauth, ilocalauth, icrypt;
 
     PPCODE:
     {
-                /* Initialize the ubik_client connection */
-        rx_SetRxDeadTime(timeout);      /* timeout seconds inactivity before declared dead */
-        
-        cstruct = (struct ubik_client *) 0;
-        verbose = verb;
-        
-        if (crypt)                      /* -crypt specified */
-            vsu_SetCrypt(1);
-        if (code = vsu_ClientInit((noauth != 0),
-                                  AFSDIR_CLIENT_ETC_DIRPATH, tcell, localauth,
-                                  &cstruct, UV_SetSecurity)) {
-            char buffer[80];
-            sprintf(buffer, "could not initialize VLDB library (code=%u) \n", code);
-            VSETCODE(code, buffer);
+        if (!verb) {
+            verb = newSViv(0);
         }
-        SETCODE(code);
-        
-        ST(0) = sv_newmortal();
+        if (!timeout) {
+            timeout = newSViv(90);
+        }
+        if (!noauth) {
+            noauth = newSViv(0);
+        }
+        if (!localauth) {
+            localauth = newSViv(0);
+        }
+        if (!crypt) {
+            crypt = newSViv(0);
+        }
+        if (tcell && (tcell[0] == '\0' || tcell[0] == '0'))
+            tcell = NULL;
+        if ((verb) && (!SvIOKp(verb))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"verb\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        verbose = SvIV(verb);
+
+        if ((timeout) && (!SvIOKp(timeout))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"timeout\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        itimeout = SvIV(timeout);
+
+        if ((noauth) && (!SvIOKp(noauth))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"noauth\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        inoauth = SvIV(noauth);
+
+        if ((localauth) && (!SvIOKp(localauth))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"localauth\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        ilocalauth = SvIV(localauth);
+
+        if ((crypt) && (!SvIOKp(crypt))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"crypt\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        icrypt = SvIV(crypt);
+
+                /* Initialize the ubik_client connection */
+        rx_SetRxDeadTime(itimeout);      /* timeout seconds inactivity before declared dead */
+
+        cstruct = (struct ubik_client *) 0;
+
+        if (icrypt)                      /* -crypt specified */
+            vsu_SetCrypt(1);
+        code = internal_vsu_ClientInit((inoauth != 0),
+                                       AFSDIR_CLIENT_ETC_DIRPATH, tcell, ilocalauth,
+                                       &cstruct, UV_SetSecurity);
         if (code == 0) {
+            ST(0) = sv_newmortal();
             sv_setref_pv(ST(0), "AFS::VOS", (void *) cstruct);
             XSRETURN(1);
         }
         else {
             XSRETURN_UNDEF;
         }
-    }
+    } 
 
 int32
 vos__DESTROY(self)
         AFS::VOS self
     PREINIT:
-        int32 code = 0;
+        int32 code;
     CODE:
     {
-            /* if (self) { */
-                /* printf("DEBUG-21 %p \n", self); */
         code = ubik_ClientDestroy((struct ubik_client *) self);
-                /* printf("DEBUG-23 %d \n", code); */
-              /* Safefree(self); */
-              /* self = 0; */
-            /* } */
-        rx_Finalize();
+        /* printf("DEBUG-23 %d \n", code); */
         SETCODE(code);
                 /* printf("DEBUG-24 \n"); */
         RETVAL = (code == 0);
@@ -4638,7 +5122,7 @@ vos_status(cstruct, aserver)
         afs_int32 server, code;
         transDebugInfo *pntr;
         afs_int32 count;
-        char buffer[128];
+        char buffer[256];
     CODE:
     {
         server = GetServer(aserver);
@@ -4667,19 +5151,30 @@ vos_status(cstruct, aserver)
     }
 
 int32
-vos_release(cstruct, name, force=0)
+vos_release(cstruct, name, force=Nullsv)
         AFS::VOS cstruct
         char *name
-        int force
+        SV *  force
     PREINIT:
         struct nvldbentry entry;
         afs_int32 avolid, aserver, apart, vtype, code, err;
+        int iforce;
     CODE:
     {
+        if (!force) {
+            force = newSViv(0);
+        }
+        if (!SvIOKp(force)) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"force\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        iforce = SvIV(force);
         RETVAL = 0;
         avolid = vsu_GetVolumeID(name, cstruct, &err);
         if (avolid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -4693,20 +5188,20 @@ vos_release(cstruct, name, force=0)
             goto done;
         }
         if (vtype != RWVOL) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "%s not a RW volume\n", name);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
-        
+
         if (!ISNAMEVALID(entry.name)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Volume name %s is too long, rename before releasing\n", entry.name);
             VSETCODE(E2BIG, buffer);
             goto done;
         }
-        
-        code = UV_ReleaseVolume(avolid, aserver, apart, force);
+
+        code = UV_ReleaseVolume(avolid, aserver, apart, iforce);
         if (code) {
             PrintDiagnostics("release", code);
             SETCODE(code);
@@ -4715,7 +5210,7 @@ vos_release(cstruct, name, force=0)
         #fprintf(STDOUT, "Released volume %s successfully\n", name);
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -4723,40 +5218,56 @@ vos_release(cstruct, name, force=0)
         RETVAL
 
 int32
-vos_create(cstruct, server, partition, name, maxquota=NULL)
+vos_create(cstruct, server, partition, name, maxquota=Nullsv, vid=Nullsv, rovid=Nullsv)
         AFS::VOS cstruct
         char *server
         char *partition
         char *name
-        char *maxquota
+        SV * maxquota
+        SV * vid
+        SV * rovid
     PREINIT:
-        int32 pname;
-        char part[10];
-        int32 volid,code;
+        int32 pnum;
+        int32 code;
         struct nvldbentry entry;
         int32 vcode;
         int32 quota = 5000;
         afs_int32 tserver;
+#ifdef OpenAFS_1_4_12
+        afs_uint32 volid = 0, rovolid = 0, bkvolid = 0;
+        afs_uint32 *arovolid = NULL;
+#else
+        afs_int32 volid = 0;
+#endif
     CODE:
     {
+        if (!maxquota)
+            maxquota = newSViv(0);
+        if (!vid)
+            vid = newSViv(0);
+        if (!rovid)
+            rovid = newSViv(0);
+
         RETVAL = 0;
+        /* printf("vos-create DEBUG-1 server %s part %s vol %s maxq %d vid %d rovid %d \n", server, partition, name, SvIV(maxquota), SvIV(vid), SvIV(rovid)); */
+
         tserver = GetServer(server);
         if (!tserver) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: host '%s' not found in host table\n", server);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
-        
-        pname = volutil_GetPartitionID(partition);
-        if (pname < 0) {
-            char buffer[80];
+
+        pnum = volutil_GetPartitionID(partition);
+        if (pnum < 0) {
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", partition);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
-        if (!IsPartValid(pname, tserver, &code)) {      /*check for validity of the partition */
-            char buffer[80];
+        if (!IsPartValid(pnum, tserver, &code)) {      /*check for validity of the partition */
+            char buffer[256];
             if (code)
                 set_errbuff(buffer, code);
             else
@@ -4766,7 +5277,7 @@ vos_create(cstruct, server, partition, name, maxquota=NULL)
             goto done;
         }
         if (!ISNAMEVALID(name)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer,
                     "AFS::VOS: the name of the root volume %s exceeds the size limit of %d\n",
                     name, VOLSER_OLDMAXVOLNAME - 10);
@@ -4774,56 +5285,76 @@ vos_create(cstruct, server, partition, name, maxquota=NULL)
             goto done;
         }
         if (!VolNameOK(name)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Illegal volume name %s, should not end in .readonly or .backup\n",
                     name);
             VSETCODE(EINVAL, buffer);
             goto done;
         }
         if (IsNumeric(name)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Illegal volume name %s, should not be a number\n", name);
             VSETCODE(EINVAL, buffer);
             goto done;
         }
         vcode = VLDB_GetEntryByName(name, &entry);
         if (!vcode) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Volume %s already exists\n", name);
             #PrintDiagnostics("create", code);
             VSETCODE(EEXIST, buffer);
             goto done;
         }
-        
-        if (maxquota) {
-            if (!IsNumeric(maxquota)) {
-                char buffer[80];
-                sprintf(buffer, "Initial quota %d should be numeric.\n", maxquota);
-                VSETCODE(EINVAL, buffer);
-                goto done;
-            }
-        
-            code = util_GetInt32(maxquota, &quota);
-            if (code) {
-                char buffer[80];
-                sprintf(buffer, "AFS::VOS: bad integer specified for quota.\n");
-                VSETCODE(code, buffer);
-                goto done;
-            }
+        /* printf("vos-create DEBUG-2 server %d part %d vol %s maxq %d vid %d rovid %d \n", tserver, pnum, name, SvIV(maxquota), SvIV(vid), SvIV(rovid)); */
+
+        if ((maxquota) && (!SvIOKp(maxquota))) {
+            char buffer[256];
+            sprintf(buffer, "Initial quota should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            goto done;
         }
-        
-        code = UV_CreateVolume2(tserver, pname, name, quota, 0, 0, 0, 0, &volid);
+        quota = SvIV(maxquota);
+        /* printf("vos-create DEBUG-3 quota %d \n", quota); */
+#ifdef OpenAFS_1_4_12
+        if ((vid) && (!SvIOKp(vid))) {
+            /* printf("vos-create DEBUG-4  vid %d \n", SvIV(vid)); */
+            char buffer[256];
+            sprintf(buffer, "Given volume ID should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            goto done;
+        }
+        /* printf("vos-create DEBUG-5  vid %d \n", SvIV(vid)); */
+        volid = SvIV(vid);
+        /* printf("vos-create DEBUG-6 volid %d \n", volid); */
+
+        if ((rovid) && (!SvIOKp(rovid))) {
+            /* printf("vos-create DEBUG-7  rovid %d \n", SvIV(rovid)); */
+            char buffer[256];
+            sprintf(buffer, "Given RO volume ID should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            goto done;
+        }
+        /* printf("vos-create DEBUG-8  rovid %d \n", SvIV(rovid)); */
+        arovolid = &rovolid;
+        rovolid = SvIV(rovid);
+        /* printf("vos-create DEBUG-9 rovolid %d \n", rovolid); */
+
+        if (rovolid == 0) {
+            arovolid = NULL;
+        }
+        code = UV_CreateVolume3(tserver, pnum, name, quota, 0, 0, 0, 0, &volid, arovolid, &bkvolid);
+#else
+        code = UV_CreateVolume2(tserver, pnum, name, quota, 0, 0, 0, 0, &volid);
+#endif
         if (code) {
             #PrintDiagnostics("create", code);
             SETCODE(code);
             goto done;
         }
-        #MapPartIdIntoName(pname, part);
-        #fprintf(STDOUT, "Volume %u created on partition %s of %s\n", volid, part, server);
-        
+
         SETCODE(0);
-        RETVAL = volid;
-        
+        RETVAL = (int32)volid;
+
         done:
         ;
     }
@@ -4844,7 +5375,7 @@ vos_backup(cstruct, name)
         RETVAL = 0;
         avolid = vsu_GetVolumeID(name, cstruct, &err);
         if (avolid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -4858,19 +5389,19 @@ vos_backup(cstruct, name)
             goto done;
         }
                 /* verify this is a readwrite volume */
-        
+
         if (vtype != RWVOL) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "%s not RW volume\n", name);
             VSETCODE(-1, buffer);
             goto done;
         }
-        
+
                 /* is there a backup volume already? */
-        
+
         if (entry.flags & BACK_EXISTS) {
             /* yep, where is it? */
-        
+
             buvolid = entry.volumeId[BACKVOL];
             code = GetVolumeInfo(buvolid, &buserver, &bupart, &butype, &buentry);
             if (code) {
@@ -4880,7 +5411,7 @@ vos_backup(cstruct, name)
             /* is it local? */
             code = VLDB_IsSameAddrs(buserver, aserver, &err);
             if (err) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer,
                         "Failed to get info about server's %d address(es) from vlserver; aborting call!\n",
                         buserver);
@@ -4888,7 +5419,7 @@ vos_backup(cstruct, name)
                 goto done;
             }
             if (!code) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "FATAL ERROR: backup volume %u exists on server %u\n",
                         buvolid, buserver);
                 VSETCODE(-1, buffer);
@@ -4896,9 +5427,9 @@ vos_backup(cstruct, name)
             }
         }
                 /* nope, carry on */
-        
+
         code = UV_BackupVolume(aserver, apart, avolid);
-        
+
         if (code) {
             PrintDiagnostics("backup", code);
             SETCODE(0);
@@ -4907,7 +5438,7 @@ vos_backup(cstruct, name)
         #fprintf(STDOUT, "Created backup volume for %s \n", name);
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -4923,7 +5454,6 @@ vos_remove(cstruct, name, servername=NULL, parti=NULL)
     PREINIT:
         afs_int32 err, code = 0;
         afs_int32 server = 0, partition = -1, volid;
-        char pname[10];
         afs_int32 idx, j;
     CODE:
     {
@@ -4931,25 +5461,25 @@ vos_remove(cstruct, name, servername=NULL, parti=NULL)
         if (servername && strlen(servername) != 0) {
             server = GetServer(servername);
             if (!server) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", servername);
                 VSETCODE(ENOENT, buffer);
                 goto done;
             }
         }
-        
+
         if (parti && strlen(parti) != 0) {
             partition = volutil_GetPartitionID(parti);
             if (partition < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", parti);
                 VSETCODE(EINVAL, buffer);
                 goto done;
             }
-        
+
             /* Check for validity of the partition */
             if (!IsPartValid(partition, server, &code)) {
-                char buffer[80];
+                char buffer[256];
                 if (code)
                     set_errbuff(buffer, code);
                 else
@@ -4959,38 +5489,38 @@ vos_remove(cstruct, name, servername=NULL, parti=NULL)
                 goto done;
             }
         }
-        
+
         volid = vsu_GetVolumeID(name, cstruct, &err);
         if (volid == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Can't find volume name '%s' in VLDB\n", name);
             if (err)
                 set_errbuff(buffer, err);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
-        
+
             /* If the server or partition option are not complete, try to fill
              * them in from the VLDB entry.
              */
         if ((partition == -1) || !server) {
             struct nvldbentry entry;
-        
+
             code = VLDB_GetEntryByID(volid, -1, &entry);
             if (code) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Could not fetch the entry for volume %u from VLDB\n", volid);
                 VSETCODE(code, buffer);
                 goto done;
             }
-        
+
             if (((volid == entry.volumeId[RWVOL]) && (entry.flags & RW_EXISTS)) ||
                 ((volid == entry.volumeId[BACKVOL]) && (entry.flags & BACK_EXISTS))) {
                 idx = Lp_GetRwIndex(&entry);
                 if ((idx == -1) ||
                     (server && (server != entry.serverNumber[idx])) ||
                     ((partition != -1) && (partition != entry.serverPartition[idx]))) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer, "AFS::VOS: Volume '%s' no match\n", name);
                     VSETCODE(ENOENT, buffer);
                     goto done;
@@ -5000,11 +5530,11 @@ vos_remove(cstruct, name, servername=NULL, parti=NULL)
                 for (idx = -1, j = 0; j < entry.nServers; j++) {
                     if (entry.serverFlags[j] != ITSROVOL)
                         continue;
-        
+
                     if (((server == 0) || (server == entry.serverNumber[j])) &&
                         ((partition == -1) || (partition == entry.serverPartition[j]))) {
                         if (idx != -1) {
-                            char buffer[80];
+                            char buffer[256];
                             sprintf(buffer, "AFS::VOS: Volume '%s' matches more than one RO\n",
                                     name);
                             VSETCODE(ENOENT, buffer);
@@ -5014,36 +5544,33 @@ vos_remove(cstruct, name, servername=NULL, parti=NULL)
                     }
                 }
                 if (idx == -1) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer, "AFS::VOS: Volume '%s' no match\n", name);
                     VSETCODE(ENOENT, buffer);
                     goto done;
                 }
             }
             else {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: Volume '%s' no match\n", name);
                 VSETCODE(ENOENT, buffer);
                 goto done;
             }
-        
+
             server = htonl(entry.serverNumber[idx]);
             partition = entry.serverPartition[idx];
         }
-        
+
         code = UV_DeleteVolume(server, partition, volid);
         if (code) {
             PrintDiagnostics("remove", code);
             SETCODE(code);
             goto done;
         }
-        
-        #MapPartIdIntoName(partition, pname);
-        #fprintf(STDOUT, "Volume %u on partition %s server %s deleted\n",
-        #        volid, pname, (char *) hostutil_GetNameByINet(server));
+
         SETCODE(0);
         RETVAL = volid;
-        
+
         done:
         ;
     }
@@ -5063,49 +5590,49 @@ vos_rename(cstruct,oldname,newname)
         RETVAL = 0;
         code1 = VLDB_GetEntryByName(oldname, &entry);
         if (code1) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: Could not find entry for volume %s\n", oldname);
             VSETCODE(-1, buffer);
             goto done;
         }
         code2 = VLDB_GetEntryByName(newname, &entry);
         if ((!code1) && (!code2)) {     /*the newname already exists */
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: volume %s already exists\n", newname);
             VSETCODE(-1, buffer);
             goto done;
         }
-        
+
         if (code1 && code2) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: Could not find entry for volume %s or %s\n", oldname,
                     newname);
             VSETCODE(-1, buffer);
             goto done;
         }
         if (!VolNameOK(oldname)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Illegal volume name %s, should not end in .readonly or .backup\n",
                     oldname);
             VSETCODE(-1, buffer);
             goto done;
         }
         if (!ISNAMEVALID(newname)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: the new volume name %s exceeds the size limit of %d\n",
                     newname, VOLSER_OLDMAXVOLNAME - 10);
             VSETCODE(-1, buffer);
             goto done;
         }
         if (!VolNameOK(newname)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Illegal volume name %s, should not end in .readonly or .backup\n",
                     newname);
             VSETCODE(-1, buffer);
             goto done;
         }
         if (IsNumeric(newname)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Illegal volume name %s, should not be a number\n", newname);
             VSETCODE(-1, buffer);
             goto done;
@@ -5118,10 +5645,10 @@ vos_rename(cstruct,oldname,newname)
             goto done;
         }
         #fprintf(STDOUT, "Renamed volume %s to %s\n", oldname, newname);
-        
+
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -5129,28 +5656,45 @@ vos_rename(cstruct,oldname,newname)
         RETVAL
 
 int32
-vos__setfields(cstruct, name, mquota=NULL, clearuse=0)
+vos__setfields(cstruct, name, mquota=Nullsv, clearuse=Nullsv)
         AFS::VOS cstruct
         char *name
-        char *mquota
-        int32 clearuse
+        SV * mquota
+        SV * clearuse
     PREINIT:
 #ifdef OpenAFS
         struct nvldbentry entry;
-        int32 vcode = 0;
         volintInfo info;
         int32 volid;
-        int32 code, err;
+        int32 clear, code, err;
         int32 aserver, apart;
         int previdx = -1;
 #endif
     CODE:
     {
 #ifdef OpenAFS
+        if (!mquota)
+            mquota = newSViv(-1);
+        if (!clearuse)
+            clearuse = newSViv(0);
+        if ((!SvIOKp(mquota))) {     /* -max <quota> */
+            char buffer[256];
+            sprintf(buffer, "invalid quota value\n");
+            VSETCODE(EINVAL, buffer);
+            goto done;
+        }
+        if ((!SvIOKp(clearuse))) {     /* -clearuse */
+            char buffer[256];
+            sprintf(buffer, "flag \"clearuse\" is not an integer\n");
+            VSETCODE(EINVAL, buffer);
+            goto done;
+        }
+
+        printf("vos-setfields DEBUG-1 name %s mquota %d clearuse %d \n", name, (int)SvIV(mquota), (int)SvIV(clearuse));
         RETVAL = 0;
         volid = vsu_GetVolumeID(name, cstruct, &err);   /* -id */
         if (volid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -5158,27 +5702,30 @@ vos__setfields(cstruct, name, mquota=NULL, clearuse=0)
             VSETCODE(err ? err : -1, buffer);
             goto done;
         }
-        
+
         code = VLDB_GetEntryByID(volid, RWVOL, &entry);
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not fetch the entry for volume number %u from VLDB \n", volid);
             VSETCODE(code, buffer);
             goto done;
         }
         MapHostToNetwork(&entry);
-        
+
         GetServerAndPart(&entry, RWVOL, &aserver, &apart, &previdx);
         if (previdx == -1) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Volume %s does not exist in VLDB\n\n", name);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
-        
+
         Zero(&info, 1, volintInfo);
+
         info.volid = volid;
         info.type = RWVOL;
+        info.creationDate = -1;
+        info.updateDate = -1;
         info.dayUse = -1;
         info.maxquota = -1;
         info.flags = -1;
@@ -5186,31 +5733,22 @@ vos__setfields(cstruct, name, mquota=NULL, clearuse=0)
         info.spare1 = -1;
         info.spare2 = -1;
         info.spare3 = -1;
-        
-        if (mquota) {
-            /* -max <quota> */
-            code = util_GetInt32(mquota, &info.maxquota);
-            if (code) {
-                char buffer[80];
-                sprintf(buffer, "invalid quota value\n");
-                VSETCODE(code, buffer);
-                goto done;
-            }
-        }
-        if (clearuse) {
-            /* -clearuse */
+
+        info.maxquota = SvIV(mquota);
+
+        clear = SvIV(clearuse);
+        if (clear)
             info.dayUse = 0;
-        }
         code = UV_SetVolumeInfo(aserver, apart, volid, &info);
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not update volume info fields for volume number %u\n", volid);
             VSETCODE(code, buffer);
         }
         else
             SETCODE(code);
         RETVAL = 1;
-        
+
         done:
         ;
 #else
@@ -5221,33 +5759,67 @@ vos__setfields(cstruct, name, mquota=NULL, clearuse=0)
         RETVAL
 
 int32
-vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NULL,offline=0,readonly=0)
+vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=Nullsv,overwrite=NULL,offline=Nullsv,readonly=Nullsv)
         AFS::VOS cstruct
         char *server
         char *partition
         char *name
         char *file
         char *id
-        int inter
+        SV *  inter
         char *overwrite
-        int offline
-        int readonly
+        SV *  offline
+        SV *  readonly
     PREINIT:
         afs_int32 avolid, aserver, apart, code,vcode, err;
         afs_int32 aoverwrite = AFS_ABORT;
-        int restoreflags, voltype = RWVOL;
-        char prompt = 'n';
-        char afilename[NameLen], avolname[VOLSER_MAXVOLNAME +1], apartName[10];
+        int restoreflags = 0, voltype = RWVOL, ireadonly = 0, ioffline = 0;
+        char afilename[NameLen], avolname[VOLSER_MAXVOLNAME +1];
         char volname[VOLSER_MAXVOLNAME +1];
         struct nvldbentry entry;
     CODE:
     {
-        if (inter)
+        if (!inter) {
+            inter = newSViv(0);
+        }
+        if (!offline) {
+            offline = newSViv(0);
+        }
+        if (!readonly) {
+            readonly = newSViv(0);
+        }
+        if ((!SvIOKp(inter))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"inter\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
+        }
+        else
             aoverwrite = AFS_ASK;
+        if ((!SvIOKp(offline))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"offline\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
+        }
+        else
+            ioffline = 1;
+        if ((!SvIOKp(readonly))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"readonly\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
+        }
+        else
+            ireadonly = 1;
+
         if (id && strlen(id) != 0) {
             avolid = vsu_GetVolumeID(id, cstruct, &err);
             if (avolid == 0) {
-                char buffer[80];
+                char buffer[256];
                 if (err)
                     set_errbuff(buffer, err);
                 else
@@ -5259,7 +5831,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
         }
         else
             avolid = 0;
-        
+
         if (overwrite && strlen(overwrite) != 0) {
             if ((strcmp(overwrite, "a") == 0) || (strcmp(overwrite, "abort") == 0)) {
                 aoverwrite = AFS_ABORT;
@@ -5274,7 +5846,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
                 aoverwrite = AFS_INC;
             }
             else {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: %s is not a valid OVERWRITE argument\n",
                         overwrite);
                 VSETCODE(-1, buffer);
@@ -5282,13 +5854,12 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
                 goto done;
             }
         }
-        if (readonly) {
+        if ((ireadonly))
             voltype = ROVOL;
-        }
-        
+
         aserver = GetServer(server);
         if (aserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             RETVAL = 0;
@@ -5296,14 +5867,14 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
         }
         apart = volutil_GetPartitionID(partition);
         if (apart < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", partition);
             VSETCODE(-1, buffer);
             RETVAL = 0;
             goto done;
         }
         if (!IsPartValid(apart, aserver, &code)) {      /*check for validity of the partition */
-            char buffer[80];
+            char buffer[256];
             if (code)
                 set_errbuff(buffer, code);
             else
@@ -5315,7 +5886,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
         }
         strcpy(avolname, name);
         if (!ISNAMEVALID(avolname)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: the name of the volume %s exceeds the size limit\n",
                     avolname);
             VSETCODE(-1, buffer);
@@ -5323,7 +5894,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
             goto done;
         }
         if (!VolNameOK(avolname)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Illegal volume name %s, should not end in .readonly or .backup\n",
                     avolname);
             VSETCODE(-1, buffer);
@@ -5333,7 +5904,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
         if (file && strlen(file) != 0) {
             strcpy(afilename, file);
             if (!FileExists(afilename)) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Can't access file %s\n", afilename);
                 VSETCODE(-1, buffer);
                 RETVAL = 0;
@@ -5343,26 +5914,26 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
         else {
             strcpy(afilename, "");
         }
-        
+
                 /* Check if volume exists or not */
-        
+
         vsu_ExtractName(volname, avolname);
         vcode = VLDB_GetEntryByName(volname, &entry);
         if (vcode) {                    /* no volume - do a full restore */
             restoreflags = RV_FULLRST;
             if ((aoverwrite == AFS_INC) || (aoverwrite == AFS_ABORT)) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Volume does not exist; Will perform a full restore\n");
                 VSETCODE(vcode, buffer);
             }
         }
-        else if ((!readonly && Lp_GetRwIndex(&entry) == -1)     /* RW volume does not exist - do a full */
-                 ||(readonly && !Lp_ROMatch(0, 0, &entry))) {   /* RO volume does not exist - do a full */
+        else if ((!ireadonly && Lp_GetRwIndex(&entry) == -1)     /* RW volume does not exist - do a full */
+                 ||(ireadonly && !Lp_ROMatch(0, 0, &entry))) {   /* RO volume does not exist - do a full */
             restoreflags = RV_FULLRST;
             if ((aoverwrite == AFS_INC) || (aoverwrite == AFS_ABORT))
                 fprintf(stderr, "%s Volume does not exist; Will perform a full restore\n",
-                        readonly ? "RO" : "RW");
-        
+                        ireadonly ? "RO" : "RW");
+
             if (avolid == 0) {
                 avolid = entry.volumeId[voltype];
             }
@@ -5374,14 +5945,14 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
             int Oserver, Opart, Otype, vol_elsewhere = 0;
             struct nvldbentry Oentry;
             int c, dc;
-        
+
             if (avolid == 0) {
                 avolid = entry.volumeId[voltype];
             }
             else if (entry.volumeId[voltype] != 0 && entry.volumeId[voltype] != avolid) {
                 avolid = entry.volumeId[voltype];
             }
-        
+
             /* A file name was specified  - check if volume is on another partition */
             vcode = GetVolumeInfo(avolid, &Oserver, &Opart, &Otype, &Oentry);
             if (vcode) {
@@ -5389,10 +5960,10 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
                 RETVAL = 0;
                 goto done;
             }
-        
+
             vcode = VLDB_IsSameAddrs(Oserver, aserver, &err);
             if (err) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer,
                         "Failed to get info about server's %d address(es) from vlserver (err=%d); aborting call!\n",
                         Oserver, err);
@@ -5402,20 +5973,20 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
             }
             if (!vcode || (Opart != apart))
                 vol_elsewhere = 1;
-        
+
             if (aoverwrite == AFS_ASK) {
                 if (strcmp(afilename, "") == 0) {       /* The file is from standard in */
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer,
                             "Volume exists and no OVERWRITE argument specified; Aborting restore command\n");
                     VSETCODE(-1, buffer);
                     RETVAL = 0;
                     goto done;
                 }
-        
+
                 /* Ask what to do */
                 if (vol_elsewhere) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer,
                             "The volume %s %u already exists on a different server/part\n",
                             volname, entry.volumeId[voltype]);
@@ -5423,7 +5994,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
                     fprintf(stderr, "Do you want to do a full restore or abort? [fa](a): ");
                 }
                 else {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer, "The volume %s %u already exists in the VLDB\n",
                             volname, entry.volumeId[voltype]);
                     VSETCODE(-1, buffer);
@@ -5440,9 +6011,9 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
                 else
                     aoverwrite = AFS_ABORT;
             }
-        
+
             if (aoverwrite == AFS_ABORT) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Volume exists; Aborting restore command\n");
                 VSETCODE(-1, buffer);
                 RETVAL = 0;
@@ -5455,20 +6026,20 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
             else if (aoverwrite == AFS_INC) {
                 restoreflags = 0;
                 if (vol_elsewhere) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer,
                             "%s volume %u already exists on a different server/part; not allowed\n",
-                            readonly ? "RO" : "RW", avolid);
+                            ireadonly ? "RO" : "RW", avolid);
                     VSETCODE(-1, buffer);
                     RETVAL = 0;
                     goto done;
                 }
             }
         }
-        
-        if (offline)
+
+        if ((ioffline))
             restoreflags |= RV_OFFLINE;
-        if (readonly)
+        if (ireadonly)
             restoreflags |= RV_RDONLY;
         code = UV_RestoreVolume(aserver, apart, avolid, avolname,
                                 restoreflags, WriteData, afilename);
@@ -5478,16 +6049,10 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
             RETVAL = 0;
             goto done;
         }
-        MapPartIdIntoName(apart, apartName);
-        
-                /*
-                   patch typo here - originally "parms[1]", should be "parms[0]"
-                 */
-        
-        #fprintf(STDOUT, "Restored volume %s on %s %s\n", avolname, server, apartName);
+
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -5495,19 +6060,36 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=0,overwrite=NU
         RETVAL
 
 int32
-vos_dump(cstruct, id, time=NULL, file=NULL, server=NULL, partition=NULL)
+vos_dump(cstruct, id, time=NULL, file=NULL, server=NULL, partition=NULL, clone=Nullsv, omit=Nullsv)
         AFS::VOS cstruct
         char *id
         char *time
         char *file
         char *server
         char *partition
+        SV *  clone
+        SV *  omit
     PREINIT:
-        afs_int32 avolid, aserver, apart, voltype, fromdate=0, code, err, i;
+        afs_int32 avolid, aserver, apart, voltype, fromdate=0, code=0, err, i;
         char filename[NameLen];
         struct nvldbentry entry;
+        afs_int32 omitdirs = 0;
     CODE:
     {
+        if (!clone)
+            clone = newSViv(0);
+        if (!omit)
+            omit = newSViv(0);
+        if ((!SvIOKp(omit))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"omit\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
+        }
+        else
+            omitdirs = SvIV(omit);     /* -omit */
+        /* printf("vos_dump DEBUG-1 clone = %d omit = %d omitdirs = %d \n", clone, omit, omitdirs); */
         RETVAL = 0;
         rx_SetRxDeadTime(60 * 10);
         for (i = 0; i < MAXSERVERS; i++) {
@@ -5518,10 +6100,10 @@ vos_dump(cstruct, id, time=NULL, file=NULL, server=NULL, partition=NULL)
             if (rxConn->service)
                 rxConn->service->connDeadTime = rx_connDeadTime;
         }
-        
+
         avolid = vsu_GetVolumeID(id, cstruct, &err);
         if (avolid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -5529,24 +6111,24 @@ vos_dump(cstruct, id, time=NULL, file=NULL, server=NULL, partition=NULL)
             VSETCODE(err ? err : ENOENT, buffer);
             goto done;
         }
-        
+
         if ((server && (strlen(server) != 0)) || (partition && (strlen(partition) != 0))) {
             if (!(server && (strlen(server) != 0)) || !(partition && (strlen(partition) != 0))) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Must specify both SERVER and PARTITION arguments\n");
                 VSETCODE(-1, buffer);
                 goto done;
             }
             aserver = GetServer(server);
             if (aserver == 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Invalid server name\n");
                 VSETCODE(-1, buffer);
                 goto done;
             }
             apart = volutil_GetPartitionID(partition);
             if (apart < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Invalid partition name\n");
                 VSETCODE(-1, buffer);
                 goto done;
@@ -5559,11 +6141,11 @@ vos_dump(cstruct, id, time=NULL, file=NULL, server=NULL, partition=NULL)
                 goto done;
             }
         }
-        
+
         if (time && strcmp(time, "0")) {
             code = ktime_DateToInt32(time, &fromdate);
             if (code) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: failed to parse date '%s' (error=%d))\n", time, code);
                 VSETCODE(code, buffer);
                 goto done;
@@ -5575,21 +6157,47 @@ vos_dump(cstruct, id, time=NULL, file=NULL, server=NULL, partition=NULL)
         else {
             strcpy(filename, "");
         }
-        
+#ifdef OpenAFS_1_4_05
+        int iclone = 0;
+    retry_dump:
+        /* printf("vos_dump DEBUG-2 clone = %d omitdirs = %d \n", clone, omitdirs); */
+        if ((!SvIOKp(clone))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"clone\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
+        }
+        else
+            iclone = SvIV(clone);
+        if (iclone) {
+            /* printf("vos_dump DEBUG-2-1 clone = %d omitdirs = %d \n", clone, omitdirs); */
+            code = UV_DumpClonedVolume(avolid, aserver, apart, fromdate,
+                                       DumpFunction, filename, omitdirs);
+        } else {
+            /* printf("vos_dump DEBUG-2-2 clone = %d omitdirs = %d \n", clone, omitdirs); */
+            code = UV_DumpVolume(avolid, aserver, apart, fromdate, DumpFunction,
+                                 filename, omitdirs);
+        }
+        /* printf("vos_dump DEBUG-3 code = %d \n", code); */
+        if ((code == RXGEN_OPCODE) && (omitdirs)) {
+            omitdirs = 0;
+            goto retry_dump;
+        }
+#else
+        /* printf("vos_dump DEBUG-4 \n"); */
         code = UV_DumpVolume(avolid, aserver, apart, fromdate, DumpFunction, filename);
+        /* printf("vos_dump DEBUG-5 code = %d \n", code); */
+#endif
         if (code) {
             PrintDiagnostics("dump", code);
             SETCODE(code);
             goto done;
         }
-        #if (strcmp(filename, ""))
-        #    fprintf(stderr, "Dumped volume %s in file %s\n", id, filename);
-        #else
-        #    fprintf(stderr, "Dumped volume %s in stdout \n", id);
-        
+
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -5618,7 +6226,7 @@ vos_partinfo(cstruct, server, partname=NULL)
         apart = -1;
         aserver = GetServer(server);
         if (aserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
@@ -5626,7 +6234,7 @@ vos_partinfo(cstruct, server, partname=NULL)
         if (partname && (strlen(partname) != 0)) {
             apart = volutil_GetPartitionID(partname);
             if (apart < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", partname);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
@@ -5637,7 +6245,7 @@ vos_partinfo(cstruct, server, partname=NULL)
         }
         if (apart != -1) {
             if (!IsPartValid(apart, aserver, &code)) {  /*check for validity of the partition */
-                char buffer[80];
+                char buffer[256];
                 if (code)
                     set_errbuff(buffer, code);
                 else
@@ -5666,15 +6274,15 @@ vos_partinfo(cstruct, server, partname=NULL)
                 code = UV_PartitionInfo(aserver, pname, &partition);
 #endif
                 if (code) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer, "Could not get information on partition %s\n", pname);
                     VSETCODE(code, buffer);
                     XSRETURN_UNDEF;
                 }
-                hv_store(part, "free", 4, newSViv(partition.free), 0);
-                hv_store(part, "minFree", 7, newSViv(partition.minFree), 0);
+                safe_hv_store(part, "free", 4, newSViv(partition.free), 0);
+                safe_hv_store(part, "minFree", 7, newSViv(partition.minFree), 0);
 
-                hv_store(partlist, pname, strlen(pname), newRV_inc((SV *) (part)), 0);
+                safe_hv_store(partlist, pname, strlen(pname), newRV_inc((SV *) (part)), 0);
             }
         }
 
@@ -5684,49 +6292,66 @@ vos_partinfo(cstruct, server, partname=NULL)
     }
 
 void
-vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
+vos_listvol(cstruct, server, partname=NULL, fast=Nullsv, extended=Nullsv)
         AFS::VOS cstruct
         char *server
         char *partname
-        int fast
-        int extended
+        SV *  fast
+        SV *  extended
   PREINIT:
         afs_int32 apart = -1, aserver, code = 0;
         volintInfo *pntr = (volintInfo *)0;
         afs_int32 count;
         int i;
         volintXInfo *xInfoP = (volintXInfo *)0; /*Ptr to current/orig extended vol info*/
-        int wantExtendedInfo;                   /*Do we want extended vol info?*/
+        int wantExtendedInfo=0;                 /*Do we want extended vol info?*/
 
         char pname[10];
         struct partList dummyPartList;
-        int all, cnt;
+        int all, cnt, ifast=0;
 
         HV *vollist = (HV*)sv_2mortal((SV*)newHV());
     PPCODE:
     {
-        if (fast)
-            all = 0;
-        else
-            all = 1;
+        if (!fast)
+            fast = newSViv(0);
+        if (!extended)
+            extended = newSViv(0);
 
-        if (fast && extended) {
-            char buffer[80];
-            sprintf(buffer,
-                    "AFS::VOS:  FAST and EXTENDED flags are mutually exclusive\n");
+        if ((!SvIOKp(fast))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"fast\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        else
+            ifast = SvIV(fast);              /* -fast */
+        if ((!SvIOKp(extended))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"extended\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        else
+            wantExtendedInfo = SvIV(extended);   /* -extended */
+        if (ifast && wantExtendedInfo) {
+            char buffer[256];
+            sprintf(buffer, "AFS::VOS:  FAST and EXTENDED flags are mutually exclusive\n");
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
         }
 
-        if (extended)
-            wantExtendedInfo = 1;
+        /* printf ("vos_listvol DEBUG-1 pntr %p \n", pntr); */
+        /* printf ("vos_listvol DEBUG-1 xInfoP %p \n", xInfoP); */
+        if (ifast)
+            all = 0;
         else
-            wantExtendedInfo = 0;
+            all = 1;
 
         if (partname && (strlen(partname) != 0)) {
             apart = volutil_GetPartitionID(partname);
             if (apart < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", partname);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
@@ -5738,7 +6363,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
 
         aserver = GetServer(server);
         if (aserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
@@ -5746,7 +6371,7 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
 
         if (apart != -1) {
             if (!IsPartValid(apart, aserver, &code)) {  /*check for validity of the partition */
-                char buffer[80];
+                char buffer[256];
                 if (code)
                     set_errbuff(buffer, code);
                 else
@@ -5774,10 +6399,12 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                                            dummyPartList.partId[i], all, &xInfoP, &count);
                 else
                     code = UV_ListVolumes(aserver, dummyPartList.partId[i], all, &pntr, &count);
+                /* printf ("vos_listvol DEBUG-2 xInfoP %p %d \n", xInfoP, code); */
+                /* printf ("vos_listvol DEBUG-2 pntr %p %d \n", pntr, code); */
                 if (code) {
                     PrintDiagnostics("listvol", code);
                     if (pntr)
-                        Safefree(pntr);
+                        free(pntr);
                     SETCODE(-1);
                     XSRETURN_UNDEF;
                 }
@@ -5788,20 +6415,22 @@ vos_listvol(cstruct, server, partname=NULL, fast=0, extended=0)
                                     aserver,
                                     dummyPartList.partId[i],
                                     xInfoP, count);
+                    /* printf ("vos_listvol DEBUG-3 xInfoP %p \n", xInfoP); */
                     if (xInfoP)
-                        Safefree(xInfoP);
+                        free(xInfoP);
                     xInfoP = (volintXInfo *) 0;
                 }
                 else {
                     DisplayVolumes(part,
                                    aserver,
                                    dummyPartList.partId[i],
-                                   pntr, count, fast);
+                                   pntr, count, ifast);
+                    /* printf ("vos_listvol DEBUG-4 pntr %p \n", pntr); */
                     if (pntr)
-                        Safefree(pntr);
+                        free(pntr);
                     pntr = (volintInfo *) 0;
                 }
-                hv_store(vollist, pname, strlen(pname), newRV_inc((SV *) (part)), 0);
+                safe_hv_store(vollist, pname, strlen(pname), newRV_inc((SV *) (part)), 0);
             }
         }
 
@@ -5832,7 +6461,7 @@ vos_move(cstruct, id, froms, fromp, tos, top)
         RETVAL = 0;
         volid = vsu_GetVolumeID(id, cstruct, &err);
         if (volid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -5842,27 +6471,27 @@ vos_move(cstruct, id, froms, fromp, tos, top)
         }
         fromserver = GetServer(froms);
         if (fromserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", froms);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
         toserver = GetServer(tos);
         if (toserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", tos);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
         frompart = volutil_GetPartitionID(fromp);
         if (frompart < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", fromp);
             VSETCODE(EINVAL, buffer);
             goto done;
         }
         if (!IsPartValid(frompart, fromserver, &code)) {        /*check for validity of the partition */
-            char buffer[80];
+            char buffer[256];
             if (code)
                 set_errbuff(buffer, code);
             else
@@ -5872,13 +6501,13 @@ vos_move(cstruct, id, froms, fromp, tos, top)
         }
         topart = volutil_GetPartitionID(top);
         if (topart < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", top);
             VSETCODE(EINVAL, buffer);
             goto done;
         }
         if (!IsPartValid(topart, toserver, &code)) {    /*check for validity of the partition */
-            char buffer[80];
+            char buffer[256];
             if (code)
                 set_errbuff(buffer, code);
             else
@@ -5886,14 +6515,14 @@ vos_move(cstruct, id, froms, fromp, tos, top)
             VSETCODE(code ? code : ENOENT, buffer);
             goto done;
         }
-        
+
                 /*
                    check source partition for space to clone volume
                  */
-        
+
         MapPartIdIntoName(topart, toPartName);
         MapPartIdIntoName(frompart, fromPartName);
-        
+
                 /*
                    check target partition for space to move volume
                  */
@@ -5903,44 +6532,46 @@ vos_move(cstruct, id, froms, fromp, tos, top)
         code = UV_PartitionInfo(toserver, toPartName, &partition);
 #endif
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: cannot access partition %s\n", toPartName);
             VSETCODE(code, buffer);
             goto done;
         }
-        
+
         p = (volintInfo *) 0;
         code = UV_ListOneVolume(fromserver, frompart, volid, &p);
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS:cannot access volume %u\n", volid);
             free(p);
             VSETCODE(code, buffer);
             goto done;
         }
         if (partition.free <= p->size) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: no space on target partition %s to move volume %u\n",
                     toPartName, volid);
             VSETCODE(-1, buffer);
-            Safefree(p);
+            if (p)
+                free(p);
             goto done;
         }
-        Safefree(p);
-        
+        if (p)
+            free(p);
+
                 /* successful move still not guaranteed but shoot for it */
-        
+
         code = UV_MoveVolume(volid, fromserver, frompart, toserver, topart);
         if (code) {
             PrintDiagnostics("move", code);
             SETCODE(code);
             goto done;
         }
-        
+
         #SETCODE(1);  ???
         SETCODE(0);
         RETVAL = volid;
-        
+
         done:
         ;
     }
@@ -5948,27 +6579,45 @@ vos_move(cstruct, id, froms, fromp, tos, top)
         RETVAL
 
 int32
-vos_zap(cstruct, servername, parti, id, force=0, backup=0)
+vos_zap(cstruct, servername, parti, id, force=Nullsv, backup=Nullsv)
         AFS::VOS cstruct
         char *servername
         char *parti
         char *id
-        int32 force
-        int32 backup
+        SV *  force
+        SV *  backup
     PREINIT:
         struct nvldbentry entry;
-        int32 volid, code, server, part, zapbackupid=0, backupid=0, err;
-    CODE:                                                                                          
+        int32 volid, code, server, part, iforce=0, zapbackupid=0, backupid=0, err;
+    CODE:
     {
-        RETVAL = 0;
-        
-        if (backup) {
-            zapbackupid = 1;
+        if (!force)
+            force = newSViv(0);
+        if (!backup)
+            backup = newSViv(0);
+        if ((!SvIOKp(force))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"force\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
         }
-        
+        else
+            iforce = 1;             /* -force */
+        if ((!SvIOKp(backup))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"backup\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
+        }
+        else
+            zapbackupid = 1;           /* -backup */
+         RETVAL = 0;
+
         volid = vsu_GetVolumeID(id, cstruct, &err);
         if (volid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -5978,20 +6627,33 @@ vos_zap(cstruct, servername, parti, id, force=0, backup=0)
         }
         part = volutil_GetPartitionID(parti);
         if (part < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", parti);
             VSETCODE(-1, buffer);
             goto done;
         }
         server = GetServer(servername);
         if (!server) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: host '%s' not found in host table\n", servername);
             VSETCODE(-1, buffer);
             goto done;
         }
+
+        if (iforce) {        /* -force  */
+            code = UV_NukeVolume(server, part, volid);
+            if (code) {
+                PrintDiagnostics("zap", code);
+                SETCODE(code);
+                goto done;
+            }
+            SETCODE(0);
+            RETVAL = volid;
+            goto done;
+        }
+
         if (!IsPartValid(part, server, &code)) {        /*check for validity of the partition */
-            char buffer[80];
+            char buffer[256];
             if (code)
                 set_errbuff(buffer, code);
             else
@@ -6010,7 +6672,7 @@ vos_zap(cstruct, servername, parti, id, force=0, backup=0)
         }
         if (zapbackupid) {
             volintInfo *pntr = (volintInfo *) 0;
-        
+
             if (!backupid) {
                 code = UV_ListOneVolume(server, part, volid, &pntr);
                 if (!code) {
@@ -6039,7 +6701,7 @@ vos_zap(cstruct, servername, parti, id, force=0, backup=0)
         #fprintf(STDOUT, "Volume %u deleted\n", volid);
         SETCODE(0);
         RETVAL = volid;
-        
+
         done:
         ;
     }
@@ -6047,39 +6709,61 @@ vos_zap(cstruct, servername, parti, id, force=0, backup=0)
         RETVAL
 
 int32
-vos_offline(cstruct, servername, parti, id, busy=0, sleeptime=0)
+vos_offline(cstruct, servername, parti, id, busy=Nullsv, sleep=Nullsv)
         AFS::VOS cstruct
         char* servername
         char* parti
         char *id
-        int32 busy
-        int32 sleeptime
+        SV *  busy
+        SV *  sleep
     PREINIT:
         int32 server, partition, volid;
         int32 code, err=0;
-        int32 transflag, transdone;
+        int32 ibusy=0, isleep=0, transflag, transdone;
     CODE:
     {
+        if (!busy)
+            busy = newSViv(0);
+        if (!sleep)
+            sleep = newSViv(0);
+        if ((!SvIOKp(busy))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"busy\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
+        }
+        else
+            ibusy = SvIV(busy);         /* -busy */
+        if ((!SvIOKp(sleep))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"sleep\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            RETVAL = 0;
+            goto done;
+        }
+        else
+            isleep = SvIV(sleep);       /* -sleep */
         RETVAL = 0;
         server = GetServer(servername);
         if (server == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", servername);
             VSETCODE(-1, buffer);
             goto done;
         }
-        
+
         partition = volutil_GetPartitionID(parti);
         if (partition < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", parti);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
-        
+
         volid = vsu_GetVolumeID(id, cstruct, &err);     /* -id */
         if (!volid) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -6087,26 +6771,26 @@ vos_offline(cstruct, servername, parti, id, busy=0, sleeptime=0)
             VSETCODE(err ? err : -1, buffer);
             goto done;
         }
-        
-        transflag = (busy ? ITBusy : ITOffline);
-        transdone = (sleeptime ? 0 /*online */ : VTOutOfService);
-        if (busy && !sleep) {
-            char buffer[80];
+
+        transflag = (ibusy ? ITBusy : ITOffline);
+        transdone = (isleep ? 0 /*online */ : VTOutOfService);
+        if (ibusy && !isleep) {
+            char buffer[256];
             sprintf(buffer, "SLEEP argument must be used with BUSY flag\n");
             VSETCODE(-1, buffer);
             goto done;
         }
-        
-        code = UV_SetVolume(server, partition, volid, transflag, transdone, sleeptime);
+
+        code = UV_SetVolume(server, partition, volid, transflag, transdone, isleep);
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Failed to set volume. Code = %d\n", code);
             VSETCODE(code, buffer);
             goto done;
         }
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -6127,23 +6811,23 @@ vos_online(cstruct, servername, parti, id)
         RETVAL = 0;
         server = GetServer(servername);
         if (server == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", servername);
             VSETCODE(-1, buffer);
             goto done;
         }
-        
+
         partition = volutil_GetPartitionID(parti);
         if (partition < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", parti);
             VSETCODE(ENOENT, buffer);
             goto done;
         }
-        
+
         volid = vsu_GetVolumeID(id, cstruct, &err);     /* -id */
         if (!volid) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -6151,17 +6835,17 @@ vos_online(cstruct, servername, parti, id)
             VSETCODE(err ? err : -1, buffer);
             goto done;
         }
-        
+
         code = UV_SetVolume(server, partition, volid, ITOffline, 0 /*online */ , 0 /*sleep */ );
         if (code) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Failed to set volume. Code = %d\n", code);
             VSETCODE(code, buffer);
             goto done;
         }
         SETCODE(0);
         RETVAL = 1;
-        
+
         done:
         ;
     }
@@ -6169,30 +6853,28 @@ vos_online(cstruct, servername, parti, id)
         RETVAL
 
 void
-vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclude=0, seenxprefix=NULL, noaction=0)
+vos__backupsys(cstruct, seenprefix=Nullsv, servername=NULL, partition=NULL, exclude=Nullsv, seenxprefix=Nullsv, noaction=Nullsv)
         AFS::VOS cstruct
-        SV* seenprefix
+        SV *  seenprefix
         char *servername
         char *partition
-        int exclude
-        SV* seenxprefix
-        int32 noaction
+        SV *  exclude
+        SV *  seenxprefix
+        SV *  noaction
     PREINIT:
         int32 apart=0, avolid;
         int32 aserver=0, code, aserver1, apart1;
-        int32 vcode;
+        int32 vcode, iexclude=0, inoaction=0;
         struct VldbListByAttributes attributes;
         nbulkentries arrayEntries;
         register struct nvldbentry *vllist;
         int32 nentries;
         int j, i, len, verbose = 1;
-        char pname[10];
-        int ex, exp;
         afs_int32 totalBack=0;
         afs_int32 totalFail=0;
         int previdx=-1, error, same;
-        char *ccode, *itp, *first;
-        int match;
+        char *ccode, *itp;
+        int match = 0;
         STRLEN prfxlength=0;
         SV *regex;
         AV *av;
@@ -6200,15 +6882,38 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         AV *av2 = (AV*)sv_2mortal((SV*)newAV());
     PPCODE:
     {
+        /* printf("vos-backupsys DEBUG-1 server %s part %s exclude %d noaction %d \n", servername, partition, (int)SvIV(exclude), (int)SvIV(noaction)); */
+        if (!exclude)
+            exclude = newSViv(0);
+        if (!noaction)
+            noaction = newSViv(0);
+        if ((!SvIOKp(exclude))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"exclude\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        else
+            iexclude = SvIV(exclude);         /* -exclude */
+        /* printf("vos-backupsys DEBUG-2: iexclude = %d \n", iexclude); */
+        if ((!SvIOKp(noaction))) {
+            char buffer[256];
+            sprintf(buffer, "Flag \"noaction\" should be numeric.\n");
+            VSETCODE(EINVAL, buffer);
+            XSRETURN_UNDEF;
+        }
+        else
+            inoaction = SvIV(noaction);       /* -noaction */
+
         Zero(&attributes, 1, VldbListByAttributes);
         attributes.Mask = 0;
-        #printf("DEBUG-1\n");
+        /* printf("vos-backupsys DEBUG-3\n"); */
 
         if (servername && (strlen(servername) != 0)) {  /* -server */
-        #printf("DEBUG-2\n");
+            /* printf("vos-backupsys DEBUG-4\n"); */
             aserver = GetServer(servername);
             if (aserver == 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", servername);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
@@ -6220,12 +6925,12 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             servername = NULL;
         }
 
-        #printf("DEBUG-3\n");
+        /* printf("vos-backupsys DEBUG-5\n"); */
         if (partition && (strlen(partition) != 0)) {    /* -partition */
-        #printf("DEBUG-4\n");
+            /* printf("vos-backupsys DEBUG-6\n"); */
             apart = volutil_GetPartitionID(partition);
             if (apart < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VOS: could not interpret partition name '%s'\n", partition);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
@@ -6237,10 +6942,11 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             partition = NULL;
         }
 
-        #printf("DEBUG-5\n");
+        /* printf("vos-backupsys DEBUG-7\n"); */
             /* Check to make sure the prefix and xprefix expressions compile ok */
         if (seenprefix && (prfxlength = sv_len(seenprefix)) == 0)
             seenprefix = NULL;
+        /* printf("vos-backupsys DEBUG-7-1 PrfxLen %d\n", prfxlength); */
 
         if (seenprefix && (! (SvTYPE(SvRV(seenprefix)) == SVt_PVAV))) {
             VSETCODE(-1, "AFS::VOS: PREFIX not an array reference");
@@ -6248,9 +6954,9 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
         }
 
         if (seenprefix) {
-            #printf("DEBUG-6\n");
             av = (AV *) SvRV(seenprefix);
             len = av_len(av);
+            /* printf("vos-backupsys DEBUG-7-2 Len %d\n", len); */
             if (len != -1) {
                 for (j = 0; j <= len; j++) {
                     regex = *av_fetch(av, j, 0);
@@ -6258,7 +6964,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                     if (strncmp(itp, "^", 1) == 0) {
                         ccode = (char *) re_comp(itp);
                         if (ccode) {
-                            char buffer[80];
+                            char buffer[256];
                             sprintf(buffer,
                                     "Unrecognizable PREFIX regular expression: '%s': %s\n", itp,
                                     ccode);
@@ -6267,20 +6973,21 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                         }
                     }
                 }                       /*for loop */
+            /* printf("vos-backupsys DEBUG-8 RE %s \n", itp); */
             }
         }
 
-        #printf("DEBUG-7\n");
+        /* printf("vos-backupsys DEBUG-9\n"); */
         if (seenxprefix && (prfxlength = sv_len(seenxprefix)) == 0)
             seenxprefix = NULL;
-        #printf("DEBUG-8\n");
+        /* printf("vos-backupsys DEBUG-10\n"); */
 
         if (seenxprefix && (! (SvTYPE(SvRV(seenxprefix)) == SVt_PVAV))) {
             VSETCODE(-1, "AFS::VOS: XPREFIX not an array reference");
             XSRETURN_UNDEF;
         }
         if (seenxprefix) {
-            #printf("DEBUG-8-1\n");
+            /* printf("vos-backupsys DEBUG-11\n"); */
             av = (AV *) SvRV(seenxprefix);
             len = av_len(av);
             if (len != -1) {
@@ -6290,7 +6997,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                     if (strncmp(itp, "^", 1) == 0) {
                         ccode = (char *) re_comp(itp);
                         if (ccode) {
-                            char buffer[80];
+                            char buffer[256];
                             sprintf(buffer,
                                     "Unrecognizable XPREFIX regular expression: '%s': %s\n", itp,
                                     ccode);
@@ -6302,7 +7009,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             }
         }
 
-        #printf("DEBUG-9\n");
+        /* printf("vos-backupsys DEBUG-12\n"); */
         Zero(&arrayEntries, 1, nbulkentries);   /* initialize to hint the stub to alloc space */
         vcode = VLDB_ListAttributes(&attributes, &nentries, &arrayEntries);
         if (vcode) {
@@ -6312,19 +7019,23 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
 
             /* a bunch of output generation code deleted. A.W. */
 
+        /* printf("vos-backupsys DEBUG-13\n"); */
         for (j = 0; j < nentries; j++) {        /* process each vldb entry */
             vllist = &arrayEntries.nbulkentries_val[j];
+            /* printf("vos-backupsys DEBUG-13-1 Name %s\n", vllist->name); */
 
             if (seenprefix) {
                 av = (AV *) SvRV(seenprefix);
                 len = av_len(av);
+                /* printf("vos-backupsys DEBUG-14 Len %d\n", len); */
                 for (i = 0; i <= len; i++) {
                     regex = *av_fetch(av, i, 0);
                     itp = SvPV_nolen(regex);
+                    /* printf("vos-backupsys DEBUG-14-1 RE %s \n", itp); */
                     if (strncmp(itp, "^", 1) == 0) {
                         ccode = (char *) re_comp(itp);
                         if (ccode) {
-                            char buffer[80];
+                            char buffer[256];
                             sprintf(buffer, "Error in PREFIX regular expression: '%s': %s\n",
                                     itp, ccode);
                             VSETCODE(ccode, buffer);
@@ -6341,6 +7052,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             }
             else {
                 match = 1;
+                /* printf("vos-backupsys DEBUG-15 MATCH %d\n", match); */
             }
 
             /* Without the -exclude flag: If it matches the prefix, then
@@ -6357,7 +7069,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                     if (strncmp(itp, "^", 1) == 0) {
                         ccode = (char *) re_comp(itp);
                         if (ccode) {
-                            char buffer[80];
+                            char buffer[256];
                             sprintf(buffer, "Error in PREFIX regular expression: '%s': %s\n",
                                     itp, ccode);
                             VSETCODE(ccode, buffer);
@@ -6377,17 +7089,20 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 }
             }
 
-            if (exclude)
+            /* printf("vos-backupsys DEBUG-16-1: exclude %d match %d\n", iexclude, match); */
+            if (iexclude)
                 match = !match;         /* -exclude will reverse the match */
             if (!match)
                 continue;               /* Skip if no match */
 
+            /* printf("vos-backupsys DEBUG-16-2: noaction %d match %d\n", inoaction, match); */
             /* Print list of volumes to backup */
-            if (noaction) {
+            if (inoaction) {
                 av_push(av1, newSVpv(vllist->name, strlen(vllist->name)));
                 continue;
             }
 
+            /* printf("vos-backupsys DEBUG-17\n"); */
             if (!(vllist->flags & RW_EXISTS)) {
                 if (verbose) {
                     fprintf(STDOUT, "Omitting to backup %s since RW volume does not exist \n",
@@ -6398,6 +7113,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 continue;
             }
 
+            /* printf("vos-backupsys DEBUG-18\n"); */
             avolid = vllist->volumeId[RWVOL];
             MapHostToNetwork(vllist);
             GetServerAndPart(vllist, RWVOL, &aserver1, &apart1, &previdx);
@@ -6407,6 +7123,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 totalFail++;
                 continue;
             }
+            /* printf("vos-backupsys DEBUG-19\n"); */
             if (aserver) {
                 same = VLDB_IsSameAddrs(aserver, aserver1, &error);
                 if (error) {
@@ -6418,6 +7135,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                     continue;
                 }
             }
+            /* printf("vos-backupsys DEBUG-20\n"); */
             if ((aserver && !same) || (apart && (apart != apart1))) {
                 if (verbose) {
                     fprintf(STDOUT,
@@ -6432,6 +7150,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
                 fflush(STDOUT);
             }
 
+            /* printf("vos-backupsys DEBUG-21\n"); */
             code = UV_BackupVolume(aserver1, apart1, avolid);
             if (code) {
                 av_push(av2, newSVpv(vllist->name, strlen(vllist->name)));
@@ -6444,6 +7163,7 @@ vos__backupsys(cstruct, seenprefix=NULL, servername=NULL, partition=NULL, exclud
             }
         }                               /* process each vldb entry */
 
+        /* printf("vos-backupsys DEBUG-22: Succ %d   Fail %d\n", totalBack, totalFail); */
         if (arrayEntries.nbulkentries_val)
             free(arrayEntries.nbulkentries_val);
 
@@ -6466,7 +7186,7 @@ vos_listpart(cstruct, server)
     {
         aserver = GetServer(server);
         if (aserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VOS: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             XSRETURN_UNDEF;
@@ -6509,7 +7229,7 @@ vos_listvolume(cstruct, name)
     {
         volid = vsu_GetVolumeID(name, cstruct, &err);   /* -id */
         if (volid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -6519,7 +7239,7 @@ vos_listvolume(cstruct, name)
         }
         vcode = VLDB_GetEntryByID(volid, -1, &entry);
         if (vcode) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not fetch the entry for volume number %u from VLDB \n", volid);
             VSETCODE(vcode, buffer);
             XSRETURN_UNDEF;
@@ -6541,7 +7261,7 @@ vos_listvolume(cstruct, name)
                              &previdx);
             if (previdx == -1) {        /* searched all entries */
                 if (!foundentry) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer, "Volume %s does not exist in VLDB\n\n", name);
                     VSETCODE(ENOENT, buffer);
                     XSRETURN_UNDEF;
@@ -6554,7 +7274,7 @@ vos_listvolume(cstruct, name)
             code = UV_ListOneVolume(aserver, apart, volid, &pntr);
 
             if (code) {
-                char buffer[80];
+                char buffer[256];
                 if (code == ENODEV) {
                     if ((voltype == BACKVOL) && !(entry.flags & BACK_EXISTS)) {
                         /* The VLDB says there is no backup volume and its not on disk */
@@ -6570,30 +7290,30 @@ vos_listvolume(cstruct, name)
                     sprintf(buffer, "examine");
                 }
                 if (pntr)
-                    Safefree(pntr);
+                    free(pntr);
                 VSETCODE(code, buffer);
                 XSRETURN_UNDEF;
             }
             else {
                 foundserv = 1;
                 MapPartIdIntoName(apart, apartName);
-                /* hv_store(volinfo, "name", 4, newSVpv(name, strlen((char *) name)), 0); */
-                hv_store(volinfo, "partition", 9, newSVpv(apartName, strlen((char *) apartName)), 0);
+                /* safe_hv_store(volinfo, "name", 4, newSVpv(name, strlen((char *) name)), 0); */
+                safe_hv_store(volinfo, "partition", 9, newSVpv(apartName, strlen((char *) apartName)), 0);
                 VolumeStats(volinfo, pntr, &entry, aserver, apart, voltype);
 
                 if ((voltype == BACKVOL) && !(entry.flags & BACK_EXISTS)) {
                     /* The VLDB says there is no backup volume yet we found one on disk */
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer, "Volume %s does not exist in VLDB\n", name);
                     if (pntr)
-                        Safefree(pntr);
+                        free(pntr);
                     VSETCODE(ENOENT, buffer);
                     XSRETURN_UNDEF;
                 }
             }
 
             if (pntr)
-                Safefree(pntr);
+                free(pntr);
         } while (voltype == ROVOL);
 
         SETCODE(0);
@@ -6618,20 +7338,18 @@ vldb_new(class=0, verb=0, timeout=90, noauth=0, localauth=0, tcell=NULL, crypt=0
         extern int verbose;
     PPCODE:
     {
+        if (tcell && (tcell[0] == '\0' || tcell[0] == '0'))
+            tcell = NULL;
+
                 /* Initialize the ubik_client connection */
         rx_SetRxDeadTime(timeout);      /* timeout seconds inactivity before declared dead */
         cstruct = (struct ubik_client *) 0;
         verbose = verb;
         if (crypt)                      /* -crypt specified */
             vsu_SetCrypt(1);
-        if (code = vsu_ClientInit((noauth != 0),
-                                  AFSDIR_CLIENT_ETC_DIRPATH, tcell, localauth,
-                                  &cstruct, UV_SetSecurity)) {
-            char buffer[80];
-            sprintf(buffer, "could not initialize VLDB library (code=%d) \n", code);
-            VSETCODE(code, buffer);
-        }
-
+        code = internal_vsu_ClientInit((noauth != 0),
+                                       AFSDIR_CLIENT_ETC_DIRPATH, tcell, localauth,
+                                       &cstruct, UV_SetSecurity);
         if (code == 0) {
             ST(0) = sv_newmortal();
             sv_setref_pv(ST(0), "AFS::VLDB", (void *) cstruct);
@@ -6650,7 +7368,6 @@ vldb__DESTROY(self)
     {
         code = ubik_ClientDestroy(self);
                 /* printf("DEBUG-23 %d \n", code); */
-        rx_Finalize();
         SETCODE(code);
                 /* printf("DEBUG-24 \n"); */
         RETVAL = (code == 0);
@@ -6660,20 +7377,33 @@ vldb__DESTROY(self)
         RETVAL
 
 int32
-vldb_addsite(cstruct, server, partition, id)
+vldb_addsite(cstruct, server, partition, id, roid=NULL, valid=0)
        AFS::VLDB cstruct
        char *server
        char *partition
        char *id
+       char *roid
+       int  valid
     PREINIT:
-       int32 avolid, aserver, apart, code = 1, err;
-       char apartName[10];
+       int32 code = 1;
     CODE:
     {
+        afs_int32 avolid, aserver, apart, err, arovolid=0;
+        char avolname[VOLSER_MAXVOLNAME + 1];
+        if (roid && (roid[0] == '\0' || roid[0] == '0'))
+            roid = NULL;
         RETVAL = 0;
-        avolid = vsu_GetVolumeID(id, cstruct, &err);
+        /* printf("vldb_addsite DEBUG-1 server %s part %s Vol/Id %s RO-Vol/ID %s ValID %d \n", server, partition, id, roid, valid); */
+#ifdef OpenAFS_1_4
+        vsu_ExtractName(avolname, id);
+#else
+        strcpy(avolname, id);
+#endif
+        /* printf("vldb_addsite DEBUG-2 id %s avolname %s \n", id, avolname); */
+        avolid = vsu_GetVolumeID(avolname, cstruct, &err);
+        /* printf("vldb_addsite DEBUG-3 Vol-Nam %s Vol-ID %d \n", avolname, avolid); */
         if (avolid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -6681,22 +7411,36 @@ vldb_addsite(cstruct, server, partition, id)
             VSETCODE(err ? err : -1, buffer);
             goto done;
         }
+#ifdef OpenAFS_1_4_12
+        if (roid) {
+            /* printf("vldb_addsite DEBUG-4 Roid %s AROVolid %d\n", roid, arovolid); */
+            vsu_ExtractName(avolname, roid);
+            arovolid = vsu_GetVolumeID(avolname, cstruct, &err);
+            /* printf("vldb_addsite DEBUG-5 Roid %s AROVolid %d\n", roid, arovolid); */
+            if (!arovolid) {
+                char buffer[256];
+                sprintf(buffer, "AFS::VLDB: invalid ro volume id '%s'\n", roid);
+                VSETCODE(-1, buffer);
+                goto done;
+            }
+        }
+#endif
         aserver = GetServer(server);
         if (aserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             goto done;
         }
         apart = volutil_GetPartitionID(partition);
         if (apart < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n", partition);
             VSETCODE(-1, buffer);
             goto done;
         }
         if (!IsPartValid(apart, aserver, &code)) {      /*check for validity of the partition */
-            char buffer[80];
+            char buffer[256];
             if (code)
                 set_errbuff(buffer, code);
             else
@@ -6705,15 +7449,21 @@ vldb_addsite(cstruct, server, partition, id)
             VSETCODE(code ? code : -1, buffer);
             goto done;
         }
+#if defined(OpenAFS_1_4_12)
+        code = UV_AddSite2(aserver, apart, avolid, arovolid, valid);
+#else
+#if defined(OpenAFS_1_4_07)
+        code = UV_AddSite(aserver, apart, avolid, valid);
+#else
         code = UV_AddSite(aserver, apart, avolid);
+#endif
+#endif
         if (code) {
-            char buffer[80];
-            sprintf(buffer, "addsite didn't work\n");
+            char buffer[256];
+            sprintf(buffer, "AFS::VLDB: addsite didn't work\n");
             VSETCODE(code, buffer);
             goto done;
         }
-        #MapPartIdIntoName(apart, apartName);
-        #fprintf(STDOUT, "Added replication site %s %s for volume %s\n", server, partition, id);
         RETVAL = 1;
 
         done:
@@ -6731,7 +7481,6 @@ vldb_changeloc(cstruct, id, server, partition)
     PREINIT:
 #ifdef OpenAFS
         afs_int32 avolid, aserver, apart, code, err;
-        char apartName[10];
 #endif
     CODE:
     {
@@ -6740,7 +7489,7 @@ vldb_changeloc(cstruct, id, server, partition)
         RETVAL = 0;
         avolid = vsu_GetVolumeID(id, cstruct, &err);
         if (avolid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -6751,7 +7500,7 @@ vldb_changeloc(cstruct, id, server, partition)
         /* printf("DEBUG-2\n"); */
         aserver = GetServer(server);
         if (aserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             goto done;
@@ -6759,7 +7508,7 @@ vldb_changeloc(cstruct, id, server, partition)
         /* printf("DEBUG-3\n"); */
         apart = volutil_GetPartitionID(partition);
         if (apart < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n", partition);
             VSETCODE(-1, buffer);
             /* printf("DEBUG-3.1\n"); */
@@ -6767,7 +7516,7 @@ vldb_changeloc(cstruct, id, server, partition)
         }
         /* printf("DEBUG-4\n"); */
         if (!IsPartValid(apart, aserver, &code)) {      /*check for validity of the partition */
-            char buffer[80];
+            char buffer[256];
             if (code)
                 set_errbuff(buffer, code);
             else
@@ -6781,8 +7530,6 @@ vldb_changeloc(cstruct, id, server, partition)
             VSETCODE(code, "changeloc");
             goto done;
         }
-        #MapPartIdIntoName(apart, apartName);
-        #fprintf(STDOUT, "Changed location to %s %s for volume %s\n", server, apartName, id);
         SETCODE(0);
         RETVAL = 1;
 
@@ -6837,7 +7584,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
         if (name) {
           /* printf("DEBUG-2 \n"); */
             if (lock) {
-                char buffer[80];
+                char buffer[256];
                 /*     printf("DEBUG-3 \n"); */
                 sprintf(buffer,
                         "AFS::VLDB: illegal use of '-locked' switch, need to specify server and/or partition\n");
@@ -6848,13 +7595,13 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
             stats = (HV *) sv_2mortal((SV *) newHV());
             code = VolumeInfoCmd(stats, name);
             if (code) {
-                char buffer[80];
+                char buffer[256];
                 set_errbuff(buffer, code);
                 VSETCODE(code, buffer);
                 XSRETURN_UNDEF;
             }
             /* printf("DEBUG-5 \n"); */
-            hv_store(status, name, strlen(name), newRV_inc((SV *) (stats)), 0);
+            safe_hv_store(status, name, strlen(name), newRV_inc((SV *) (stats)), 0);
             goto finish;
         }
 
@@ -6864,7 +7611,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
             /* printf("DEBUG-7 \n"); */
             aserver = GetServer(servername);
             if (aserver == 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", servername);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
@@ -6879,7 +7626,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
             /* printf("DEBUG-9 \n"); */
             apart = volutil_GetPartitionID(parti);
             if (apart < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n", parti);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
@@ -6915,7 +7662,7 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
             }
             /* printf("DEBUG-16 \n"); */
             if (vcode) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Could not access the VLDB for attributes\n");
                 VSETCODE(vcode, buffer);
                 XSRETURN_UNDEF;
@@ -6930,11 +7677,11 @@ vldb__listvldb(cstruct, name=NULL, servername=NULL, parti=NULL, lock=0)
                 MapHostToNetwork(vllist);
                 stats = newHV();
                 myEnumerateEntry(stats, vllist);
-                hv_store(status, vllist->name, strlen(vllist->name), newRV_inc((SV *) (stats)),
+                safe_hv_store(status, vllist->name, strlen(vllist->name), newRV_inc((SV *) (stats)),
                          0);
             }
             if (arrayEntries.nbulkentries_val)
-                Safefree(arrayEntries.nbulkentries_val);
+                free(arrayEntries.nbulkentries_val);
         }
 
         finish:
@@ -6983,7 +7730,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
             afs_int32 saddr;
             he = (struct hostent *) hostutil_GetHostByName(host);
             if (he == (struct hostent *) 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Can't get host info for '%s'\n", host);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
@@ -7002,7 +7749,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
 
         vcode = ubik_Call_New(VL_GetAddrs, cstruct, 0, 0, 0, &m_unique, &nentries, &m_addrs);
         if (vcode) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: could not list the server addresses\n");
             VSETCODE(vcode, buffer);
             XSRETURN_UNDEF;
@@ -7031,7 +7778,7 @@ vldb_listaddrs(cstruct, host=NULL, uuid=NULL, noresolve=0, printuuid=0)
             }
 
             if (vcode) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: could not list the server addresses\n");
                 VSETCODE(vcode, buffer);
                 XSRETURN_UNDEF;
@@ -7106,7 +7853,7 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
                     if (itp) {
                         avolid = vsu_GetVolumeID(itp, cstruct, &err);
                         if (avolid == 0) {
-                            char buffer[80];
+                            char buffer[256];
                             if (err)
                                 set_errbuff(buffer, err);
                             else
@@ -7121,7 +7868,7 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
                         }
                         vcode = ubik_Call(VL_DeleteEntry, cstruct, 0, avolid, RWVOL);
                         if (vcode) {
-                            char buffer[128];
+                            char buffer[256];
                             sprintf(buffer, "Could not delete entry for volume %s\n"
                                     "You must specify a RW volume name or ID "
                                     "(the entire VLDB entry will be deleted)\n", itp);
@@ -7160,7 +7907,7 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
             afs_int32 aserver;
             aserver = GetServer(server);
             if (aserver == 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", server);
                 VSETCODE(-1, buffer);
                 XSRETURN_UNDEF;
@@ -7176,7 +7923,7 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
             }
             apart = volutil_GetPartitionID(partition);
             if (apart < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n",
                         partition);
                 VSETCODE(-1, buffer);
@@ -7247,7 +7994,7 @@ vldb__delentry(cstruct, volume=NULL, prfx=NULL, server=NULL, partition=NULL, noe
         PUSHs(sv_2mortal(newSViv(totalFail)));
 
         if (arrayEntries.nbulkentries_val)
-            Safefree(arrayEntries.nbulkentries_val);
+            free(arrayEntries.nbulkentries_val);
 
         done:
         ;
@@ -7264,7 +8011,7 @@ vldb_lock(cstruct, id)
         RETVAL = 0;
         avolid = vsu_GetVolumeID(id, cstruct, &err);
         if (avolid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -7274,7 +8021,7 @@ vldb_lock(cstruct, id)
         }
         vcode = ubik_Call(VL_SetLock, cstruct, 0, avolid, -1, VLOP_DELETE);
         if (vcode) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not lock VLDB entry for volume %s\n", id);
             VSETCODE(vcode, buffer);
             goto done;
@@ -7300,7 +8047,7 @@ vldb_unlock(cstruct, id)
         RETVAL = 0;
         avolid = vsu_GetVolumeID(id, cstruct, &err);
         if (avolid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
@@ -7331,7 +8078,7 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
         char *partition
     PREINIT:
         afs_int32 apart = -1;
-        afs_int32 aserver,code;
+        afs_int32 aserver = 0,code;
         afs_int32 vcode;
         struct VldbListByAttributes attributes;
         nbulkentries arrayEntries;
@@ -7340,7 +8087,6 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
         int j;
         afs_int32 volid;
         afs_int32 totalE = 0;
-        char pname[10];
     CODE:
     {
         RETVAL = 0;
@@ -7349,7 +8095,7 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
         if (server && (strlen(server) != 0)) {  /* server specified */
             aserver = GetServer(server);
             if (aserver == 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", server);
                 VSETCODE(-1, buffer);
                 goto done;
@@ -7361,14 +8107,14 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
         if (partition && (strlen(partition) != 0)) {    /* partition specified */
             apart = volutil_GetPartitionID(partition);
             if (apart < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n",
                         partition);
                 VSETCODE(-1, buffer);
                 goto done;
             }
             if (!IsPartValid(apart, aserver, &code)) {  /*check for validity of the partition */
-                char buffer[80];
+                char buffer[256];
                 if (code)
                     set_errbuff(buffer, code);
                 else
@@ -7385,7 +8131,7 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
         Zero(&arrayEntries, 1, nbulkentries);   /*initialize to hint the stub  to alloc space */
         vcode = VLDB_ListAttributes(&attributes, &nentries, &arrayEntries);
         if (vcode) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Could not access the VLDB for attributes\n");
             VSETCODE(vcode, buffer);
             goto done;
@@ -7397,7 +8143,7 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
                 ubik_Call(VL_ReleaseLock, cstruct, 0, volid, -1,
                           LOCKREL_OPCODE | LOCKREL_AFSID | LOCKREL_TIMESTAMP);
             if (vcode) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Could not unlock entry for volume %s\n", vllist->name);
                 VSETCODE(vcode, buffer);
                 totalE++;
@@ -7405,28 +8151,12 @@ vldb_unlockvldb(cstruct, server=NULL, partition=NULL)
 
         }
 
-            /*     MapPartIdIntoName(apart,pname); */
         if (totalE)
             fprintf(STDOUT, "Could not unlock %u VLDB entries of %u locked entries\n", totalE,
                 nentries);
-            /*     else { */
-            /*         if(server) { */
-            /*             fprintf(STDOUT,"Unlocked all the VLDB entries for volumes on server %s ", server); */
-            /*             if(partition && (strlen(partition) != 0)){ */
-            /*                 MapPartIdIntoName(apart,pname); */
-            /*                 fprintf(STDOUT,"partition %s\n",pname); */
-            /*             } */
-            /*             else  fprintf(STDOUT,"\n"); */
-            /*   */
-            /*         } */
-            /*         else if(partition && (strlen(partition) != 0)){ */
-            /*             MapPartIdIntoName(apart,pname); */
-            /*             fprintf(STDOUT,"Unlocked all the VLDB entries for volumes on partition %s on all servers\n",pname); */
-            /*         } */
-            /*     } */
 
         if (arrayEntries.nbulkentries_val)
-            Safefree(arrayEntries.nbulkentries_val);
+            free(arrayEntries.nbulkentries_val);
 
         SETCODE(0);
         RETVAL = 1;
@@ -7444,7 +8174,7 @@ vldb__syncvldb(cstruct, server=NULL, partition=NULL, volname=NULL)
         char *partition
         char *volname
     PREINIT:
-        afs_int32 pname, code;        /* part name */
+        afs_int32 pname = 0, code;        /* part name */
         int flags = 0;
         afs_int32 tserver = 0;
     CODE:
@@ -7454,7 +8184,7 @@ vldb__syncvldb(cstruct, server=NULL, partition=NULL, volname=NULL)
         if (server && (strlen(server) != 0)) {
             tserver = GetServer(server);
             if (!tserver) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: host '%s' not found in host table\n", server);
                 VSETCODE(-1, buffer);
                 goto done;
@@ -7464,21 +8194,21 @@ vldb__syncvldb(cstruct, server=NULL, partition=NULL, volname=NULL)
         if (partition && (strlen(partition) != 0)) {
             pname = volutil_GetPartitionID(partition);
             if (pname < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n",
                         partition);
                 VSETCODE(-1, buffer);
                 goto done;
             }
             if (!tserver) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "The PARTITION argument requires a SERVER argument\n");
                 VSETCODE(-1, buffer);
                 goto done;
             }
 
             if (!IsPartValid(pname, tserver, &code)) {  /*check for validity of the partition */
-                char buffer[80];
+                char buffer[256];
                 if (code)
                     set_errbuff(buffer, code);
                 else
@@ -7496,7 +8226,7 @@ vldb__syncvldb(cstruct, server=NULL, partition=NULL, volname=NULL)
         }
         else {
             if (!tserver) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Without a VOLUME argument, the server argument is required\n");
                 VSETCODE(-1, buffer);
                 goto done;
@@ -7505,7 +8235,7 @@ vldb__syncvldb(cstruct, server=NULL, partition=NULL, volname=NULL)
         }
 
         if (code) {
-            char buffer[80];
+            char buffer[256];
             set_errbuff(buffer, code);
             VSETCODE(code, buffer);
             #PrintDiagnostics("syncvldb", code);
@@ -7537,14 +8267,14 @@ vldb__changeaddr(cstruct, oldip, newip, remove=0)
 
         ip1 = GetServer(oldip);
         if (!ip1) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: invalid host address\n");
             VSETCODE(EINVAL, buffer);
             goto done;
         }
 
         if ((newip && (strlen(newip)) && remove) || (!newip && !remove)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: Must specify either 'NEWADDR <addr>' or 'REMOVE' flag\n");
             VSETCODE(EINVAL, buffer);
             goto done;
@@ -7553,7 +8283,7 @@ vldb__changeaddr(cstruct, oldip, newip, remove=0)
         if (newip && (strlen(newip)) != 0) {
             ip2 = GetServer(newip);
             if (!ip2) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: invalid host address\n");
                 VSETCODE(EINVAL, buffer);
                 goto done;
@@ -7571,7 +8301,7 @@ vldb__changeaddr(cstruct, oldip, newip, remove=0)
 
         vcode = ubik_Call_New(VL_ChangeAddr, cstruct, 0, ntohl(ip1), ntohl(ip2));
         if (vcode) {
-            char buffer[160];
+            char buffer[256];
             if (remove) {
                 char buff[80];
                 sprintf(buff, "Could not remove server %s from the VLDB", oldip);
@@ -7605,140 +8335,6 @@ vldb__changeaddr(cstruct, oldip, newip, remove=0)
     OUTPUT:
         RETVAL
 
-    # void
-    # vldb__ZZZ(cstruct, name, extended=0, format=0)
-    #         AFS::VLDB cstruct
-    #         char *name
-    #         int extended
-    #         int format
-    #     PREINIT:
-    #         struct nvldbentry entry;
-    #         afs_int32 vcode = 0;
-    #         volintInfo *pntr = (volintInfo *)0;
-    #         volintXInfo *xInfoP = (volintXInfo *)0;
-    #         afs_int32 volid;
-    #         afs_int32 code, err, error = 0;
-    #         int voltype, foundserv = 0, foundentry = 0;
-    #         afs_int32 aserver, apart;
-    #         int previdx = -1;
-    #         int wantExtendedInfo;               /*Do we want extended vol info?*/
-    #         HV *volinfo = (HV*)sv_2mortal((SV*)newHV());
-    #     PPCODE:
-    #     {
-    #         wantExtendedInfo = (extended ? 1 : 0);  /* -extended */
-    #
-    #         volid = vsu_GetVolumeID(name, cstruct, &err);   /* -id */
-    #         if (volid == 0) {
-    #             char buffer[80];
-    #             if (err)
-    #                 set_errbuff(buffer, err);
-    #             else
-    #                 sprintf(buffer, "Unknown volume ID or name '%s'\n", name);
-    #             VSETCODE(err ? err : -1, buffer);
-    #             XSRETURN_UNDEF;
-    #             goto done;
-    #         }
-    #         vcode = VLDB_GetEntryByID(volid, -1, &entry);
-    #         if (vcode) {
-    #             char buffer[80];
-    #             sprintf(buffer, "Could not fetch the entry for volume number %u from VLDB \n", volid);
-    #             VSETCODE(vcode, buffer);
-    #             XSRETURN_UNDEF;
-    #             goto done;
-    #         }
-    #         MapHostToNetwork(&entry);
-    #         if (entry.volumeId[RWVOL] == volid)
-    #             voltype = RWVOL;
-    #         else if (entry.volumeId[BACKVOL] == volid)
-    #             voltype = BACKVOL;
-    #         else                            /* (entry.volumeId[ROVOL] == volid) */
-    #             voltype = ROVOL;
-    #
-    #         do {                            /* do {...} while (voltype == ROVOL) */
-    #             /* Get the entry for the volume. If its a RW vol, get the RW entry.
-    #              * It its a BK vol, get the RW entry (even if VLDB may say the BK doen't exist).
-    #              * If its a RO vol, get the next RO entry.
-    #              */
-    #             GetServerAndPart(&entry, ((voltype == ROVOL) ? ROVOL : RWVOL), &aserver, &apart,
-    #                              &previdx);
-    #             if (previdx == -1) {        /* searched all entries */
-    #                 if (!foundentry) {
-    #                     char buffer[80];
-    #                     sprintf(buffer, "Volume %s does not exist in VLDB\n\n", name);
-    #                     VSETCODE(ENOENT, buffer);
-    #                     XSRETURN_UNDEF;
-    #                     goto done;
-    #                 }
-    #                 break;
-    #             }
-    #             foundentry = 1;
-    #
-    #             /* Get information about the volume from the server */
-    #             if (wantExtendedInfo)
-    #                 code = UV_XListOneVolume(aserver, apart, volid, &xInfoP);
-    #             else
-    #                 code = UV_ListOneVolume(aserver, apart, volid, &pntr);
-    #
-    #             if (code) {
-    #                 char buffer[80];
-    #                 error = code;
-    #                 if (code == ENODEV) {
-    #                     if ((voltype == BACKVOL) && !(entry.flags & BACK_EXISTS)) {
-    #                         /* The VLDB says there is no backup volume and its not on disk */
-    #                         sprintf(buffer, "Volume %s does not exist\n", name);
-    #                     }
-    #                     else {
-    #                         sprintf(buffer,
-    #                                 "Volume does not exist on server %s as indicated by the VLDB\n",
-    #                                 hostutil_GetNameByINet(aserver));
-    #                     }
-    #                 }
-    #                 else {
-    #                     sprintf(buffer, "examine");
-    #                 }
-    #                 VSETCODE(code, buffer);
-    #             }
-    #             else {
-    #                 foundserv = 1;
-    #                 hv_store(volinfo, "name", 4, newSVpv(name, strlen((char *) name)), 0);
-    #                 if (wantExtendedInfo)
-    #                     XVolumeStats(volinfo, xInfoP, &entry, aserver, apart, voltype);
-    #                 else if (format) {
-    #                     myDisplayFormat2(volinfo, aserver, apart, pntr);
-    #                     myEnumerateEntry(volinfo, &entry);
-    #                 }
-    #                 else
-    #                     VolumeStats(volinfo, pntr, &entry, aserver, apart, voltype);
-    #    
-    #                 if ((voltype == BACKVOL) && !(entry.flags & BACK_EXISTS)) {
-    #                     /* The VLDB says there is no backup volume yet we found one on disk */
-    #                     char buffer[80];
-    #                     sprintf(buffer, "Volume %s does not exist in VLDB\n", name);
-    #                     VSETCODE(ENOENT, buffer);
-    #                 }
-    #             }
-    #
-    #             if (pntr)
-    #                 Safefree(pntr);
-    #             if (xInfoP)
-    #                 Safefree(xInfoP);
-    #         } while (voltype == ROVOL);
-    #
-    #         if (!foundserv) {
-    #             char buffer[80];
-    #             sprintf(buffer, "Dump only information from VLDB\n\n%s \n", entry.name);    /* PostVolumeStats doesn't print name */
-    #             VSETCODE(ENOENT, buffer);
-    #         }
-    #         PostVolumeStats(volinfo, &entry);
-    #    
-    #         ST(0) = sv_2mortal(newRV_inc((SV *) volinfo));
-    #         SETCODE(0);
-    #         XSRETURN(1);
-    #
-    #         done:
-    #         ;
-    #     }
-
 int32
 vldb_remsite(cstruct,server,partition,name)
         AFS::VLDB cstruct
@@ -7747,43 +8343,46 @@ vldb_remsite(cstruct,server,partition,name)
         char *name
     PREINIT:
         afs_int32 avolid, aserver, apart, code = 1, err;
-        char apartName[10];
+        char avolname[VOLSER_MAXVOLNAME + 1];
     CODE:
     {
         RETVAL = 0;
-        avolid = vsu_GetVolumeID(name, cstruct, &err);
+#ifdef OpenAFS_1_4
+        vsu_ExtractName(avolname, name);
+#else
+        strcpy(avolname, name);
+#endif
+        avolid = vsu_GetVolumeID(avolname, cstruct, &err);
         if (avolid == 0) {
-            char buffer[80];
+            char buffer[256];
             if (err)
                 set_errbuff(buffer, err);
             else
-                sprintf(buffer, "AFS::VLDB: can't find volume '%s'\n", name);
+                sprintf(buffer, "AFS::VLDB: can't find volume '%s'\n", avolname);
             VSETCODE(err ? err : -1, buffer);
             goto done;
         }
         aserver = GetServer(server);
         if (aserver == 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: server '%s' not found in host table\n", server);
             VSETCODE(-1, buffer);
             goto done;
         }
         apart = volutil_GetPartitionID(partition);
         if (apart < 0) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n", partition);
             VSETCODE(-1, buffer);
             goto done;
         }
         code = UV_RemoveSite(aserver, apart, avolid);
+        printf("\n");
         if (code) {
             PrintDiagnostics("remsite", code);
             SETCODE(code);
             goto done;
         }
-        #MapPartIdIntoName(apart, apartName);
-        #fprintf(STDOUT, "Removed replication site %s %s for volume %s\n", server, partition,
-        #        name);
         RETVAL = 1;
         done:
         ;
@@ -7797,8 +8396,7 @@ vldb_syncserv(cstruct, servername, parti=NULL)
         char *servername
         char *parti
     PREINIT:
-        int32 pname, code;       /* part name */
-        char part[10];
+        afs_int32 pname = 0, code;       /* part name */
         afs_int32 tserver;
         int flags = 0;
     CODE:
@@ -7806,7 +8404,7 @@ vldb_syncserv(cstruct, servername, parti=NULL)
         RETVAL = 0;
         tserver = GetServer(servername);
         if (!tserver) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::VLDB: host '%s' not found in host table\n", servername);
             VSETCODE(-1, buffer);
             goto done;
@@ -7814,13 +8412,13 @@ vldb_syncserv(cstruct, servername, parti=NULL)
         if (parti && (strlen(parti) != 0)) {
             pname = volutil_GetPartitionID(parti);
             if (pname < 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::VLDB: could not interpret partition name '%s'\n", parti);
                 VSETCODE(-1, buffer);
                 goto done;
             }
             if (!IsPartValid(pname, tserver, &code)) {  /*check for validity of the partition */
-                char buffer[80];
+                char buffer[256];
                 if (code)
                     set_errbuff(buffer, code);
                 else
@@ -7838,12 +8436,6 @@ vldb_syncserv(cstruct, servername, parti=NULL)
             SETCODE(code);
             goto done;
         }
-        #if (flags) {
-        #    MapPartIdIntoName(pname, part);
-        #    fprintf(STDOUT, "Server %s partition %s synchronized with VLDB\n", servername, part);
-        #}
-        #else
-        #    fprintf(STDOUT, "Server %s synchronized with VLDB\n", servername);
 
         SETCODE(0);
         RETVAL = 1;
@@ -7870,11 +8462,17 @@ bos_new(class=0, servname, noauth=0, localauth=0, cell=0, aencrypt=1)
         AFS__BOS server;
     PPCODE:
     {
+        /* printf("bos new DEBUG-1 \n"); */
+        if (cell && (cell[0] == '\0' || cell[0] == '0'))
+            cell = NULL;
+
+        /* printf("bos new call internal_new DEBUG-2 \n"); */
         server = internal_bos_new(&code, servname, localauth, noauth, aencrypt, cell);
             /* SETCODE(code); */
-        
-        ST(0) = sv_newmortal();
+        /* printf("bos new return internal_new DEBUG-3 \n"); */
+
         if (code == 0) {
+            ST(0) = sv_newmortal();
             sv_setref_pv(ST(0), "AFS::BOS", (void *) server);
             XSRETURN(1);
         }
@@ -7888,8 +8486,7 @@ bos__DESTROY(self)
     CODE:
     {
         rx_DestroyConnection(self);
-        rx_Finalize();
-            /* Safefree(self); */
+        /* printf("bos DEBUG rx_Destroy\n"); */
         RETVAL = 1;
     }
     OUTPUT:
@@ -7911,7 +8508,7 @@ bos__status(self, lng=0, object=NULL)
     {
         int32p = (lng != 0 ? 2 : 0);
         status = (HV *) sv_2mortal((SV *) newHV());
-        
+
         if (object && (! (SvTYPE(SvRV(object)) == SVt_PVAV))) {
             BSETCODE(-1, "AFS::BOS: SERVER not an array reference\n");
             XSRETURN_UNDEF;
@@ -7925,7 +8522,7 @@ bos__status(self, lng=0, object=NULL)
             STRLEN namelen;
             int i, len;
             int firstTime = 1;
-        
+
             av = (AV *) SvRV(object);
             len = av_len(av);
             if (len != -1) {
@@ -7940,7 +8537,7 @@ bos__status(self, lng=0, object=NULL)
                             XSRETURN_UNDEF;
                             goto done;
                         }
-                        hv_store(status, instance, strlen(instance), newRV_inc((SV *) (stats)),
+                        safe_hv_store(status, instance, strlen(instance), newRV_inc((SV *) (stats)),
                                  0);
                         firstTime = 0;
                     }
@@ -7957,7 +8554,7 @@ bos__status(self, lng=0, object=NULL)
                     break;
                 }
                 if (code) {
-                    char buffer[240];
+                    char buffer[256];
                     sprintf(buffer, "AFS::BOS: failed to contact host's bosserver (%s).\n",
                             em(code));
                     BSETCODE(code, buffer);
@@ -7969,14 +8566,14 @@ bos__status(self, lng=0, object=NULL)
                     XSRETURN_UNDEF;
                     goto done;
                 }
-                hv_store(status, ibuffer, strlen(ibuffer), newRV_inc((SV *) (stats)), 0);
+                safe_hv_store(status, ibuffer, strlen(ibuffer), newRV_inc((SV *) (stats)), 0);
             }
         }
-        
+
         ST(0) = sv_2mortal(newRV_inc((SV *) status));
         SETCODE(0);
         XSRETURN(1);
-        
+
         done:
         ;
   }
@@ -7998,18 +8595,18 @@ bos_setauth(self, tp)
         else if (strcmp(tp, "off") == 0)
             flag = 1;
         else {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer,
                     "AFS::BOS: illegal authentication specifier '%s', must be 'off' or 'on'.\n",
                     tp);
             BSETCODE(-1, buffer);
             RETVAL = 0;
         }
-        
+
         if (RETVAL == 42) {
             code = BOZO_SetNoAuthFlag(self, flag);
             if (code) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS %d (failed to set authentication flag)", code);
                 BSETCODE(code, buffer);
             }
@@ -8030,7 +8627,7 @@ bos_exec(self, cmd)
     {
         code = BOZO_Exec(self, cmd);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to execute command (%s)\n", em(code));
             BSETCODE(code, buffer);
         }
@@ -8041,33 +8638,52 @@ bos_exec(self, cmd)
         RETVAL
 
 int32
-bos_addhost(self, object, clone=0)
+bos_addhost(self, object, clone=Nullsv)
         AFS::BOS self
         SV* object
-        int clone
+        SV *  clone
     PREINIT:
         int32 code = 0;
-    CODE:
-    {
-        not_here("AFS::BOS::addhost");
-
-        RETVAL = 0;
-        if (SvTYPE(SvRV(object)) == SVt_PVAV) {
             int len, i;
             AV *av;
             SV *sv;
             char *host;
+            int iclone;
             STRLEN namelen;
-        
+    CODE:
+    {
+
+        if (!clone) {
+            clone = newSViv(0);
+        }
+        if (!SvIOKp(clone)) {
+            char buffer[256];
+            sprintf(buffer, "AFS::BOS: Flag \"clone\" should be numeric.\n");
+            BSETCODE(-1, buffer);
+            XSRETURN_UNDEF;
+        }
+        iclone = SvIV(clone);
+
+        RETVAL = 0;
+        if (!SvROK(object)) {
+            av = newAV();
+            av_push(av,object);
+        }
+        else if (SvTYPE(SvRV(object)) == SVt_PVAV) {
             av = (AV *) SvRV(object);
+        }
+        else {
+            BSETCODE(-1, "AFS::BOS: HOST not an array reference\n");
+            XSRETURN_UNDEF;
+        }
+
             len = av_len(av);
             if (len != -1) {
                 for (i = 0; i <= len; i++) {
                     sv = *av_fetch(av, i, 0);
-                    if (sv) {
-                        host = (char *) safemalloc(MAXHOSTCHARS);
+                 if (sv && !SvROK(sv)) {
                         host = SvPV(sv, namelen);
-                        if (clone) {
+                        if (iclone) {
                             char name[MAXHOSTCHARS];
                             if (namelen > MAXHOSTCHARS - 3) {
                                 char buffer[80];
@@ -8092,10 +8708,9 @@ bos_addhost(self, object, clone=0)
                     }
                 }                       /* for loop */
             }
-        }                               /* object is array ref */
         SETCODE(code);
         RETVAL = (code == 0);
-        
+
         done:
         ;
     }
@@ -8109,43 +8724,41 @@ bos_removehost(self, object)
     PREINIT:
         int32 code = 0;
         char *host;
+        int len, i;
+        AV *av;
+        SV *sv;
     CODE:
     {
-        not_here("AFS::BOS::removehost");
-
         if (!SvROK(object)) {
-            host = (char *) SvPV_nolen(object);
-            code = BOZO_DeleteCellHost(self, host);
+            av = newAV();
+            av_push(av,object);
         }
         else if (SvTYPE(SvRV(object)) == SVt_PVAV) {
-            int len, i;
-            AV *av;
-            SV *sv;
-            STRLEN namelen;
-        
             av = (AV *) SvRV(object);
-            len = av_len(av);
-            if (len != -1) {
-                for (i = 0; i <= len; i++) {
-                    sv = *av_fetch(av, i, 0);
-                    if (sv) {
-                        host = (char *) safemalloc(MAXHOSTCHARS);
-                        host = SvPV(sv, namelen);
-                        code = BOZO_DeleteCellHost(self, host);
-                        if (code) {
-                            char buffer[240];
-                            sprintf(buffer, "AFS::BOS: failed to delete host '%s' (%s)\n", host,
-                                    em(code));
-                            BSETCODE(code, buffer);
-                        }
+        }
+        else {
+            BSETCODE(-1, "AFS::BOS: HOST not an array reference\n");
+            XSRETURN_UNDEF;
+        }
+
+        len = av_len(av);
+        if (len != -1) {
+            for (i = 0; i <= len; i++) {
+                sv = *av_fetch(av, i, 0);
+                if (sv && !SvROK(sv)) {
+                    host = SvPV_nolen(sv);
+                    code = BOZO_DeleteCellHost(self, host);
+                    if (code) {
+                        char buffer[240];
+                        sprintf(buffer, "AFS::BOS: failed to delete host '%s' (%s)\n", host,
+                                em(code));
+                        BSETCODE(code, buffer);
                     }
-                }                       /* for loop */
-            }
-        }                               /* object is array ref */
+                }
+            }                       /* for loop */
+        }
         SETCODE(code);
         RETVAL = (code == 0);
-        if (host)
-            Safefree(host);
     }
     OUTPUT:
         RETVAL
@@ -8169,9 +8782,9 @@ bos_prune(self, all=0, bak=0, old=0, core=0)
             flags |= BOZO_PRUNECORE;
         if (all)
             flags |= 0xff;
-        
+
         if (!flags) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS nothing to prune");
             BSETCODE(999, buffer);
             RETVAL = 0;
@@ -8179,7 +8792,7 @@ bos_prune(self, all=0, bak=0, old=0, core=0)
         else {
             code = BOZO_Prune(self, flags);
             if (code) {
-              char buffer[80];
+              char buffer[256];
               sprintf(buffer, "AFS::BOS has failed to prune server files");
               BSETCODE(code, buffer);
             }
@@ -8197,43 +8810,41 @@ bos_adduser(self, object)
     PREINIT:
         int32 code = 0;
         char *name;
+        int len, i;
+        AV *av;
+        SV *sv;
     CODE:
     {
-        not_here("AFS::BOS::adduser");
-
         if (!SvROK(object)) {
-            name = (char *) SvPV_nolen(object);
-            code = BOZO_AddSUser(self, name);
+            av = newAV();
+            av_push(av,object);
         }
         else if (SvTYPE(SvRV(object)) == SVt_PVAV) {
-            int len, i;
-            AV *av;
-            SV *sv;
-            STRLEN namelen;
-        
             av = (AV *) SvRV(object);
-            len = av_len(av);
-            if (len != -1) {
-                for (i = 0; i <= len; i++) {
-                    sv = *av_fetch(av, i, 0);
-                    if (sv) {
-                        name = (char *) safemalloc(BOZO_BSSIZE);
-                        name = SvPV(sv, namelen);
-                        code = BOZO_AddSUser(self, name);
-                        if (code) {
-                            char buffer[240];
-                            sprintf(buffer, "AFS::BOS: failed to add user '%s' (%s)\n", name,
-                                    em(code));
-                            BSETCODE(code, buffer);
-                        }
+        }
+        else {
+            BSETCODE(-1, "AFS::BOS: USER not an array reference\n");
+            XSRETURN_UNDEF;
+        }
+
+        len = av_len(av);
+        if (len != -1) {
+            for (i = 0; i <= len; i++) {
+                sv = *av_fetch(av, i, 0);
+                if (sv && !SvROK(sv)) {
+                    name = SvPV_nolen(sv);
+                    code = BOZO_AddSUser(self, name);
+                    if (code) {
+                        char buffer[240];
+                        sprintf(buffer, "AFS::BOS: failed to add user '%s' (%s)\n", name,
+                                em(code));
+                        BSETCODE(code, buffer);
                     }
-                }                       /* for loop */
-            }
+                }
+            }                       /* for loop */
         }
         SETCODE(code);
         RETVAL = (code == 0);
-        if (name)
-            Safefree(name);
     }
     OUTPUT:
         RETVAL
@@ -8245,57 +8856,47 @@ bos_removeuser(self, object)
     PREINIT:
         int32 code = 0;
         char *name;
+        int len, i;
+        AV *av;
+        SV *sv;
     CODE:
     {
-        not_here("AFS::BOS::removeuser");
-
         if (!SvROK(object)) {
-            name = (char *) SvPV_nolen(object);
-            code = BOZO_DeleteSUser(self, name);
-            if (code) {
-                char buffer[240];
-                sprintf(buffer, "AFS::BOS: failed to delete user");
-                if (code == ENOENT)
-                    sprintf(buffer, "%s (no such user)\n", buffer);
-                else
-                    sprintf(buffer, "%s (%s)\n", em(code), buffer);
-                BSETCODE(code, buffer);
-            }
+            av = newAV();
+            av_push(av,object);
         }
         else if (SvTYPE(SvRV(object)) == SVt_PVAV) {
-            int len, i;
-            AV *av;
-            SV *sv;
-            STRLEN namelen;
-        
             av = (AV *) SvRV(object);
-            len = av_len(av);
-            if (len != -1) {
-                for (i = 0; i <= len; i++) {
-                    sv = *av_fetch(av, i, 0);
-                    if (sv) {
-                        name = (char *) safemalloc(BOZO_BSSIZE);
-                        name = SvPV(sv, namelen);
-                        code = BOZO_DeleteSUser(self, name);
-                        if (code) {
-                            char buffer[240];
-                            sprintf(buffer, "AFS::BOS: failed to delete user");
-                            if (code == ENOENT)
-                                sprintf(buffer, "%s (no such user)\n", buffer);
-                            else
-                                sprintf(buffer, "%s (%s)\n", em(code), buffer);
-                            BSETCODE(code, buffer);
-                        }
+        }
+        else {
+            BSETCODE(-1, "AFS::BOS: USER not an array reference\n");
+            XSRETURN_UNDEF;
+        }
+
+        len = av_len(av);
+        if (len != -1) {
+            for (i = 0; i <= len; i++) {
+                sv = *av_fetch(av, i, 0);
+                if (sv && !SvROK(sv)) {
+                    name = SvPV_nolen(sv);
+                    code = BOZO_DeleteSUser(self, name);
+                    if (code) {
+                        char buffer[240];
+                        sprintf(buffer, "AFS::BOS: failed to delete user");
+                        if (code == ENOENT)
+                            sprintf(buffer, "%s (no such user)\n", buffer);
+                        else
+                            sprintf(buffer, "%s (%s)\n", em(code), buffer);
+                        BSETCODE(code, buffer);
                     }
-                }                       /* for loop */
-            }
+                }
+            }                       /* for loop */
         }
         RETVAL = (code == 0);
-        if (name)
-            Safefree(name);
     }
     OUTPUT:
         RETVAL
+
 
 int32
 bos_addkey(self, kvno, string=NULL)
@@ -8312,7 +8913,7 @@ bos_addkey(self, kvno, string=NULL)
         not_here("AFS::BOS::addkey");
 
         Zero(&tkey, 1, struct ktc_encryptionKey);
-        
+
         RETVAL = 42;
         if (string)
             strcpy(buf, string);
@@ -8320,26 +8921,26 @@ bos_addkey(self, kvno, string=NULL)
             /* prompt for key */
             code = des_read_pw_string(buf, sizeof(buf), "input key: ", 0);
             if (code || strlen(buf) == 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Bad key: \n");
                 BSETCODE(code ? code : -1, buffer);
                 RETVAL = 0;
             }
             code = des_read_pw_string(ver, sizeof(ver), "Retype input key: ", 0);
             if (code || strlen(ver) == 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Bad key: \n");
                 BSETCODE(code ? code : -1, buffer);
                 RETVAL = 0;
             }
             if (strcmp(ver, buf) != 0) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "\nInput key mismatch\n");
                 BSETCODE(-1, buffer);
                 RETVAL = 0;
             }
         }
-        
+
         if (RETVAL == 42) {
             if (kvno == 999) {
                 /* bcrypt key */
@@ -8348,19 +8949,19 @@ bos_addkey(self, kvno, string=NULL)
             else {                      /* kerberos key */
                 ka_StringToKey(buf, tcell, &tkey);
             }
-        
+
             code = BOZO_AddKey(self, kvno, &tkey);
             if (code) {
-                char buffer[240];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: failed to set key %d (%s)\n", kvno, em(code));
                 BSETCODE(code, buffer);
             }
-        
+
             SETCODE(code);
             RETVAL = (code == 0);
         }
         if (tcell)
-            Safefree(tcell);
+            free(tcell);
     }
     OUTPUT:
         RETVAL
@@ -8385,7 +8986,7 @@ bos_removekey(self, object)
             int len, i;
             AV *av;
             SV *sv;
-        
+
             av = (AV *) SvIV(object);
             len = av_len(av);
             if (len != -1) {
@@ -8395,7 +8996,7 @@ bos_removekey(self, object)
                         temp = SvIV(sv);
                         code = BOZO_DeleteKey(self, temp);
                         if (code) {
-                            char buffer[80];
+                            char buffer[256];
                             sprintf(buffer, "AFS::BOS: failed to deletekey");
                             BSETCODE(code, buffer);
                         }
@@ -8428,10 +9029,10 @@ bos__create(self, name, type, object, notifier=NULL)
             BSETCODE(code, "AFS::BOS COMMAND not an array reference\n");
             goto done;
         }
-        
+
         for (i = 0; i < 6; i++)
             parms[i] = "";
-        
+
         av = (AV *) SvRV(object);
         len = av_len(av);
         if (len != -1) {
@@ -8441,21 +9042,21 @@ bos__create(self, name, type, object, notifier=NULL)
                     parms[i] = SvPV(sv, namelen);
             }
         }
-        
+
         if (notifier == NULL)
             notifier = NONOTIFIER;
-        
+
         code = BOZO_CreateBnode(self, type, name, parms[0], parms[1], parms[2],
                                 parms[3], parms[4], notifier);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer,
                     "AFS::BOS: failed to create new server instance %s of type '%s' (%s)\n", name,
                     type, em(code));
             BSETCODE(code, buffer);
             goto done;
         }
-        
+
         SETCODE(code);
         done:
         RETVAL = (code == 0);
@@ -8475,7 +9076,7 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
     {
         if (bosserver) {
             if (object != NULL) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer,
                         "AFS::BOS: can't specify both 'bosserver' and specific servers to restart.\n");
                 BSETCODE(-1, buffer);
@@ -8484,25 +9085,25 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
             }
             code = BOZO_ReBozo(self);
             if (code) {
-                char buffer[240];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: failed to restart bosserver (%s)\n", em(code));
                 BSETCODE(code, buffer);
             }
             RETVAL = (code == 0);
             goto done;
         }
-        
+
         if (object == NULL) {
             if (all) {
                 code = BOZO_RestartAll(self);
                 if (code) {
-                    char buffer[240];
+                    char buffer[256];
                     sprintf(buffer, "AFS::BOS: failed to restart servers (%s)\n", em(code));
                     BSETCODE(code, buffer);
                 }
             }
             else {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: To restart all processes please specify 'all'\n");
                 BSETCODE(-1, buffer);
             }
@@ -8511,7 +9112,7 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
         }
         else {
             if (all) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: Can't use 'all' along with individual instances\n");
                 BSETCODE(-1, buffer);
                 RETVAL = 0;
@@ -8523,13 +9124,13 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
                 STRLEN namelen;
                 char *instance;
                 int i, len;
-        
+
                 if (SvTYPE(SvRV(object)) != SVt_PVAV) {
                     BSETCODE(-1, "AFS::BOS: SERVER not an array reference\n");
                     RETVAL = 0;
                     goto done;
                 }
-        
+
                 av = (AV *) SvRV(object);
                 len = av_len(av);
                 if (len != -1) {
@@ -8540,7 +9141,7 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
                             instance = SvPV(sv, namelen);
                             code = BOZO_Restart(self, instance);
                             if (code) {
-                                char buffer[240];
+                                char buffer[256];
                                 sprintf(buffer, "AFS::BOS: failed to restart instance %s (%s)\n",
                                         instance, em(code));
                                 BSETCODE(code, buffer);
@@ -8552,7 +9153,7 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
                 }
             }
         }
-        
+
         done:
         ;
     }
@@ -8560,24 +9161,44 @@ bos__restart(self, bosserver=0, all=0, object=NULL)
         RETVAL
 
 int32
-bos_setrestart(self, time, general=0, newbinary=0)
+bos_setrestart(self, time, general=Nullsv, newbinary=Nullsv)
         AFS::BOS self
         char *time
-        int general
-        int newbinary
+        SV *  general
+        SV *  newbinary
     PREINIT:
         int32 code = 0, count = 0;
         struct ktime restartTime;
         afs_int32 type;
+        int igeneral;
+        int inewbinary;
     CODE:
     {
-        not_here("AFS::BOS::setrestart");
-
-        if (general) {
+        if (!general) {
+            general = newSViv(0);
+        }
+        if (!SvIOKp(general)) {
+            char buffer[256];
+            sprintf(buffer, "AFS::BOS: Flag \"general\" should be numeric.\n");
+            BSETCODE(-1, buffer);
+            XSRETURN_UNDEF;
+        }
+        if (!newbinary) {
+            newbinary = newSViv(0);
+        }
+        if (!SvIOKp(newbinary)) {
+            char buffer[256];
+            sprintf(buffer, "AFS::BOS: Flag \"newbinary\" should be numeric.\n");
+            BSETCODE(-1, buffer);
+            XSRETURN_UNDEF;
+        }
+        igeneral = SvIV(general);
+        inewbinary = SvIV(newbinary);
+        if (igeneral) {
             count++;
             type = 1;
         }
-        if (newbinary) {
+        if (inewbinary) {
             count++;
             type = 2;
         }
@@ -8589,7 +9210,7 @@ bos_setrestart(self, time, general=0, newbinary=0)
         }
         if (count == 0)
             type = 1;                   /* by default set general restart time */
-        
+
         if (code = ktime_ParsePeriodic(time, &restartTime)) {
             char buffer[240];
             sprintf(buffer, "AFS::BOS: failed to parse '%s' as periodic restart time(%s)\n",
@@ -8597,7 +9218,7 @@ bos_setrestart(self, time, general=0, newbinary=0)
             BSETCODE(code, buffer);
             goto done;
         }
-        
+
         code = BOZO_SetRestartTime(self, type, &restartTime);
         if (code) {
             char buffer[240];
@@ -8607,7 +9228,7 @@ bos_setrestart(self, time, general=0, newbinary=0)
         }
         code = 0;
         SETCODE(code);
-        
+
         done:
         RETVAL = (code == 0);
     }
@@ -8625,37 +9246,37 @@ bos_getrestart(self)
     {
         code = BOZO_GetRestartTime(self, 1, &generalTime);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to retrieve restart information (%s)\n", em(code));
             BSETCODE(code, buffer);
             XSRETURN_UNDEF;
         }
         code = BOZO_GetRestartTime(self, 2, &newBinaryTime);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to retrieve restart information (%s)\n", em(code));
             BSETCODE(code, buffer);
             XSRETURN_UNDEF;
         }
-        
+
         code = ktime_DisplayString(&generalTime, messageBuffer);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to decode restart time (%s)\n", em(code));
             BSETCODE(code, buffer);
             strcpy(messageBuffer, "");
         }
         XPUSHs(sv_2mortal(newSVpv(messageBuffer, strlen(messageBuffer))));
-        
+
         code = ktime_DisplayString(&newBinaryTime, messageBuffer);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to decode restart time (%s)\n", em(code));
             BSETCODE(code, buffer);
             strcpy(messageBuffer, "");
         }
         XPUSHs(sv_2mortal(newSVpv(messageBuffer, strlen(messageBuffer))));
-        
+
         XSRETURN(2);
     }
 
@@ -8676,10 +9297,10 @@ bos_listusers(self)
                 break;
             XPUSHs(sv_2mortal(newSVpv(tbuffer, strlen(tbuffer))));
         }
-        
+
         if (code != 1) {
             /* a real error code, instead of scanned past end */
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to retrieve super-user list (%s)\n", em(code));
             BSETCODE(code, buffer);
             XSRETURN_UNDEF;
@@ -8703,20 +9324,20 @@ bos_listhosts(self)
         tp = tbuffer;
         code = BOZO_GetCellName(self, &tp);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to get cell name (%s)\n", em(code));
             BSETCODE(code, buffer);
             XSRETURN_UNDEF;
         }
             /* printf("Cell name is %s\n", tbuffer); */
         XPUSHs(sv_2mortal(newSVpv(tbuffer, strlen(tbuffer))));
-        
+
         for (i = 0;; i++) {
             code = BOZO_GetCellHost(self, i, &tp);
             if (code == BZDOM)
                 break;
             if (code != 0) {
-                char buffer[240];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: failed to get cell host %d (%s)\n", i, em(code));
                 BSETCODE(code, buffer);
                 XSRETURN_UNDEF;
@@ -8724,9 +9345,9 @@ bos_listhosts(self)
             /* printf("    Host %d is %s\n", i+1, tbuffer); */
             av_push(av, newSVpv(tbuffer, strlen(tbuffer)));
         }
-        
+
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av))));
-        
+
         SETCODE(code);
         XSRETURN(2);
     }
@@ -8748,7 +9369,7 @@ bos_delete(self, object)
             name = (char *) SvPV_nolen(object);
             code = BOZO_DeleteBnode(self, name);
             if (code) {
-                char buffer[240];
+                char buffer[256];
 /*         printf("DEBUG-bos-delete-3 %d \n", code); */
                 if (code == BZBUSY)
                     sprintf(buffer, "AFS::BOS: can't delete running instance '%s'\n", name);
@@ -8775,7 +9396,7 @@ bos_delete(self, object)
                         code = BOZO_DeleteBnode(self, name);
 /*         printf("DEBUG-bos-delete-8 %d \n", code); */
                         if (code) {
-                            char buffer[240];
+                            char buffer[256];
                             if (code == BZBUSY)
                                 sprintf(buffer, "AFS::BOS: can't delete running instance '%s'\n",
                                         name);
@@ -8816,13 +9437,13 @@ bos_getlog(self, file)
         tcall = rx_NewCall(self);
         code = StartBOZO_GetLog(tcall, file);
         if (code) {
-            char buffer[80];
+            char buffer[256];
             rx_EndCall(tcall, code);
             sprintf(buffer, "AFS::BOS error %d (while reading log)\n", code);
             BSETCODE(code, buffer);
             XSRETURN_UNDEF;
         }
-        
+
             /* copy data */
         error = 0;
         while (1) {
@@ -8841,7 +9462,7 @@ bos_getlog(self, file)
                 num++;
             }
         }
-        
+
         code = rx_EndCall(tcall, error);
         #if (tcall)
         #    Safefree(tcall);
@@ -8869,7 +9490,7 @@ bos__start(self, object=NULL)
             char *instance;
             STRLEN namelen;
             int i, len;
-        
+
             av = (AV *) SvRV(object);
             len = av_len(av);
             if (len != -1) {
@@ -8877,11 +9498,11 @@ bos__start(self, object=NULL)
                     sv = *av_fetch(av, i, 0);
                     if (sv) {
                       /* instance = (char *) safemalloc(BOZO_BSSIZE); */
-                        New(0, instance, BOZO_BSSIZE, char);
+                        Newx(instance, BOZO_BSSIZE, char);
                         instance = SvPV(sv, namelen);
                         code = BOZO_SetStatus(self, instance, BSTAT_NORMAL);
                         if (code) {
-                            char buffer[240];
+                            char buffer[256];
                             sprintf(buffer, "AFS::BOS: failed to start instance %s (%s)\n",
                                     instance, em(code));
                             BSETCODE(code, buffer);
@@ -8893,7 +9514,7 @@ bos__start(self, object=NULL)
                 }                       /* for loop */
             }
         }
-        
+
         SETCODE(code);
         done:
         RETVAL = (code == 0);
@@ -8921,7 +9542,7 @@ bos__startup(self, object=NULL)
             char *instance;
             STRLEN namelen;
             int i, len;
-        
+
             av = (AV *) SvRV(object);
             len = av_len(av);
             if (len != -1) {
@@ -8929,11 +9550,11 @@ bos__startup(self, object=NULL)
                     sv = *av_fetch(av, i, 0);
                     if (sv) {
                       /* instance = (char *) safemalloc(BOZO_BSSIZE); */
-                        New(0, instance, BOZO_BSSIZE, char);
+                        Newx(instance, BOZO_BSSIZE, char);
                         instance = SvPV(sv, namelen);
                         code = BOZO_SetTStatus(self, instance, BSTAT_NORMAL);
                         if (code) {
-                            char buffer[240];
+                            char buffer[256];
                             sprintf(buffer, "AFS::BOS: failed to start instance %s (%s)\n",
                                     instance, em(code));
                             BSETCODE(code, buffer);
@@ -8948,13 +9569,13 @@ bos__startup(self, object=NULL)
         else {
             code = BOZO_StartupAll(self);
             if (code) {
-                char buffer[240];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: failed to startup servers (%s)\n", em(code));
                 BSETCODE(code, buffer);
                 goto done;
             }
         }
-        
+
         SETCODE(code);
         done:
         RETVAL = (code == 0);
@@ -8985,7 +9606,7 @@ bos__stop(self, object=NULL, wait=0)
             char *instance;
             STRLEN namelen;
             int i, len;
-        
+
             /*                      printf("DEBUG-XS-bos-stop-3 \n"); */
             av = (AV *) SvRV(object);
             len = av_len(av);
@@ -8994,13 +9615,13 @@ bos__stop(self, object=NULL, wait=0)
                     sv = *av_fetch(av, i, 0);
                     if (sv) {
                       /* instance = (char *) safemalloc(BOZO_BSSIZE); */
-                        New(0, instance, BOZO_BSSIZE, char);
+                        Newx(instance, BOZO_BSSIZE, char);
                         instance = SvPV(sv, namelen);
                         /*                      printf("DEBUG-XS-bos-stop-3-1 %d %s\n", len, instance); */
                         code = BOZO_SetStatus(self, instance, BSTAT_SHUTDOWN); 
                        /*                      printf("DEBUG-XS-bos-stop-3-2 %d \n", code); */
                         if (code) {
-                            char buffer[240];
+                            char buffer[256];
                             sprintf(buffer, "AFS::BOS: failed to change stop instance %s (%s)\n",
                                     instance, em(code));
                             BSETCODE(code, buffer);
@@ -9013,14 +9634,14 @@ bos__stop(self, object=NULL, wait=0)
             }
             /*                      printf("DEBUG-XS-bos-stop-4 \n"); */
         }
-        
+
         /*         printf("DEBUG-XS-bos-stop-5 \n"); */
         if (wait) {
           /*                  printf("DEBUG-XS-bos-stop-5-1 \n"); */
             code = BOZO_WaitAll(self);
 /*                  printf("DEBUG-XS-bos-stop-5-2 %d \n", code); */
             if (code) {
-                char buffer[240];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: can't wait for processes to shutdown (%s)\n",
                         em(code));
                 BSETCODE(code, buffer);
@@ -9057,7 +9678,7 @@ bos__shutdown(self, object=NULL, wait=0)
             char *instance;
             STRLEN namelen;
             int i, len;
-        
+
             av = (AV *) SvRV(object);
             len = av_len(av);
             if (len != -1) {
@@ -9065,11 +9686,11 @@ bos__shutdown(self, object=NULL, wait=0)
                     sv = *av_fetch(av, i, 0);
                     if (sv) {
                       /* instance = (char *) safemalloc(BOZO_BSSIZE); */
-                        New(0, instance, BOZO_BSSIZE, char);
+                        Newx(instance, BOZO_BSSIZE, char);
                         instance = SvPV(sv, namelen);
                         code = BOZO_SetTStatus(self, instance, BSTAT_SHUTDOWN);
                         if (code) {
-                            char buffer[240];
+                            char buffer[256];
                             sprintf(buffer, "AFS::BOS: failed to shutdown instance %s (%s)\n",
                                     instance, em(code));
                             BSETCODE(code, buffer);
@@ -9084,17 +9705,17 @@ bos__shutdown(self, object=NULL, wait=0)
         else {
             code = BOZO_ShutdownAll(self);
             if (code) {
-                char buffer[240];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: failed to shutdown servers (%s)\n", em(code));
                 BSETCODE(code, buffer);
                 goto done;
             }
         }
-        
+
         if (wait) {
             code = BOZO_WaitAll(self);
             if (code) {
-                char buffer[240];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: can't wait for processes to shutdown (%s)\n",
                         em(code));
                 BSETCODE(code, buffer);
@@ -9120,7 +9741,7 @@ bos_setcellname(self, name)
 
         code = BOZO_SetCellName(self, name);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to set cell (%s)\n", em(code));
             BSETCODE(code, buffer);
         }
@@ -9150,20 +9771,20 @@ bos_listkeys(self, showkey=0)
             /* first check if key is returned */
             if ((!ka_KeyIsZero((char *) &tkey, sizeof(tkey))) && showkey) {
                 /* ka_PrintBytes ((char *)&tkey, sizeof(tkey)); */
-                hv_store(key, "key", 3, newSVpv((char *) &tkey, sizeof(tkey)), 0);
+                safe_hv_store(key, "key", 3, newSVpv((char *) &tkey, sizeof(tkey)), 0);
             }
             else {
                 if (keyInfo.keyCheckSum == 0) { /* shouldn't happen */
                     /* printf ("key version is %d\n", kvno); */
                 }
                 else {
-                    hv_store(key, "keyCheckSum", 11, newSVuv(keyInfo.keyCheckSum), 0);
+                    safe_hv_store(key, "keyCheckSum", 11, newSVuv(keyInfo.keyCheckSum), 0);
                 }
             }
             sprintf(index, "%d", kvno);
-            hv_store(list, index, strlen(index), newRV_inc((SV *) (key)), 0);
+            safe_hv_store(list, index, strlen(index), newRV_inc((SV *) (key)), 0);
         }                               /* for loop */
-        
+
         if (everWorked) {
             /* fprintf(stderr, "Keys last changed on %d.\n", keyInfo.mod_sec); */
             EXTEND(sp, 2);
@@ -9171,14 +9792,14 @@ bos_listkeys(self, showkey=0)
             PUSHs(newRV_inc((SV *) (list)));
         }
         if (code != BZDOM) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: %s error encountered while listing keys\n", em(code));
             BSETCODE(code, buffer);
         }
         else {
             code = 0;
         }
-        
+
         if (everWorked) {
             XSRETURN(2);
         }
@@ -9191,22 +9812,20 @@ bos_listkeys(self, showkey=0)
 int32
 bos_getrestricted(self)
         AFS::BOS self
-    PREINIT:
-#ifdef BOS_RESTRICTED_MODE
-        int32 val, code = 0;
-#endif
     CODE:
     {
 #ifdef BOS_RESTRICTED_MODE
+        int32 val, code;
         RETVAL = 0;
         code = BOZO_GetRestrictedMode(self, &val);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to get restricted mode (%s)\n", em(code));
             BSETCODE(code, buffer);
         }
         RETVAL = val;
 #else
+        RETVAL = 0;
         not_here("AFS::BOS::getrestricted");
 #endif
     }
@@ -9217,22 +9836,20 @@ int32
 bos_setrestricted(self, mode)
         AFS::BOS self
         char *mode
-    PREINIT:
-#ifdef BOS_RESTRICTED_MODE
-        int32 val, code = 0;
-#endif
     CODE:
     {
 #ifdef BOS_RESTRICTED_MODE
+        int32 val, code;
         util_GetInt32(mode, &val);
         code = BOZO_SetRestrictedMode(self, val);
         if (code) {
-            char buffer[240];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: failed to set restricted mode (%s)\n", em(code));
             BSETCODE(code, buffer);
         }
         RETVAL = (code == 0);
 #else
+        RETVAL = 0;
         not_here("AFS::BOS::setrestricted");
 #endif
     }
@@ -9293,43 +9910,43 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
             tmpDir = NULL;
         if (orphans && strlen(orphans) == 0)
             orphans = NULL;
-        
+
         Zero(&mrafsParm, 1, mrafsParm);
-        
+
             /* Find out whether fileserver is running MR-AFS (has a scanner instance) */
             /* XXX this should really be done some other way, potentially by RPC */
         tp = (char *) &tname;
-        if (code = BOZO_GetInstanceParm(self, "fs", 3, &tp) == 0)
+        if ((code = BOZO_GetInstanceParm(self, "fs", 3, &tp) == 0))
             mrafs = 1;
-        
+
             /* we can do a volume, a partition or the whole thing, but not mixtures
              * thereof */
         if (!partition && volume) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: must specify partition to salvage individual volume.\n");
             BSETCODE(-1, buffer);
             goto done;
         }
         if (showlog && outName) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: can not specify both -file and -showlog.\n");
             BSETCODE(-1, buffer);
             goto done;
         }
         if (all && (partition || volume)) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::BOS: can not specify ALL with other flags.\n");
             BSETCODE(-1, buffer);
             goto done;
         }
-        
+
         if (orphans && mrafs) {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "Can't specify -orphans for MR-AFS fileserver\n");
             BSETCODE(EINVAL, buffer);
             goto done;
         }
-        
+
         if (mrafs) {
             if (debug)
                 mrafsParm.Optdebug = 1;
@@ -9367,19 +9984,28 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 mrafsParm.OptRxDebug = 1;
             if (Residencies) {
                 if (SalvageRemote || SalvageArchival) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer,
                             "Can't specify -Residencies with -SalvageRemote or -SalvageArchival\n");
                     BSETCODE(EINVAL, buffer);
                     goto done;
                 }
-                code = GetUInt32(Residencies, &mrafsParm.OptResidencies);
-                if (code) {
-                    char buffer[80];
-                    sprintf(buffer, "AFS::BOS: '%d' is not a valid residency mask.\n", TraceBadLinkCounts);     /* this doesn't really make sense to me AW */
-                    BSETCODE(code, buffer);
-                    goto done;
-                }
+/* muss naeher ueberprueft werden !!!  */
+/* #if defined(OpenAFS_1_2) */
+/*                 code = GetUInt32(Residencies, &mrafsParm.OptResidencies); */
+/* #else */
+/* #if defined(OpenAFS_1_3) || defined(OpenAFS_1_4) || defined(OpenAFS_1_5) */
+/*                 code = util_GetUInt32(Residencies, &mrafsParm.OptResidencies); */
+/* #endif */
+/* #endif */
+/*                 if (code) { */
+/*                     char buffer[256]; */
+/*                     sprintf(buffer, "AFS::BOS: '%d' is not a valid residency mask.\n", TraceBadLinkCounts);     /\* this doesn't really make sense to me AW *\/ */
+/*                     BSETCODE(code, buffer); */
+/*                     goto done; */
+/*                 } */
+/* muss naeher ueberprueft werden !!!  */
+                mrafsParm.OptResidencies = Residencies;
             }
         }
         else {
@@ -9387,13 +10013,13 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 ListResidencies || SalvageRemote || SalvageArchival || IgnoreCheck ||
                 ForceOnLine || UseRootDirACL || TraceBadLinkCounts || DontAskFS || LogLevel ||
                 rxdebug || Residencies) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "Parameter only possible for MR-AFS fileserver.\n");
                 BSETCODE(-1, buffer);
                 goto done;
             }
         }
-        
+
         if (all) {
             /* salvage whole enchilada */
             curGoal = GetServerGoal(self, "fs");
@@ -9401,14 +10027,14 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 fprintf(stderr, "AFS::BOS: shutting down fs.\n");
                 code = BOZO_SetTStatus(self, "fs", BSTAT_SHUTDOWN);
                 if (code) {
-                    char buffer[240];
+                    char buffer[256];
                     sprintf(buffer, "AFS::BOS: failed to stop 'fs' (%s)\n", em(code));
                     BSETCODE(code, buffer);
                     goto done;
                 }
                 code = BOZO_WaitAll(self);    /* wait for shutdown to complete */
                 if (code) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer,
                             "AFS::BOS: failed to wait for file server shutdown, continuing.\n");
                     BSETCODE(code, buffer);
@@ -9422,7 +10048,7 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 /* fprintf(stderr, "AFS::BOS: restarting fs.\n"); */
                 code = BOZO_SetTStatus(self, "fs", BSTAT_NORMAL);
                 if (code) {
-                    char buffer[240];
+                    char buffer[256];
                     sprintf(buffer, "AFS::BOS: failed to restart 'fs' (%s)\n", em(code));
                     BSETCODE(code, buffer);
                     goto done;
@@ -9435,7 +10061,7 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
         }
         else if (!volume) {
             if (!partition) {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: must specify ALL switch to salvage all partitions.\n");
                 BSETCODE(-1, buffer);
                 goto done;
@@ -9444,7 +10070,7 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 /* can't parse volume ID, so complain before shutting down
                  * file server.
                  */
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: can't interpret %s as partition ID.\n", partition);
                 BSETCODE(-1, buffer);
                 goto done;
@@ -9455,14 +10081,14 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 /* fprintf(stderr, "AFS::BOS: shutting down fs.\n"); */
                 code = BOZO_SetTStatus(self, "fs", BSTAT_SHUTDOWN);
                 if (code) {
-                    char buffer[240];
+                    char buffer[256];
                     sprintf(buffer, "AFS::BOS: can't stop 'fs' (%s)\n", em(code));
                     BSETCODE(code, buffer);
                     goto done;
                 }
                 code = BOZO_WaitAll(self);    /* wait for shutdown to complete */
                 if (code) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer,
                             "AFS::BOS: failed to wait for file server shutdown, continuing.\n");
                     BSETCODE(code, buffer);
@@ -9476,7 +10102,7 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 /* fprintf(stderr, "AFS::BOS: restarting fs.\n"); */
                 code = BOZO_SetTStatus(self, "fs", BSTAT_NORMAL);
                 if (code) {
-                    char buffer[240];
+                    char buffer[256];
                     sprintf(buffer, "AFS::BOS: failed to restart 'fs' (%s)\n", em(code));
                     BSETCODE(code, buffer);
                     goto done;
@@ -9493,14 +10119,14 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
              * option, since salvager will ask file server for the volume */
             afs_int32 err;
             const char *confdir;
-        
+
             confdir = (localauth ? AFSDIR_SERVER_ETC_DIRPATH : AFSDIR_CLIENT_ETC_DIRPATH);
-            code = vsu_ClientInit( /* noauth */ 1, confdir, tmpname,
+            code = internal_vsu_ClientInit( /* noauth */ 1, confdir, tmpname,
                                   /* server auth */ 0, &cstruct, (int (*)()) 0);
             if (code == 0) {
                 newID = vsu_GetVolumeID(volume, cstruct, &err);
                 if (newID == 0) {
-                    char buffer[80];
+                    char buffer[256];
                     sprintf(buffer, "AFS::BOS: can't interpret %s as volume name or ID\n",
                             volume);
                     BSETCODE(-1, buffer);
@@ -9509,7 +10135,7 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 sprintf(tname, "%u", newID);
             }
             else {
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer,
                         "AFS::BOS: can't initialize volume system client (code %d), trying anyway.\n",
                         code);
@@ -9520,7 +10146,7 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 /* can't parse volume ID, so complain before shutting down
                  * file server.
                  */
-                char buffer[80];
+                char buffer[256];
                 sprintf(buffer, "AFS::BOS: can't interpret %s as partition ID.\n", partition);
                 BSETCODE(-1, buffer);
                 goto done;
@@ -9533,10 +10159,10 @@ bos_salvage(self, partition=NULL, volume=NULL, all=0, outName=NULL, showlog=0, p
                 goto done;
             }
         }
-        
+
         code = 0;
         SETCODE(code);
-        
+
         done:
         RETVAL = (code == 0);
     }
@@ -9561,7 +10187,7 @@ pts__new(class=0, sec=1, cell=0)
 
         server = internal_pts_new(&code, sec, cell);
         # SETCODE(code);  wird tiefer gesetzt...
-        
+
         if (code == 0) {
             ST(0) = sv_newmortal();
             sv_setref_pv(ST(0), "AFS::PTS", (void *) server);
@@ -9577,6 +10203,7 @@ pts__DESTROY(server)
     CODE:
     {
         int32 code;
+        /* printf("pts DEBUG ubik_ClientDestroy\n"); */
         code = ubik_ClientDestroy(server);
         SETCODE(code);
         RETVAL = (code == 0);
@@ -9611,7 +10238,7 @@ pts_id(server,object,anon=1)
             STRLEN namelen;
             namelist lnames;
             idlist lids;
-        
+
             av = (AV *) SvRV(object);
             len = av_len(av);
             if (len != -1) {
@@ -9626,7 +10253,7 @@ pts_id(server,object,anon=1)
                 }
                 lids.idlist_len = 0;
                 lids.idlist_val = 0;
-        
+
                 code = ubik_Call(PR_NameToID, server, 0, &lnames, &lids);
                 SETCODE(code);
                 if (code == 0 && lids.idlist_val) {
@@ -9640,7 +10267,8 @@ pts_id(server,object,anon=1)
                             PUSHs(sv_2mortal(newSViv(id)));
                         }
                     }
-                    safefree(lids.idlist_val);
+                    if (lids.idlist_val)
+                        free(lids.idlist_val);
                 }
                 if (lnames.namelist_val)
                     safefree(lnames.namelist_val);
@@ -9649,7 +10277,7 @@ pts_id(server,object,anon=1)
             }
         }
         else if (SvTYPE(SvRV(object)) == SVt_PVHV) {
-            int32 code, id;
+            int32 code = 0, id;
             int i, len;
             HV *hv;
             HE *he;
@@ -9657,10 +10285,10 @@ pts_id(server,object,anon=1)
             idlist lids;
             char *key;
             I32 keylen;
-        
+
             hv = (HV *) SvRV(object);
             len = 0;
-        
+
             hv_iterinit(hv);
             while (hv_iternext(hv))
                 len++;
@@ -9669,31 +10297,32 @@ pts_id(server,object,anon=1)
                 lnames.namelist_val = (prname *) safemalloc(PR_MAXNAMELEN * len);
                 hv_iterinit(hv);
                 i = 0;
-                while (he = hv_iternext(hv)) {
+                while ((he = hv_iternext(hv))) {
                     key = hv_iterkey(he, &keylen);
                     strncpy(lnames.namelist_val[i], key, PR_MAXNAMELEN);
                     i++;
                 }
                 lids.idlist_len = 0;
                 lids.idlist_val = 0;
-        
+
                 code = ubik_Call(PR_NameToID, server, 0, &lnames, &lids);
                 SETCODE(code);
                 if (code == 0 && lids.idlist_val) {
                     hv_iterinit(hv);
                     i = 0;
-                    while (he = hv_iternext(hv)) {
+                    while ((he = hv_iternext(hv))) {
                         key = hv_iterkey(he, &keylen);
                         id = lids.idlist_val[i];
                         if (id == ANONYMOUSID && !anon) {
-                            hv_store(hv, key, keylen, newSVsv(&PL_sv_undef), 0);
+                            safe_hv_store(hv, key, keylen, newSVsv(&PL_sv_undef), 0);
                         }
                         else {
-                            hv_store(hv, key, keylen, newSViv(id), 0);
+                            safe_hv_store(hv, key, keylen, newSViv(id), 0);
                         }
                         i++;
                     }
-                    safefree(lids.idlist_val);
+                    if (lids.idlist_val)
+                        free(lids.idlist_val);
                 }
                 if (lnames.namelist_val)
                     safefree(lnames.namelist_val);
@@ -9704,7 +10333,7 @@ pts_id(server,object,anon=1)
             else {
                 ST(0) = sv_newmortal();
             }
-        
+
             XSRETURN(1);
         }
         else {
@@ -9726,11 +10355,11 @@ pts_PR_NameToID(server,object)
         STRLEN namelen;
         namelist lnames;
         idlist lids;
-        
+
         if (!SvROK(object) || SvTYPE(SvRV(object)) != SVt_PVAV) {
             croak("object is not an ARRAY reference");
         }
-        
+
         av = (AV *) SvRV(object);
         len = av_len(av);
         if (len != -1) {
@@ -9745,7 +10374,7 @@ pts_PR_NameToID(server,object)
             }
             lids.idlist_len = 0;
             lids.idlist_val = 0;
-        
+
             code = ubik_Call(PR_NameToID, server, 0, &lnames, &lids);
             SETCODE(code);
             if (code == 0 && lids.idlist_val) {
@@ -9754,7 +10383,8 @@ pts_PR_NameToID(server,object)
                     id = lids.idlist_val[i];
                     PUSHs(sv_2mortal(newSViv(id)));
                 }
-                safefree(lids.idlist_val);
+                if (lids.idlist_val)
+                    free(lids.idlist_val);
             }
             if (lnames.namelist_val)
                 safefree(lnames.namelist_val);
@@ -9795,7 +10425,7 @@ pts_name(server,object,anon=1)
             char *name;
             namelist lnames;
             idlist lids;
-        
+
             av = (AV *) SvRV(object);
             len = av_len(av);
             if (len != -1) {
@@ -9822,7 +10452,8 @@ pts_name(server,object,anon=1)
                             PUSHs(sv_2mortal(newSVpv(name, strlen(name))));
                         }
                     }
-                    safefree(lnames.namelist_val);
+                    if (lnames.namelist_val)
+                        free(lnames.namelist_val);
                 }
                 if (lids.idlist_val)
                     safefree(lids.idlist_val);
@@ -9831,7 +10462,7 @@ pts_name(server,object,anon=1)
             }
         }
         else if (SvTYPE(SvRV(object)) == SVt_PVHV) {
-            int32 code;
+            int32 code = 0;
             int i, len;
             HV *hv;
             SV *sv;
@@ -9841,10 +10472,10 @@ pts_name(server,object,anon=1)
             idlist lids;
             char *key;
             I32 keylen;
-        
+
             hv = (HV *) SvRV(object);
             len = 0;
-        
+
             hv_iterinit(hv);
             while (hv_iternext(hv))
                 len++;
@@ -9853,34 +10484,35 @@ pts_name(server,object,anon=1)
                 lids.idlist_val = (int32 *) safemalloc(sizeof(int32) * len);
                 lnames.namelist_len = 0;
                 lnames.namelist_val = 0;
-        
+
                 hv_iterinit(hv);
                 i = 0;
                 sv = sv_newmortal();
-                while (he = hv_iternext(hv)) {
+                while ((he = hv_iternext(hv))) {
                     key = hv_iterkey(he, &keylen);
                     sv_setpvn(sv, key, keylen);
                     lids.idlist_val[i] = SvIV(sv);
                     i++;
                 }
-        
+
                 code = ubik_Call(PR_IDToName, server, 0, &lids, &lnames);
                 SETCODE(code);
                 if (code == 0 && lnames.namelist_val) {
                     hv_iterinit(hv);
                     i = 0;
-                    while (he = hv_iternext(hv)) {
+                    while ((he = hv_iternext(hv))) {
                         key = hv_iterkey(he, &keylen);
                         name = lnames.namelist_val[i];
                         if (!anon && check_name_for_id(name, lids.idlist_val[i])) {
-                            hv_store(hv, key, keylen, newSVsv(&PL_sv_undef), 0);
+                            safe_hv_store(hv, key, keylen, newSVsv(&PL_sv_undef), 0);
                         }
                         else {
-                            hv_store(hv, key, keylen, newSVpv(name, strlen(name)), 0);
+                            safe_hv_store(hv, key, keylen, newSVpv(name, strlen(name)), 0);
                         }
                         i++;
                     }
-                    safefree(lnames.namelist_val);
+                    if (lnames.namelist_val)
+                        free(lnames.namelist_val);
                 }
                 if (lids.idlist_val)
                     safefree(lids.idlist_val);
@@ -9911,11 +10543,11 @@ pts_PR_IDToName(server,object)
         char *name;
         namelist lnames;
         idlist lids;
-        
+
         if (!SvROK(object) || SvTYPE(SvRV(object)) != SVt_PVAV) {
             croak("object is not an ARRAY reference");
         }
-        
+
         av = (AV *) SvRV(object);
         len = av_len(av);
         if (len != -1) {
@@ -9937,7 +10569,8 @@ pts_PR_IDToName(server,object)
                     name = lnames.namelist_val[i];
                     PUSHs(sv_2mortal(newSVpv(name, strlen(name))));
                 }
-                safefree(lnames.namelist_val);
+                if (lnames.namelist_val)
+                    free(lnames.namelist_val);
             }
             if (lids.idlist_val)
                 safefree(lids.idlist_val);
@@ -9957,7 +10590,7 @@ pts_members(server,name,convertids=1,over=0)
         int32 code, wentover, id;
         int i;
         prlist list;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0) {
             list.prlist_val = 0;
@@ -9977,7 +10610,8 @@ pts_members(server,name,convertids=1,over=0)
                             name = lnames.namelist_val[i];
                             PUSHs(sv_2mortal(newSVpv(name, strlen(name))));
                         }
-                        safefree(lnames.namelist_val);
+                        if (lnames.namelist_val)
+                            free(lnames.namelist_val);
                     }
                 }
                 else {
@@ -9988,13 +10622,13 @@ pts_members(server,name,convertids=1,over=0)
                 }
             }
             if (list.prlist_val)
-                safefree(list.prlist_val);
+                free(list.prlist_val);
         }
         else {
             if (items == 4)
                 sv_setiv(ST(3), (IV) 0);
         }
-        
+
         SETCODE(code);
      }
 
@@ -10008,7 +10642,7 @@ pts_PR_ListElements(server,id,over)
         int32 code, wentover;
         int i;
         prlist list;
-        
+
         list.prlist_val = 0;
         list.prlist_len = 0;
         code = ubik_Call(PR_ListElements, server, 0, id, &list, &wentover);
@@ -10020,7 +10654,7 @@ pts_PR_ListElements(server,id,over)
             }
         }
         if (list.prlist_val)
-            safefree(list.prlist_val);
+            free(list.prlist_val);
         SETCODE(code);
      }
 
@@ -10035,7 +10669,7 @@ pts_getcps(server,name,convertids=1,over=0)
         int32 code, wentover, id;
         int i;
         prlist list;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0) {
             list.prlist_val = 0;
@@ -10055,7 +10689,8 @@ pts_getcps(server,name,convertids=1,over=0)
                             name = lnames.namelist_val[i];
                             PUSHs(sv_2mortal(newSVpv(name, strlen(name))));
                         }
-                        safefree(lnames.namelist_val);
+                        if (lnames.namelist_val)
+                            free(lnames.namelist_val);
                     }
                 }
                 else {
@@ -10066,13 +10701,13 @@ pts_getcps(server,name,convertids=1,over=0)
                 }
             }
             if (list.prlist_val)
-                safefree(list.prlist_val);
+                free(list.prlist_val);
         }
         else {
             if (items == 4)
                 sv_setiv(ST(3), (IV) 0);
         }
-        
+
         SETCODE(code);
      }
 
@@ -10086,7 +10721,7 @@ pts_PR_GetCPS(server,id,over)
         int32 code, wentover;
         int i;
         prlist list;
-        
+
         list.prlist_val = 0;
         list.prlist_len = 0;
         code = ubik_Call(PR_GetCPS, server, 0, id, &list, &wentover);
@@ -10098,7 +10733,7 @@ pts_PR_GetCPS(server,id,over)
             }
         }
         if (list.prlist_val)
-            safefree(list.prlist_val);
+            free(list.prlist_val);
         SETCODE(code);
      }
 
@@ -10113,7 +10748,7 @@ pts_owned(server,name,convertids=1,over=0)
         int32 code, wentover, id;
         int i;
         prlist list;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0) {
             list.prlist_val = 0;
@@ -10133,7 +10768,8 @@ pts_owned(server,name,convertids=1,over=0)
                             name = lnames.namelist_val[i];
                             PUSHs(sv_2mortal(newSVpv(name, strlen(name))));
                         }
-                        safefree(lnames.namelist_val);
+                        if (lnames.namelist_val)
+                            free(lnames.namelist_val);
                     }
                 }
                 else {
@@ -10144,13 +10780,13 @@ pts_owned(server,name,convertids=1,over=0)
                 }
             }
             if (list.prlist_val)
-                safefree(list.prlist_val);
+                free(list.prlist_val);
         }
         else {
             if (items == 4)
                 sv_setiv(ST(3), (IV) 0);
         }
-        
+
         SETCODE(code);
      }
 
@@ -10164,7 +10800,7 @@ pts_PR_ListOwned(server,id,over)
         int32 code, wentover;
         int i;
         prlist list;
-        
+
         list.prlist_val = 0;
         list.prlist_len = 0;
         code = ubik_Call(PR_ListOwned, server, 0, id, &list, &wentover);
@@ -10176,7 +10812,7 @@ pts_PR_ListOwned(server,id,over)
             }
         }
         if (list.prlist_val)
-            safefree(list.prlist_val);
+            free(list.prlist_val);
         SETCODE(code);
     }
 
@@ -10188,14 +10824,14 @@ pts_createuser(server,name,id=0)
     CODE:
     {
         int32 code;
-        
+
         if (id) {
             code = ubik_Call(PR_INewEntry, server, 0, name, id, 0);
         }
         else {
             code = ubik_Call(PR_NewEntry, server, 0, name, PRUSER, 0, &id);
         }
-        
+
         SETCODE(code);
         ST(0) = sv_newmortal();
         if (code == 0) {
@@ -10212,7 +10848,7 @@ pts_PR_NewEntry(server,name,flag,oid)
     CODE:
     {
         int32 code, id;
-        
+
         code = ubik_Call(PR_NewEntry, server, 0, name, flag, oid, &id);
         SETCODE(code);
         ST(0) = sv_newmortal();
@@ -10230,7 +10866,7 @@ pts_PR_INewEntry(server,name,id,oid)
     CODE:
     {
         int32 code;
-        
+
         code = ubik_Call(PR_INewEntry, server, 0, name, id, oid);
         SETCODE(code);
         ST(0) = sv_newmortal();
@@ -10249,7 +10885,7 @@ pts_creategroup(server,name,owner=0,id=0)
     {
         int32 code = 0;
         int32 oid = 0;
-        
+
         if (owner && strcmp(owner, "0") && strcmp(owner, "")) {
             code = internal_pr_id(server, owner, &oid, 0);
         }
@@ -10260,7 +10896,7 @@ pts_creategroup(server,name,owner=0,id=0)
                 code = ubik_Call(PR_NewEntry, server, 0, name, PRGRP, oid, &id);
         }
         SETCODE(code);
-        
+
         ST(0) = sv_newmortal();
         if (code == 0) {
             sv_setiv(ST(0), id);
@@ -10278,13 +10914,13 @@ pts_listentry(server,name,lookupids=1,convertflags=1)
         int32 code;
         int32 id;
         struct prcheckentry entry;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = ubik_Call(PR_ListEntry, server, 0, id, &entry);
-        
+
         SETCODE(code);
-        
+
         if (code == 0) {
             HV *stats;
             stats = newHV();
@@ -10302,11 +10938,11 @@ pts_PR_ListEntry(server,id)
     {
         int32 code;
         struct prcheckentry entry;
-        
+
         code = ubik_Call(PR_ListEntry, server, 0, id, &entry);
-        
+
         SETCODE(code);
-        
+
         if (code == 0) {
             HV *stats;
             stats = newHV();
@@ -10326,11 +10962,11 @@ pts_dumpentry(server,pos,lookupids=1,convertflags=1)
     {
         int32 code;
         struct prdebugentry entry;
-        
+
         code = ubik_Call(PR_DumpEntry, server, 0, pos, &entry);
-        
+
         SETCODE(code);
-        
+
         if (code == 0) {
             HV *stats;
             stats = newHV();
@@ -10348,11 +10984,11 @@ pts_PR_DumpEntry(server,pos)
     {
         int32 code;
         struct prdebugentry entry;
-        
+
         code = ubik_Call(PR_DumpEntry, server, 0, pos, &entry);
-        
+
         SETCODE(code);
-        
+
         if (code == 0) {
             HV *stats;
             stats = newHV();
@@ -10371,12 +11007,12 @@ pts_rename(server,name,newname)
     {
         int32 code;
         int32 id;
-        
+
         code = internal_pr_id(server, name, &id, 0);
-        
+
         if (code == 0)
             code = ubik_Call(PR_ChangeEntry, server, 0, id, newname, 0, 0);
-        
+
         SETCODE(code);
         ST(0) = sv_2mortal(newSViv(code == 0));
         XSRETURN(1);
@@ -10391,7 +11027,7 @@ pts_chown(server,name,owner)
     {
         int32 code;
         int32 id, oid;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = internal_pr_id(server, owner, &oid, 0);
@@ -10411,7 +11047,7 @@ pts_chid(server,name,newid)
     {
         int32 code;
         int32 id;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = ubik_Call(PR_ChangeEntry, server, 0, id, "", 0, newid);
@@ -10430,12 +11066,12 @@ pts_PR_ChangeEntry(server,id,name,oid,newid)
     PPCODE:
     {
         int32 code;
-        
+
         if (name && !*name)
             name = NULL;
-        
+
         code = ubik_Call(PR_ChangeEntry, server, 0, id, name, oid, newid);
-        
+
         SETCODE(code);
         ST(0) = sv_2mortal(newSViv(code == 0));
         XSRETURN(1);
@@ -10449,14 +11085,14 @@ pts_adduser(server,name,group)
     PPCODE:
     {
         int32 code, id, gid;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = internal_pr_id(server, group, &gid, 0);
         if (code == 0)
             code = ubik_Call(PR_AddToGroup, server, 0, id, gid);
         SETCODE(code);
-        
+
         ST(0) = sv_newmortal();
         sv_setiv(ST(0), (code == 0));
         XSRETURN(1);
@@ -10485,14 +11121,14 @@ pts_removeuser(server,name,group)
     PPCODE:
     {
         int32 code, id, gid;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = internal_pr_id(server, group, &gid, 0);
         if (code == 0)
             code = ubik_Call(PR_RemoveFromGroup, server, 0, id, gid);
         SETCODE(code);
-        
+
         ST(0) = sv_newmortal();
         sv_setiv(ST(0), (code == 0));
         XSRETURN(1);
@@ -10506,7 +11142,7 @@ pts_PR_RemoveFromGroup(server,uid,gid)
     PPCODE:
     {
         int32 code;
-        
+
         code = ubik_Call(PR_RemoveFromGroup, server, 0, uid, gid);
         SETCODE(code);
         ST(0) = sv_newmortal();
@@ -10521,7 +11157,7 @@ pts_delete(server,name)
     PPCODE:
     {
         int32 code, id;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = ubik_Call(PR_Delete, server, 0, id);
@@ -10538,7 +11174,7 @@ pts_PR_Delete(server,id)
     PPCODE:
     {
         int32 code;
-        
+
         code = ubik_Call(PR_Delete, server, 0, id);
         SETCODE(code);
         ST(0) = sv_newmortal();
@@ -10553,7 +11189,7 @@ pts_whereisit(server,name)
     PPCODE:
     {
         int32 code, id, pos;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = ubik_Call(PR_WhereIsIt, server, 0, id, &pos);
@@ -10586,7 +11222,7 @@ pts_listmax(server)
     PPCODE:
     {
         int32 code, uid, gid;
-        
+
         code = ubik_Call(PR_ListMax, server, 0, &uid, &gid);
         SETCODE(code);
         if (code == 0) {
@@ -10602,7 +11238,7 @@ pts_PR_ListMax(server)
     PPCODE:
     {
         int32 code, uid, gid;
-        
+
         code = ubik_Call(PR_ListMax, server, 0, &uid, &gid);
         SETCODE(code);
         if (code == 0) {
@@ -10620,7 +11256,7 @@ pts_setmax(server,id,isgroup=0)
     PPCODE:
     {
         int32 code, flag;
-        
+
         flag = 0;
         if (isgroup)
             flag |= PRGRP;
@@ -10639,7 +11275,7 @@ pts_PR_SetMax(server,id,gflag)
     PPCODE:
     {
         int32 code;
-        
+
         code = ubik_Call(PR_SetMax, server, 0, id, gflag);
         SETCODE(code);
         ST(0) = sv_newmortal();
@@ -10655,9 +11291,9 @@ pts_setgroupquota(server,name,ngroups)
     PPCODE:
     {
         int32 code, id, mask;
-        
+
         code = internal_pr_id(server, name, &id, 0);
-        
+
         if (code == 0) {
             mask = PR_SF_NGROUPS;
             code = ubik_Call(PR_SetFieldsEntry, server, 0, id, mask, 0, ngroups, 0, 0, 0);
@@ -10681,7 +11317,7 @@ pts_PR_SetFieldsEntry(server,id,mask,flags,ngroups,nusers,spare1,spare2)
     PPCODE:
     {
         int32 code;
-        
+
         code = ubik_Call(PR_SetFieldsEntry, server, 0,
                          id, mask, flags, ngroups, nusers, spare1, spare2);
         SETCODE(code);
@@ -10698,7 +11334,7 @@ pts_setaccess(server,name,access)
     PPCODE:
     {
         int32 code, id, flags, mask;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = parse_pts_setfields(access, &flags);
@@ -10720,14 +11356,14 @@ pts_ismember(server,name,group)
     PPCODE:
     {
         int32 code, id, gid, flag;
-        
+
         code = internal_pr_id(server, name, &id, 0);
         if (code == 0)
             code = internal_pr_id(server, group, &gid, 0);
         if (code == 0)
             code = ubik_Call(PR_IsAMemberOf, server, 0, id, gid, &flag);
         SETCODE(code);
-        
+
         ST(0) = sv_newmortal();
         if (code == 0)
             sv_setiv(ST(0), (flag != 0));
@@ -10742,7 +11378,7 @@ pts_PR_IsAMemberOf(server,uid,gid)
     PPCODE:
     {
         int32 code, flag;
-        
+
         code = ubik_Call(PR_IsAMemberOf, server, 0, uid, gid, &flag);
         SETCODE(code);
         ST(0) = sv_newmortal();
@@ -10776,7 +11412,7 @@ kas_KAM_GetEntry(server,user,inst)
     {
         int32 code;
         struct kaentryinfo entry;
-        
+
         code = ubik_Call(KAM_GetEntry, server, 0, user, inst, KAMAJORVERSION, &entry);
         SETCODE(code);
         if (code == 0) {
@@ -10799,7 +11435,7 @@ kas_KAM_Debug(server,version)
     {
         int32 code;
         struct ka_debugInfo entry;
-        
+
         code = ubik_Call(KAM_Debug, server, 0, version, 0, &entry);
         SETCODE(code);
         if (code == 0) {
@@ -10824,7 +11460,7 @@ kas_KAM_GetStats(server,version)
         int32 admin_accounts;
         struct kasstats kas;
         struct kadstats kad;
-        
+
         code = ubik_Call(KAM_GetStats, server, 0, version, &admin_accounts, &kas, &kad);
         SETCODE(code);
         if (code == 0) {
@@ -10850,11 +11486,11 @@ kas_KAM_GetRandomKey(server)
     {
         int32 code;
         struct ktc_encryptionKey *key;
-        
+
         key = (struct ktc_encryptionKey *) safemalloc(sizeof(*key));
-        
+
         code = ubik_Call(KAM_GetRandomKey, server, 0, key);
-        
+
         SETCODE(code);
         if (code == 0) {
             SV *st = sv_newmortal();
@@ -10875,9 +11511,9 @@ kas_KAM_CreateUser(server,user,inst,key)
     PPCODE:
     {
         int32 code;
-        
+
         code = ubik_Call(KAM_CreateUser, server, 0, user, inst, *key);
-        
+
         SETCODE(code);
         EXTEND(sp, 1);
         PUSHs(sv_2mortal(newSViv(code == 0)));
@@ -10893,9 +11529,9 @@ kas_KAM_SetPassword(server,user,inst,kvno,key)
     PPCODE:
     {
         int32 code;
-        
+
         code = ubik_Call(KAM_SetPassword, server, 0, user, inst, kvno, *key);
-        
+
         SETCODE(code);
         EXTEND(sp, 1);
         PUSHs(sv_2mortal(newSViv(code == 0)));
@@ -10909,7 +11545,7 @@ kas_KAM_DeleteUser(server,user,inst)
     PPCODE:
     {
         int32 code;
-        
+
         code = ubik_Call(KAM_DeleteUser, server, 0, user, inst);
         SETCODE(code);
         EXTEND(sp, 1);
@@ -10926,7 +11562,7 @@ kas_KAM_ListEntry(server,previous,index,count)
     {
         int32 code;
         struct kaident ki;
-        
+
         code = ubik_Call(KAM_ListEntry, server, 0, previous, &index, &count, &ki);
         sv_setiv(ST(2), (IV) index);
         sv_setiv(ST(3), (IV) count);
@@ -10952,7 +11588,7 @@ kas_KAM_SetFields(server,name,instance,flags,user_expire,max_ticket_life, maxAss
     PPCODE:
     {
         int32 code;
-        
+
         #  tpf nog 03/29/99
         #  wrong argument list: max_ticket_life was missing
         #       code = ubik_Call(KAM_SetFields, server, 0, name, instance,
@@ -10974,7 +11610,7 @@ kas_ka_ChangePassword(server,name,instance,oldkey,newkey)
     PPCODE:
     {
         int32 code;
-        
+
         code = ka_ChangePassword(name, instance, server, oldkey, newkey);
         SETCODE(code);
         EXTEND(sp, 1);
@@ -11000,7 +11636,7 @@ kas_ka_GetToken(server,name,instance,start,end,auth_token,auth_domain="")
         char *cinst = NULL;
         char *cell = NULL;
 #endif
-        
+
         t = (struct ktc_token *) safemalloc(sizeof(struct ktc_token));
 #if defined(AFS_3_4)
         code = ka_GetToken(name, instance, server, start, end, auth_token, auth_domain, t);
@@ -11022,7 +11658,7 @@ kas_ka_GetToken(server,name,instance,start,end,auth_token,auth_domain="")
             XSRETURN(1);
         }
         else {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::KTC_TOKEN: ");
             KSETCODE(code, buffer);
             safefree(t);
@@ -11049,7 +11685,7 @@ kas_ka_Authenticate(server,name,instance,service,key,start,end,pwexpires=-1)
 #else
         char *cell = NULL;
 #endif
-        
+
         t = (struct ktc_token *) safemalloc(sizeof(struct ktc_token));
 #if defined(AFS_3_4)
         code = ka_Authenticate(name, instance, server, service, key, start, end, t, &pw);
@@ -11072,7 +11708,7 @@ kas_ka_Authenticate(server,name,instance,service,key,start,end,pwexpires=-1)
             XSRETURN(1);
         }
         else {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::KTC_TOKEN: ");
             KSETCODE(code, buffer);
             safefree(t);
@@ -11098,16 +11734,26 @@ BOOT:
 /*     initialize_butm_error_table(); */
 /*     initialize_butc_error_table(); */
 
+void
+afs__finalize()
+    CODE:
+    {
+        if (rx_initialized) {
+            rx_Finalize();
+            /* printf("AFS DEBUG rx_Finalize\n"); */
+        }
+    }
+
 int32
 afs_ascii2ptsaccess(access)
         char *  access
     CODE:
     {
         int32 code, flags;
-        
+
         code = parse_pts_setfields(access, &flags);
         SETCODE(code);
-        
+
         if (code != 0)
             flags = 0;
         RETVAL = flags;
@@ -11134,7 +11780,7 @@ afs_ka_ParseLoginName(login)
         char name[MAXKTCNAMELEN];
         char inst[MAXKTCNAMELEN];
         char cell[MAXKTCREALMLEN];
-        
+
         code = ka_ParseLoginName(login, name, inst, cell);
         SETCODE(code);
         if (code == 0) {
@@ -11153,11 +11799,11 @@ afs_ka_StringToKey(str,cell)
     {
         struct ktc_encryptionKey *key;
         SV *st;
-        
+
         key = (struct ktc_encryptionKey *) safemalloc(sizeof(*key));
-        
+
         ka_StringToKey(str, cell, key);
-        
+
         SETCODE(0);
         EXTEND(sp, 1);
         st = sv_newmortal();
@@ -11201,7 +11847,7 @@ afs_ka_ReadPassword(prompt,verify=0,cell=0)
 
         if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
-        
+
         if (cell == 0) {
             cell = internal_GetLocalCell(&code);
             if (code)
@@ -11218,7 +11864,7 @@ afs_ka_ReadPassword(prompt,verify=0,cell=0)
             XSRETURN(1);
         }
         else {
-            char buffer[80];
+            char buffer[256];
             sprintf(buffer, "AFS::KTC_EKEY: ");
             KSETCODE(code, buffer);
             safefree(key);
@@ -11257,12 +11903,12 @@ afs_ka_GetAdminToken(p,key,lifetime,newt=1,reason=0)
         int32 code;
         struct ktc_token *t;
         char *message;
-        
+
         t = (struct ktc_token *) safemalloc(sizeof(struct ktc_token));
-        
+
         code = ka_GetAdminToken(p->name, p->instance, p->cell, key, lifetime, t, newt);
         SETCODE(code);
-        
+
         if (code == 0) {
             SV *st;
             EXTEND(sp, 1);
@@ -11298,7 +11944,7 @@ afs_ka_GetAuthToken(p,key,lifetime,pwexpires=-1)
     {
         int32 code;
         int32 pw;
-        
+
         code = ka_GetAuthToken(p->name, p->instance, p->cell, key, lifetime, &pw);
         SETCODE(code);
         if (code == 0) {
@@ -11324,7 +11970,7 @@ afs_ka_GetServerToken(p,lifetime,newt=1)
 #else
         int32 dosetpag;
 #endif
-        
+
         t = (struct ktc_token *) safemalloc(sizeof(struct ktc_token));
 #if defined(AFS_3_4)
         code = ka_GetServerToken(p->name, p->instance, p->cell, lifetime, t, newt);
@@ -11333,7 +11979,7 @@ afs_ka_GetServerToken(p,lifetime,newt=1)
         code = ka_GetServerToken(p->name, p->instance, p->cell, lifetime, t, newt, dosetpag);
 #endif
         SETCODE(code);
-        
+
         if (code == 0) {
             SV *st;
             EXTEND(sp, 1);
@@ -11364,16 +12010,16 @@ afs_ka_AuthServerConn(token,service,cell=0)
     {
         int32 code;
         AFS__KAS server;
-        
+
         if (token == &the_null_token)
             token = NULL;
-        
+
         if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
-        
+
         code = ka_AuthServerConn(cell, service, token, &server);
         SETCODE(code);
-        
+
         if (code == 0) {
             ST(0) = sv_newmortal();
             sv_setref_pv(ST(0), "AFS::KAS", (void *) server);
@@ -11391,13 +12037,13 @@ afs_ka_SingleServerConn(host,token,service,cell=0)
     {
         int32 code;
         AFS__KAS server;
-        
+
         if (token == &the_null_token)
             token = NULL;
-        
+
         code = ka_SingleServerConn(cell, host, service, token, &server);
         SETCODE(code);
-        
+
         if (code == 0) {
             ST(0) = sv_newmortal();
             sv_setref_pv(ST(0), "AFS::KAS", (void *) server);
@@ -11412,9 +12058,9 @@ afs_ka_des_string_to_key(str)
     {
         struct ktc_encryptionKey *key;
         SV *st;
-        
+
         key = (struct ktc_encryptionKey *) safemalloc(sizeof(*key));
-        
+
         des_string_to_key(str, key);
         SETCODE(0);
         EXTEND(sp, 1);
@@ -11428,7 +12074,7 @@ afs_setpag()
     CODE:
     {
         int32 code;
-        
+
         code = setpag();
         SETCODE(code);
         RETVAL = (code == 0);
@@ -11443,7 +12089,7 @@ afs_expandcell(cell)
     {
         int32 code;
         struct afsconf_cell info;
-        
+
         if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
 
@@ -11465,9 +12111,9 @@ afs_localcell()
     {
         int32 code;
         char *cell;
-        
+
         cell = internal_GetLocalCell(&code);
-        
+
         if (! code) SETCODE(code);  /* fuer Fehler wird tiefer gesetzt... */
         ST(0) = sv_newmortal();
         sv_setpv(ST(0), cell);
@@ -11482,10 +12128,10 @@ afs_getcellinfo(cell=0,ip=0)
     {
         int32 code;
         struct afsconf_cell info;
-        
+
         if (cell && (cell[0] == '\0' || cell[0] == '0'))
             cell = NULL;
-        
+
         code = internal_GetCellInfo(cell, 0, &info);
         if (code != 0) {
             XSRETURN_UNDEF;
@@ -11513,7 +12159,7 @@ afs_convert_numeric_names(...)
     CODE:
     {
         int32 flag;
-        
+
         if (items > 1)
             croak("Usage: AFS::convert_numeric_names(flag)");
         if (items == 1) {
@@ -11530,7 +12176,7 @@ afs_raise_exception(...)
     CODE:
     {
         int32 flag;
-        
+
         if (items > 1)
             croak("Usage: AFS::raise_exception(flag)");
         if (items == 1) {
@@ -11548,10 +12194,10 @@ afs_configdir(...)
     {
         char *value;
         int32 code;
-        
+
         if (items > 1)
             croak("Usage: AFS::configdir(dir)");
-        
+
         if (items == 1) {
             STRLEN len;
             value = (char *) SvPV(ST(0), len);
@@ -11591,7 +12237,7 @@ afs_ktc_ListTokens(context)
     {
         int32 code;
         struct ktc_principal *p;
-        
+
         p = (struct ktc_principal *) safemalloc(sizeof(struct ktc_principal));
         code = ktc_ListTokens(context, &context, p);
         SETCODE(code);
@@ -11603,7 +12249,7 @@ afs_ktc_ListTokens(context)
         else {
             safefree(p);
         }
-        
+
         XSRETURN(1);
     }
 
@@ -11615,13 +12261,13 @@ afs_ktc_GetToken(server)
         int32 code;
         struct ktc_principal *c;
         struct ktc_token *t;
-        
+
         c = (struct ktc_principal *) safemalloc(sizeof(struct ktc_principal));
         t = (struct ktc_token *) safemalloc(sizeof(struct ktc_token));
-        
+
         code = ktc_GetToken(server, t, sizeof(*t), c);
         SETCODE(code);
-        
+
         if (code == 0) {
             SV *st, *sc;
             EXTEND(sp, 2);
@@ -11647,13 +12293,13 @@ afs_ktc_FromString(s)
         STRLEN len;
         char *str;
         struct ktc_token *t;
-        
+
         str = SvPV(s, len);
         EXTEND(sp, 1);
         if (len == sizeof(struct ktc_token)) {
             t = (struct ktc_token *) safemalloc(sizeof(struct ktc_token));
             memcpy((void *) t, (void *) str, sizeof(struct ktc_token));
-        
+
             sv = sv_newmortal();
             sv_setref_pv(sv, "AFS::KTC_TOKEN", (void *) t);
             PUSHs(sv);

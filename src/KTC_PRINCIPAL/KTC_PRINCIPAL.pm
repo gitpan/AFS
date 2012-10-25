@@ -1,8 +1,8 @@
 package AFS::KTC_PRINCIPAL;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: KTC_PRINCIPAL.pm 919 2009-10-16 10:34:03Z nog $"
+# RCS-Id: "@(#)$Id: KTC_PRINCIPAL.pm 1059 2011-11-18 12:32:20Z nog $"
 #
-# Copyright © 2001-2009 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = 'v2.6.2';
+$VERSION = 'v2.6.3';
 
 sub ListTokens {
     my $class  = shift;

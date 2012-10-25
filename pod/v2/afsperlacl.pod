@@ -1,8 +1,8 @@
 # -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlacl.pod 859 2008-10-14 09:23:34Z nog $"
+# RCS-Id: "@(#)$Id: afsperlacl.pod 1056 2011-11-17 13:46:23Z nog $"
 #
-# Copyright © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2001-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -174,6 +174,13 @@ or negative(-E<gt>nlength) ACL list.
 Returns 1 if the given USER exists in the positive(-E<gt>exists)
 or negative(-E<gt>nexists) ACL list.
 
+=item B<$acl-E<gt>is_clean>
+
+Returns 1 if the ACL list is clean, or 0 when the ACL list needs
+cleaning.  An ACL list needs cleaning if it contains entries
+referencing nonexistant PTS entries, which are represented by a
+numeric ID in the ACL instead of a name.
+
 =item B<INSTANCE METHODS>
 
 =item S< >
@@ -197,31 +204,31 @@ an entry to be removed from the ACL.
 
 =head1 CURRENT AUTHOR
 
-Norbert E. Gruener S< E<lt>nog@MPA>S<-Garching.MPG.deE<gt>. >
+Norbert E. Gruener E<lt>nog@MPA-Garching.MPG.deE<gt>
 
 =head1 AUTHOR EMERITUS
 
-Roland Schemers S< E<lt>schemers@slapshot.stanford.eduE<gt>. >
+Roland Schemers E<lt>schemers@slapshot.stanford.eduE<gt>
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- © 2001-2008 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+ Copyright (c) 2001-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
 
- © 1994 Board of Trustees, Leland Stanford Jr. University.
+ Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University.
  All rights reserved.
 
- Most of the explanations in this document are taken from the original
- AFS documentation.
+Most of the explanations in this document are taken from the original
+AFS documentation.
 
  AFS-3 Programmer's Reference:
  File Server/Cache Manager Interface
  Edward R. Zayas
- © 1991 Transarc Corporation.
+ Copyright (c) 1991 Transarc Corporation.
  All rights reserved.
 
  IBM AFS Administration Reference
- © IBM Corporation 2000.
+ Copyright (c) IBM Corporation 2000.
  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
@@ -249,4 +256,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 859 $
+Revision $Rev: 1056 $

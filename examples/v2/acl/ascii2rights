@@ -1,7 +1,8 @@
-#!/usr/local/bin/perl -w
+#!/usr/local/bin/perl
 
-use strict;
 use blib;
+use strict;
+use warnings;
 
 use AFS::ACL;
 
@@ -9,4 +10,4 @@ die "Usage: $0 rights \n" if $#ARGV != 0;
 
 my $rights = shift;
 print "Flag($rights) = ", AFS::ACL->ascii2rights($rights), "\n";
-print "AFS::CODE = $AFS::CODE (", ($AFS::CODE+0), ")\n";
+$AFS::CODE and print "AFS::CODE = $AFS::CODE\n";

@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL 960 2010-03-31 10:34:15Z nog $"
+# RCS-Id: "@(#)$Id: Makefile.PL 1124 2012-10-01 11:51:31Z nog $"
 #
-# Copyright © 2001-2009 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# Â© 2001-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -19,24 +19,21 @@ use version 0.77; # get latest bug-fixes and API
 my $dir = getcwd;
 if ($dir !~ /src$/) { die "Ooops, the Makefile.PL is not sitting in the proper directory\n";}
 
-my $archname = $Config{'archname'};
 my $libs;
 my $p_flag = '';
 
-if ($archname =~ /thread/i) {
+if ($Config{usethreads}) {
     # use the threaded version of the AFS libraries for threaded Perl...
     $libs = join (" ", qw(
                           -lbos
                           -lvolser
                           -lvldb
-                          -lafsrpc
-                          -lafsauthent
                           -lcmd
                           -lusd
                           -laudit
+                          -lc -lafsauthent -lc
+                          -lc -lafsrpc -lc
                           -lutil
-                          -lutil -lafsrpc -lutil
-                          -lutil -lafsauthent -lutil
                          )
                  );
     $p_flag = '-DAFS_PTHREAD_ENV';
@@ -90,9 +87,11 @@ if ($AFSPath eq 'unknown') {
 }
 
 # determine the alpha_sys value
-#my $alpha_sys = 'i386_linux24';
 my $alpha_sys = 'unknown';
-if (-e "$AFSPath/bin/fs") {
+if ($ENV{AFS_SYSNAME}) {
+    $alpha_sys = $ENV{AFS_SYSNAME};
+}
+elsif (-e "$AFSPath/bin/fs") {
     my $fs_sysname = `$AFSPath/bin/fs sysname 2>&1`;
     if ($fs_sysname =~ s/Current sysname is:? //) {
         $fs_sysname =~ s/list? //;
@@ -106,7 +105,7 @@ if (-e "$AFSPath/bin/fs") {
     }
 }
 else {
-    warn "Can not find the AFS binary 'fs' at $AFSPath/bin \n";
+    warn "Could not find the AFS binary 'fs' at $AFSPath/bin \n";
     if ($ENV{AUTOMATED_TESTING}) { exit 0; }
     die "Script terminated ...\n";
 }
@@ -159,19 +158,19 @@ if ($v_numb =~ /3.[4,5]/) {
 #    if ($ENV{AUTOMATED_TESTING}) { exit 0; }
 #    die "Script terminated ...\n";
 #}
-elsif ($archname =~ /thread/i and $v_string !~ /openafs/) {
+elsif ($Config{usethreads} and $v_string !~ /openafs/) {
     warn "\nAFS modules (Threaded Perl) in conjunction with Transarc/IBM AFS is not supported ...\n";
     if ($ENV{AUTOMATED_TESTING}) { exit 0; }
     die "Script terminated ...\n";
 }
-elsif ($archname =~ /thread/i and $alpha_sys =~ /amd64_linux2/) {
+elsif ($Config{usethreads} and $alpha_sys =~ /amd64_linux2/) {
     if (! -e "$AFSPath/lib/libafsauthent_pic.a" or ! -e "$AFSPath/lib/libafsrpc_pic.a") {
         warn "\nAFS system libraries libafsrpc and/or libafsauthent (PIC) not found ...\n";
         if ($ENV{AUTOMATED_TESTING}) { exit 0; }
         die "Script terminated ...\n";
     }
 }
-elsif ($archname =~ /thread/i and $alpha_sys =~ /rs_aix4/) {
+elsif ($Config{usethreads} and $alpha_sys =~ /rs_aix4/) {
     warn "\nAFS modules (Threaded Perl) on AIX platforms are currently not supported ...\n";
     if ($ENV{AUTOMATED_TESTING}) { exit 0; }
     die "Script terminated ...\n";
@@ -186,7 +185,14 @@ elsif ($v_numb =~ /1.1/)   { $m_version = 'OpenAFS 1.1'; }
 elsif ($v_numb =~ /1.2/)   { $m_version = 'OpenAFS 1.2'; }
 elsif ($v_numb =~ /1.3/)   { $m_version = 'OpenAFS 1.3'; }
 elsif ($v_numb =~ /1.4/)   { $m_version = 'OpenAFS 1.4'; }
+elsif ($v_numb =~ /1.5/)   { $m_version = 'OpenAFS 1.5'; }
 elsif ($v_numb =~ /devel/) { $m_version = 'OpenAFS devel'; }
+
+if ($m_version eq '') {
+    warn "Could not determine OpenAFS version: $version \n";
+    if ($ENV{AUTOMATED_TESTING}) { exit 0; }
+    die "Script terminated ...\n";
+}
 
 # set the different compiler flags according to the AFS version
 my ($d_flag, $a_flag, $e_flag, $i_flag) = ('', '', '', '');
@@ -199,17 +205,26 @@ $d_flag = '-D' . $d_flag;
 if ($v_numb gt v1.4.4 and $v_string =~ /openafs/) {
     $e_flag = '-DAFS_OLD_COM_ERR';
     $i_flag = '-I ./ ';
+    $d_flag .= ' -DOpenAFS_1_4_05';
 }
 
-if ($v_numb gt v1.4.7) {
+if ($v_numb gt v1.4.6 and $v_string =~ /openafs/) {
+    $d_flag .= ' -DOpenAFS_1_4_07';
+}
+
+if ($v_numb gt v1.4.7 and $v_string =~ /openafs/) {
     $d_flag .= ' -DOpenAFS_1_4_64';
+}
+
+if ($v_numb gt v1.4.11 and $v_string =~ /openafs/) {
+    $d_flag .= ' -DOpenAFS_1_4_12';
 }
 
 # print out a summary of determined data
 print "AFS Version = $v_string v$v_numb \n";
 print "Your AFS system libraries are located at:  $AFSPath \n";
 print "                  their major version is:  $m_version \n";
-print "                  and their type is:       \"pthreaded\"\n" if ($archname =~ /thread/i);
+print "                  and their type is:       \"pthreaded\"\n" if ($Config{usethreads});
 print "Your AFS system type seems to be:          $alpha_sys \n\n";
 print "The Compile Flags are set to:              $a_flag \n";
 print "                                           $d_flag \n";
@@ -217,9 +232,11 @@ print "                                           $e_flag \n";
 print "                                           $p_flag\n\n";
 
 # set the Makefile values
+my $ccflags = $Config::Config{ccflags} || '';
 my %MakefileArgs = (
     'NAME'         => 'AFS',
     'VERSION_FROM' => 'AFS.pm',
+    'CCFLAGS'      => "-Wall $ccflags",
     'DEFINE'	   => "$d_flag $p_flag $a_flag $e_flag",
     'INC'          => $i_flag . "-I$AFSPath/include",
     'LIBS'         => [
@@ -262,28 +279,28 @@ my $command = "\'s#-lutil#$AFSPath/lib/afs/util.a#\'";
 system("perl -p -i.bak -e $command Makefile") unless -f "$AFSPath/lib/afs/libutil.a";
 
 # change the library name of the AFS system library "vlib.a"
-my $command = "\'s#-lvlib#$AFSPath/lib/afs/vlib.a#\'";
-system("perl -p -i.bak -e $command Makefile") unless -f "$AFSPath/lib/afs/libvlib.a";
+# my $command = "\'s#-lvlib#$AFSPath/lib/afs/vlib.a#\'";
+# system("perl -p -i.bak -e $command Makefile") unless -f "$AFSPath/lib/afs/libvlib.a";
 
 # change the library name of the AFS system library "libcom_err"
 $command = "\'s#-lcom_err#$AFSPath/lib/afs/libcom_err.a#\'";
 system("perl -p -i.bak -e $command Makefile");
 
 # change the library name of the AFS system library "-lafsrpc"
-if ($alpha_sys =~ /amd64_linux2/) {
-    $command = "\'s#-lutil -lafsrpc -lutil#$AFSPath/lib/libafsrpc_pic.a#\'";
+if ($alpha_sys =~ /linux/ && $alpha_sys !~ /i386_linux2/) {
+    $command = "\'s#-lc -lafsrpc -lc#$AFSPath/lib/libafsrpc_pic.a#g\'";
 }
 else {
-    $command = "\'s#-lutil -lafsrpc -lutil#$AFSPath/lib/libafsrpc.a#\'";
+    $command = "\'s#-lc -lafsrpc -lc#$AFSPath/lib/libafsrpc.a#g\'";
 }
 system("perl -p -i.bak -e $command Makefile");
 
 # change the library name of the AFS system library "-lafsauthent"
-if ($alpha_sys =~ /amd64_linux2/) {
-    $command = "\'s#-lutil -lafsauthent -lutil#$AFSPath/lib/libafsauthent_pic.a#\'";
+if ($alpha_sys =~ /linux/ && $alpha_sys !~ /i386_linux2/) {
+    $command = "\'s#-lc -lafsauthent -lc#$AFSPath/lib/libafsauthent_pic.a#g\'";
 }
 else {
-    $command = "\'s#-lutil -lafsauthent -lutil#$AFSPath/lib/libafsauthent.a#\'";
+    $command = "\'s#-lc -lafsauthent -lc#$AFSPath/lib/libafsauthent.a#g\'";
 }
 system("perl -p -i.bak -e $command Makefile");
 
