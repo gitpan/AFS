@@ -1,13 +1,12 @@
-# -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperlvldb.pod 1078 2011-12-09 13:41:19Z nog $"
+# RCS-Id: "@(#)$RCS-Id: pod/v2/afsperlvldb.pod 2e2ca60 Tue Apr 15 13:04:20 2014 +0200 Norbert E Gruener$"
 #
-# © 2005-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# © 2005-2014 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 # © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
 #             Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
-# This library is free software; you can redistribute it and/or modify it
-# under the same terms as Perl itself.
+# This is free software; you can redistribute it and/or modify it under
+# the same terms as the Perl 5 programming language system itself.
 #------------------------------------------------------------------------------
 
 =head1 NAME
@@ -345,7 +344,7 @@ documentation were written by
 
 =back
 
-=head1 COPYRIGHT AND DISCLAIMER
+=head1 COPYRIGHT AND LICENSE
 
  Copyright (c) 2005-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  Copyright (c) 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
@@ -365,8 +364,8 @@ AFS documentation.
  Copyright (c) IBM Corporation 2000.
  All rights reserved.
 
-This library is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =head1 DOCUMENT VERSION
 

@@ -1,6 +1,6 @@
 package AFS::Cell;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Cell.pm 1059 2011-11-18 12:32:20Z nog $"
+# RCS-Id: "@(#)$RCS-Id: src/Cell/Cell.pm 7a64d4d Wed May 1 22:05:49 2013 +0200 Norbert E Gruener$"
 #
 # © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -23,6 +23,6 @@ require Exporter;
                 wscell
                );
 @ISA     = qw(Exporter AFS);
-$VERSION = 'v2.6.3';
+$VERSION = 'v2.6.4';
 
 1;

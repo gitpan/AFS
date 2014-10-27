@@ -1,6 +1,6 @@
 package AFS::ACL;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: ACL.pm 1056 2011-11-17 13:46:23Z nog $"
+# RCS-Id: "@(#)$RCS-Id: src/ACL/ACL.pm 7a64d4d Wed May 1 22:05:49 2013 +0200 Norbert E Gruener$"
 #
 # © 2001-2011 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = 'v2.6.3';
+$VERSION = 'v2.6.4';
 
 sub new {
     my ($this, $class);

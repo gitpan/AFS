@@ -1,5 +1,5 @@
 
-This is the README file for the Perl extension module bundle AFS (Version v2.6.3)
+This is the README file for the Perl extension module bundle AFS (Version v2.6.4)
 
 
 DESCRIPTION
@@ -10,14 +10,7 @@ DESCRIPTION
 
 
 WHAT'S NEW?
-    Version v2.6.3 is mostly a bug fixing release.
-    For the AFS::BOS module the following methods have been released
-        addhost
-        adduser
-        removehost
-        removeuser
-        setrestart
-
+    Version v2.6.4 is just a bug fixing release.
     For more details, please see the file named 'CHANGES' which should
     have been included in the AFS module distribution.
 
@@ -36,8 +29,8 @@ DEPRECATION
 
 INSTALLATION
     If you want to install the AFS module bundle on a 32-bit platform
-    read the 'INSTALL' file or if to install it on a 64-bit platform
-    read the 'INSTALL_64' file.
+    read the 'INSTALL' file. For installation on a 64-bit platform read
+    the 'INSTALL_64' file.
 
 
 DOCUMENTATION
@@ -89,7 +82,7 @@ CREDITS
 
 
 COPYRIGHT AND DISCLAIMER
-    © 2001-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
+    © 2001-2014 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
     All rights reserved.
 
     © 1994 Board of Trustees, Leland Stanford Jr. University.

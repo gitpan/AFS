@@ -23,7 +23,7 @@ system("cp ./pod/v2/afsperlutils.pod lib/AFS/Utils.pod");
 system("cp ./pod/v2/afsperlvldb.pod lib/AFS/VLDB.pod");
 system("cp ./pod/v2/afsperlvos.pod lib/AFS/VOS.pod");
 
-my $VERSION = '2.6.3';
+my $VERSION = '2.6.4';
 WriteMakefile(
               'NAME'         => 'AFS',
               'VERSION'      => $VERSION,

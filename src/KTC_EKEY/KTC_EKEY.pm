@@ -1,6 +1,6 @@
 package AFS::KTC_EKEY;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: KTC_EKEY.pm 1059 2011-11-18 12:32:20Z nog $"
+# RCS-Id: "@(#)$RCS-Id: src/KTC_EKEY/KTC_EKEY.pm 7a64d4d Wed May 1 22:05:49 2013 +0200 Norbert E Gruener$"
 #
 # © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = 'v2.6.3';
+$VERSION = 'v2.6.4';
 
 sub UserReadPassword {
     my $class = shift;

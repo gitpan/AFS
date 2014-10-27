@@ -1,11 +1,10 @@
-# -*-cperl-*-
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: afsperl.pod 1134 2012-10-18 12:54:04Z nog $"
+# RCS-Id: "@(#)$RCS-Id: pod/v2/afsperl.pod 2e2ca60 Tue Apr 15 13:04:20 2014 +0200 Norbert E Gruener$"
 #
-# © 2001-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+# © 2001-2014 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
-# This library is free software; you can redistribute it and/or modify it
-# under the same terms as Perl itself.
+# This is free software; you can redistribute it and/or modify it under
+# the same terms as the Perl 5 programming language system itself.
 #------------------------------------------------------------------------------
 
 =head1 NAME
@@ -14,7 +13,7 @@ B<AFS> - Perl interface to AFS programming APIs
 
 =head1 VERSION
 
-This document describes the AFS module bundle (Version 2.6.3)
+This document describes the AFS module bundle (Version 2.6.4)
 
 
 =head1 COMPATIBILITY
@@ -267,7 +266,7 @@ B<Hans-Werner Paulsen> - for his improvement request on AFS::VOS->listvolume
 
 B<Wolfgang Friebel> - for his improvement request on AFS::VOS->dump
 
-=head1 COPYRIGHT AND DISCLAIMER
+=head1 COPYRIGHT AND LICENSE
 
  Copyright (c) 2001-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>.
  All rights reserved.
@@ -275,8 +274,8 @@ B<Wolfgang Friebel> - for his improvement request on AFS::VOS->dump
  Copyright (c) 1994 Board of Trustees, Leland Stanford Jr. University.
  All rights reserved.
 
-This library is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =over 6
 
@@ -300,4 +299,4 @@ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 DOCUMENT VERSION
 
-Revision $Rev: 1134 $
+Revision $Rev: 1154 $

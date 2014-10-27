@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL 1124 2012-10-01 11:51:31Z nog $"
+# RCS-Id: "@(#)$RCS-Id: src/Makefile.PL 09f1168 Mon Jan 7 08:10:19 2013 +0100 Norbert E Gruener$"
 #
 # © 2001-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #

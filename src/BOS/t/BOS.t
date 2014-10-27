@@ -48,8 +48,8 @@ my ($generalTime, $newBinaryTime) = $bos->getrestart;
 ok(defined $generalTime, 'bos->getrestart: GeneralTime OK');
 ok(defined $newBinaryTime, 'bos->getrestart: NewBinaryTime OK');
 
-my $result = $bos->status(0, [ 'fs' ]);
-isa_ok($result->{fs}, 'HASH', 'bos->status OK');
+my $result = $bos->status(0, [ 'fs', ]) || $bos->status(0, [ 'dafs', ]);
+isa_ok($result->{fs} || $result->{dafs}, 'HASH', 'bos->status OK');
 
 my %h = ( nog => 1 );
 $bos->adduser(\%h);
@@ -78,7 +78,11 @@ like($AFS::CODE, qr/HOST not an array reference/, 'bos->removehost(HASH)');
 
 $host = 'z';
 $bos->removehost($host);
-like($AFS::CODE, qr/no such entity/, 'bos->removehost(unknown host)');
+SKIP: {
+	skip "You lack rights for this test", 1 
+		if $AFS::CODE =~ /you are not authorized for this operation/;
+	like($AFS::CODE, qr/no such entity/, 'bos->removehost(unknown host)');
+}
 can_ok('AFS::BOS', qw(removekey));
 
 $bos->removeuser(\%h);
@@ -86,7 +90,11 @@ like($AFS::CODE, qr/USER not an array reference/, 'bos->removeuser(HASH)');
 
 my $user = 'z';
 $bos->removeuser($user);
-like($AFS::CODE, qr/no such user/, 'bos->removeuser(unknown user)');
+SKIP: {
+	skip "You lack rights for this test", 1 
+		if $AFS::CODE =~ /you are not authorized for this operation/;
+	like($AFS::CODE, qr/no such user/, 'bos->removeuser(unknown user)');
+}
 
 can_ok('AFS::BOS', qw(restart_bos));
 can_ok('AFS::BOS', qw(restart_all));

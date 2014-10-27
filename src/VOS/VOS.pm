@@ -1,6 +1,6 @@
 package AFS::VOS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: VOS.pm 1111 2012-02-09 13:14:46Z nog $"
+# RCS-Id: "@(#)$RCS-Id: src/VOS/VOS.pm 7a64d4d Wed May 1 22:05:49 2013 +0200 Norbert E Gruener$"
 #
 # © 2005-2012 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 # © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
@@ -17,7 +17,7 @@ use Scalar::Util qw(looks_like_number);
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = 'v2.6.3';
+$VERSION = 'v2.6.4';
 
 sub DESTROY {
     my (undef, undef, undef, $subroutine) = caller(1);

@@ -1,6 +1,6 @@
 package AFS::VLDB;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: VLDB.pm 1059 2011-11-18 12:32:20Z nog $"
+# RCS-Id: "@(#)$RCS-Id: src/VLDB/VLDB.pm 7a64d4d Wed May 1 22:05:49 2013 +0200 Norbert E Gruener$"
 #
 # © 2005-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 # © 2003-2004 Alf Wachsmann <alfw@slac.stanford.edu> and
@@ -16,7 +16,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = 'v2.6.3';
+$VERSION = 'v2.6.4';
 
 sub DESTROY {
     my (undef, undef, undef, $subroutine) = caller(1);

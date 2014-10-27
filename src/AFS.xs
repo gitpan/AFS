@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: AFS.xs 1130 2012-10-06 09:30:35Z nog $
+ * RCS-Id: @(#)$RCS-Id: src/AFS.xs 73757dc Thu Oct 23 12:46:20 2014 +0200 Norbert E Gruener$
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -11,7 +11,7 @@
  * directory or online at http://www.openafs.org/dl/license10.html
  *
  * Contributors
- *    2004-2012: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
+ *    2004-2014: Norbert E. Gruener <nog@MPA-Garching.MPG.de>
  *         2003: Alf Wachsmann <alfw@slac.stanford.edu>
  *               Venkata Phani Kiran Achanta <neo_phani@hotmail.com>, and
  *               Norbert E. Gruener <nog@MPA-Garching.MPG.de>
@@ -77,7 +77,19 @@
 #include <afs/vldbint.h>
 #include <afs/volser.h>
 #ifndef RV_RDONLY
-#define RV_RDONLY  0x10000
+#define RV_FULLRST      0x000001
+#define RV_OFFLINE      0x000002
+#define RV_CRDUMP       0x000010
+#define RV_CRKEEP       0x000020
+#define RV_CRNEW        0x000040
+#define RV_LUDUMP       0x000100
+#define RV_LUKEEP       0x000200
+#define RV_LUNEW        0x000400
+#define RV_RDONLY       0x010000
+#define RV_CPINCR       0x020000
+#define RV_NOVLDB       0x040000
+#define RV_NOCLONE      0x080000
+#define RV_NODEL        0x100000
 #endif
 #include <afs/vlserver.h>
 #include <afs/volint.h>
@@ -104,7 +116,7 @@
 #define uint32 afs_uint32
 #endif
 
-const char *const xs_version = "AFS.xs (Version 2.6.3)";
+const char *const xs_version = "AFS.xs (Version 2.6.4)";
 
 /* here because it seemed too painful to #define KERNEL before #inc afs.h */
 struct VenusFid {
@@ -4813,6 +4825,8 @@ ktcp_DESTROY(p)
         # SETCODE(0);   this spoils the ERROR code
         RETVAL = 1;
     }
+    OUTPUT:
+        RETVAL
 
 void
 ktcp_name(p,name=0)
@@ -4908,6 +4922,8 @@ ktct_DESTROY(t)
         # SETCODE(0);   this spoils the ERROR code
         RETVAL = 1;
     }
+    OUTPUT:
+        RETVAL
 
 int32
 ktct_startTime(t)
@@ -4991,6 +5007,8 @@ ktck_DESTROY(k)
         # SETCODE(0);   this spoils the ERROR code
         RETVAL = 1;
     }
+    OUTPUT:
+        RETVAL
 
 void
 ktck_string(k)
@@ -5690,7 +5708,7 @@ vos__setfields(cstruct, name, mquota=Nullsv, clearuse=Nullsv)
             goto done;
         }
 
-        printf("vos-setfields DEBUG-1 name %s mquota %d clearuse %d \n", name, (int)SvIV(mquota), (int)SvIV(clearuse));
+        /* printf("vos-setfields DEBUG-1 name %s mquota %d clearuse %d \n", name, (int)SvIV(mquota), (int)SvIV(clearuse)); */
         RETVAL = 0;
         volid = vsu_GetVolumeID(name, cstruct, &err);   /* -id */
         if (volid == 0) {
@@ -5771,14 +5789,15 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=Nullsv,overwri
         SV *  offline
         SV *  readonly
     PREINIT:
-        afs_int32 avolid, aserver, apart, code,vcode, err;
-        afs_int32 aoverwrite = AFS_ABORT;
-        int restoreflags = 0, voltype = RWVOL, ireadonly = 0, ioffline = 0;
+        afs_int32 avolid, aparentid, aserver, apart, code, vcode, err;
+        afs_int32 aoverwrite = AFS_ASK;
+        int restoreflags, voltype = RWVOL, ireadonly = 0, ioffline = 0;
         char afilename[NameLen], avolname[VOLSER_MAXVOLNAME +1];
         char volname[VOLSER_MAXVOLNAME +1];
         struct nvldbentry entry;
     CODE:
     {
+        aparentid = 0;
         if (!inter) {
             inter = newSViv(0);
         }
@@ -5805,7 +5824,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=Nullsv,overwri
             goto done;
         }
         else
-            ioffline = 1;
+            ioffline = SvIV(offline);
         if ((!SvIOKp(readonly))) {
             char buffer[256];
             sprintf(buffer, "Flag \"readonly\" should be numeric.\n");
@@ -5814,7 +5833,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=Nullsv,overwri
             goto done;
         }
         else
-            ireadonly = 1;
+            ireadonly = SvIV(readonly);
 
         if (id && strlen(id) != 0) {
             avolid = vsu_GetVolumeID(id, cstruct, &err);
@@ -5940,6 +5959,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=Nullsv,overwri
             else if (entry.volumeId[voltype] != 0 && entry.volumeId[voltype] != avolid) {
                 avolid = entry.volumeId[voltype];
             }
+            aparentid = entry.volumeId[RWVOL];
         }
         else {                 /* volume exists - do we do a full incremental or abort */
             int Oserver, Opart, Otype, vol_elsewhere = 0;
@@ -5952,6 +5972,7 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=Nullsv,overwri
             else if (entry.volumeId[voltype] != 0 && entry.volumeId[voltype] != avolid) {
                 avolid = entry.volumeId[voltype];
             }
+            aparentid = entry.volumeId[RWVOL];
 
             /* A file name was specified  - check if volume is on another partition */
             vcode = GetVolumeInfo(avolid, &Oserver, &Opart, &Otype, &Oentry);
@@ -6041,8 +6062,16 @@ vos_restore(cstruct,server,partition,name,file=NULL,id=NULL,inter=Nullsv,overwri
             restoreflags |= RV_OFFLINE;
         if (ireadonly)
             restoreflags |= RV_RDONLY;
+
+        /* restoreflags |= RV_CRNEW; */
+        /* restoreflags |= RV_LUDUMP; */
+#ifdef OpenAFS_1_4_05
+        code = UV_RestoreVolume2(aserver, apart, avolid, aparentid, avolname,
+                                 restoreflags, WriteData, afilename);
+#else
         code = UV_RestoreVolume(aserver, apart, avolid, avolname,
                                 restoreflags, WriteData, afilename);
+#endif
         if (code) {
             PrintDiagnostics("restore", code);
             SETCODE(code);
@@ -9348,7 +9377,7 @@ bos_listhosts(self)
 
         XPUSHs(sv_2mortal(newRV_inc((SV *) (av))));
 
-        SETCODE(code);
+        SETCODE(0);
         XSRETURN(2);
     }
 

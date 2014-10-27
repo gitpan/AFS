@@ -1,6 +1,6 @@
 package AFS::PTS;
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: PTS.pm 1059 2011-11-18 12:32:20Z nog $"
+# RCS-Id: "@(#)$RCS-Id: src/PTS/PTS.pm 7a64d4d Wed May 1 22:05:49 2013 +0200 Norbert E Gruener$"
 #
 # © 2001-2010 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #
@@ -13,7 +13,7 @@ use AFS ();
 use vars qw(@ISA $VERSION);
 
 @ISA     = qw(AFS);
-$VERSION = 'v2.6.3';
+$VERSION = 'v2.6.4';
 
 sub new {
     # this whole construct is to please the old version from Roland
